@@ -48,12 +48,6 @@ function generateClientQuotationHtml(
   };
 
   const t = quotationTranslations[language];
-  const localeCode = language === 'ja' ? 'ja-JP' : 'en-US';
-  const dateFormat = new Intl.DateTimeFormat(localeCode, { 
-    year: 'numeric', 
-    month: '2-digit', 
-    day: '2-digit' 
-  });
   
   const creationDate = quotation?.created_at ? new Date(quotation.created_at) : new Date();
   const quotationDate = formatDateDDMMYYYY(creationDate);

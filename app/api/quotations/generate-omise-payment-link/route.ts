@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/main";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service-client";
 import { OmiseClient } from "@/lib/omise-client";
 
 export async function POST(req: NextRequest) {
   try {
     // Check authentication and admin permission
     const session = await getServerSession(authOptions);
-    const supabaseAuth = await getSupabaseServerClient();
+    const supabaseAuth = createServiceClient();
     const { data: { user: supabaseUser } } = await supabaseAuth.auth.getUser();
     const isDev = process.env.NODE_ENV !== 'production';
     if (!isDev && !session?.user && !supabaseUser) {
@@ -16,6 +16,8 @@ export async function POST(req: NextRequest) {
     }
 
     const { quotation_id: quotationId, regenerate = false, customName } = await req.json();
+
+    console.log('🔍 [PAYMENT-LINK-API] Received request:', { quotationId, regenerate, customName });
 
     if (!quotationId) {
       return NextResponse.json(
@@ -25,7 +27,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Get quotation data from database
-    const supabase = await getSupabaseServerClient();
+    const supabase = createServiceClient();
+    
+    console.log('🔍 [PAYMENT-LINK-API] Querying quotation with ID:', quotationId);
     
     const { data: quotationData, error: quotationError } = await supabase
       .from('quotations')
@@ -39,7 +43,15 @@ export async function POST(req: NextRequest) {
       .eq('id', quotationId)
       .single();
 
+    console.log('🔍 [PAYMENT-LINK-API] Query result:', { 
+      quotationData: quotationData ? 'Found' : 'Not found', 
+      error: quotationError,
+      quotationId: quotationId,
+      quotationDataKeys: quotationData ? Object.keys(quotationData) : null
+    });
+
     if (quotationError || !quotationData) {
+      console.error('❌ [PAYMENT-LINK-API] Quotation not found:', quotationError);
       return NextResponse.json(
         { error: "Quotation not found" },
         { status: 404 }
@@ -57,15 +69,14 @@ export async function POST(req: NextRequest) {
 
     // Initialize Omise client with test/production credentials
     const isTestMode = process.env.NODE_ENV === 'development' || process.env.OMISE_TEST_MODE === 'true';
-    const omiseClient = new OmiseClient({
-      publicKey: isTestMode 
+    const omiseClient = new OmiseClient(
+      isTestMode 
         ? (process.env.OMISE_TEST_PUBLIC_KEY || process.env.OMISE_PUBLIC_KEY || 'pkey_63znvleq75487yf61ea')
         : (process.env.OMISE_PUBLIC_KEY || 'pkey_63znvleq75487yf61ea'),
-      secretKey: isTestMode 
+      isTestMode 
         ? (process.env.OMISE_TEST_SECRET_KEY || process.env.OMISE_SECRET_KEY || 'skey_64t36zji5r1yloelbv2')
-        : (process.env.OMISE_SECRET_KEY || 'skey_64t36zji5r1yloelbv2'),
-      baseUrl: process.env.OMISE_API_URL || 'https://api.omise.co'
-    });
+        : (process.env.OMISE_SECRET_KEY || 'skey_64t36zji5r1yloelbv2')
+    );
     
     console.log(`[Omise] Using ${isTestMode ? 'TEST' : 'PRODUCTION'} credentials`);
 

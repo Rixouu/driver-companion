@@ -412,22 +412,25 @@ export function generateQuotationHtml(
   const quotationT = quotationTranslations[language];
   const isJapanese = language === 'ja';
   
-  // Format date values
+  // Format date values - Always use DD/MM/YYYY format
+  const formatDateToDDMMYYYY = (date: Date): string => {
+    const day = date.getDate().toString().padStart(2, '0')
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const year = date.getFullYear()
+    return `${day}/${month}/${year}`
+  }
+  
+  // Keep localeCode for time formatting
   const localeCode = language === 'ja' ? 'ja-JP' : 'en-US';
-  const dateFormat = new Intl.DateTimeFormat(localeCode, { 
-    year: 'numeric', 
-    month: '2-digit', 
-    day: '2-digit' 
-  });
   
   // Prepare dates
   const creationDate = quotation?.created_at ? new Date(quotation.created_at) : new Date();
-  const quotationDate = dateFormat.format(creationDate);
+  const quotationDate = formatDateToDDMMYYYY(creationDate);
   
   const validDays = quotation?.valid_days || 2;
   const expiryDate = new Date(creationDate);
   expiryDate.setDate(expiryDate.getDate() + validDays);
-  const expiryDateString = dateFormat.format(expiryDate);
+  const expiryDateString = formatDateToDDMMYYYY(expiryDate);
   
   // Format quotation number with JPDR prefix and padding
   const formattedQuotationId = `QUO-JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}`;

@@ -1,507 +1,293 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { getDictionary } from '@/lib/i18n/server';
-import { Resend } from 'resend';
-import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator';
-import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations';
-import { getTeamFooterHtml } from '@/lib/team-addresses';
+import { NextRequest, NextResponse } from 'next/server'
+import { createServiceClient } from '@/lib/supabase/service-client'
+import { Resend } from 'resend'
+import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator'
+import { emailTemplateService } from '@/lib/email/template-service'
+import { EmailVariableMapper } from '@/lib/services/email-variable-mapper'
 
-// Force dynamic rendering to avoid cookie issues
-export const dynamic = "force-dynamic";
+// =============================================================================
+// QUOTATION APPROVAL API - Proper Implementation
+// =============================================================================
 
 export async function POST(request: NextRequest) {
-  console.log('==================== OPTIMIZED APPROVE ROUTE START ====================');
-  
-  // Set up timeout for the entire request (30 seconds - reduced from 45)
-  const timeoutId = setTimeout(() => {
-    console.error('❌ [OPTIMIZED APPROVE ROUTE] Request timeout after 30 seconds');
-  }, 30000);
+  console.log('🚀 [APPROVE-API] Starting quotation approval process')
   
   try {
-    console.log('Optimized approve route - Parsing request body');
-    const { id, notes, signature, customerId, skipStatusCheck = false, skipEmail = false, bcc_emails = 'booking@japandriver.com' } = await request.json();
-    
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Quotation ID is required' },
-        { status: 400 }
-      );
-    }
-    
-    // Get translations and create server client in parallel
-    console.log('Optimized approve route - Starting parallel initialization');
-    const [translations, supabase] = await Promise.all([
-      getDictionary(),
-      getSupabaseServerClient()
-    ]);
-    
-    const { t } = translations;
-    console.log('Optimized approve route - Parallel initialization complete');
+    // Handle both JSON and FormData requests
+    let quotationId: string
+    let notes: string
+    let signature: string
+    let bccEmails: string
 
-    // Authenticate user
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-    if (authError || !authUser) {
-      console.error('Optimized approve route - Authentication error', authError);
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    console.log('Optimized approve route - User authenticated:', authUser.id);
+    const contentType = request.headers.get('content-type') || ''
 
-    // OPTIMIZATION 1: Parallel data fetching - fetch all required data in parallel
-    console.log('Optimized approve route - Starting parallel data fetching');
-    const [
-      quotationResult,
-      fullQuotationResult,
-      packageResult,
-      promotionResult
-    ] = await Promise.allSettled([
-      // Get basic quotation for status check
-      supabase
-        .from('quotations')
-        .select('id, status')
-        .eq('id', id)
-        .single(),
-      
-      // Get full quotation with customer details for email
-      supabase
-        .from('quotations')
-        .select('*, customers(*), quotation_items(*)')
-        .eq('id', id)
-        .single(),
-      
-      // Get package details (if any)
-      supabase
-        .from('quotations')
-        .select('selected_package_id, package_id, pricing_package_id')
-        .eq('id', id)
+    if (contentType.includes('application/json')) {
+      // Handle JSON request
+      const body = await request.json()
+      quotationId = body.id || body.quotation_id
+      notes = body.notes || ''
+      signature = body.signature || ''
+      bccEmails = body.bcc_emails || 'booking@japandriver.com'
+    } else {
+      // Handle FormData request
+      const formData = await request.formData()
+      quotationId = formData.get('quotation_id') as string
+      notes = formData.get('notes') as string || ''
+      signature = formData.get('signature') as string || ''
+      bccEmails = formData.get('bcc_emails') as string || 'booking@japandriver.com'
+    }
+
+    if (!quotationId) {
+      return NextResponse.json({ error: 'Quotation ID is required' }, { status: 400 })
+    }
+
+    console.log(`🔄 [APPROVE-API] Processing quotation ${quotationId}`)
+
+    const supabase = createServiceClient()
+
+    // Get quotation data with relations
+    const { data: quotation, error: quotationError } = await supabase
+      .from('quotations')
+      .select(`
+        *,
+        customers (
+          name,
+          email
+        ),
+        quotation_items (*)
+      `)
+      .eq('id', quotationId)
+      .single()
+
+    if (quotationError || !quotation) {
+      console.error('❌ [APPROVE-API] Quotation not found:', quotationError)
+      return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
+    }
+
+    console.log('✅ [APPROVE-API] Quotation found:', quotation.id)
+
+    // Update quotation status to approved with signature and notes
+    const { error: updateError } = await supabase
+      .from('quotations')
+      .update({
+        status: 'approved',
+        approved_at: new Date().toISOString(),
+        approval_notes: notes || null,
+        approval_signature: signature || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', quotationId)
+
+    if (updateError) {
+      console.error('❌ [APPROVE-API] Error updating quotation:', updateError)
+      return NextResponse.json({ error: 'Failed to approve quotation' }, { status: 500 })
+    }
+
+    console.log('✅ [APPROVE-API] Quotation status updated to approved')
+
+    // Record the approval activity
+    await supabase
+      .from('quotation_activities')
+      .insert({
+        quotation_id: quotationId,
+        action: 'approved',
+        description: notes || 'Quotation approved',
+        metadata: {
+          signature: signature || null,
+          approved_via: 'admin_panel'
+        },
+        created_at: new Date().toISOString()
+      })
+
+    // Get updated quotation with signature for PDF generation
+    const { data: updatedQuotation } = await supabase
+      .from('quotations')
+      .select(`
+        *,
+        quotation_items (*)
+      `)
+      .eq('id', quotationId)
+      .single()
+
+    // Fetch associated package and promotion for PDF generation
+    let selectedPackage = null
+    const packageId = quotation.selected_package_id || (quotation as any).package_id || (quotation as any).pricing_package_id
+    if (packageId) {
+      const { data: pkg } = await supabase
+        .from('pricing_packages')
+        .select('*, items:pricing_package_items(*)')
+        .eq('id', packageId)
         .single()
-        .then(async (result: any) => {
-          if (result.data) {
-            const packageId = result.data.selected_package_id || result.data.package_id || result.data.pricing_package_id;
-            if (packageId) {
-              return supabase
-                .from('pricing_packages')
-                .select('*, items:pricing_package_items(*)')
-                .eq('id', packageId)
-                .single();
-            }
-          }
-          return { data: null, error: null };
-        }),
-      
-      // Get promotion details (if any)
-      supabase
-        .from('quotations')
-        .select('selected_promotion_code, promotion_code')
-        .eq('id', id)
+      selectedPackage = pkg
+    }
+
+    let selectedPromotion = null
+    const promotionCode = quotation.selected_promotion_code || (quotation as any).promotion_code
+    if (promotionCode) {
+      const { data: promo } = await supabase
+        .from('pricing_promotions')
+        .select('*')
+        .eq('code', promotionCode)
         .single()
-        .then(async (result: any) => {
-          if (result.data) {
-            const promotionCode = result.data.selected_promotion_code || result.data.promotion_code;
-            if (promotionCode) {
-              return supabase
-                .from('pricing_promotions')
-                .select('*')
-                .eq('code', promotionCode)
-                .single();
-            }
-          }
-          return { data: null, error: null };
-        })
-    ]);
-
-    // Process results
-    const quotation = quotationResult.status === 'fulfilled' ? quotationResult.value.data : null;
-    const fullQuotation = fullQuotationResult.status === 'fulfilled' ? fullQuotationResult.value.data : null;
-    const selectedPackage = packageResult.status === 'fulfilled' ? packageResult.value.data : null;
-    const selectedPromotion = promotionResult.status === 'fulfilled' ? promotionResult.value.data : null;
-
-    if (!quotation || !fullQuotation) {
-      console.log('Optimized approve route - Quotation not found');
-      return NextResponse.json(
-        { error: 'Quotation not found' },
-        { status: 404 }
-      );
+      selectedPromotion = promo
     }
 
-    console.log('Optimized approve route - Parallel data fetching complete');
-
-    // Check if quotation is already approved
-    if (quotation && quotation.status === 'approved' && !skipStatusCheck) {
-      console.log('Optimized approve route - Quotation already approved');
-      return NextResponse.json(
-        { error: 'Quotation is already approved' },
-        { status: 400 }
-      );
-    }
-    
-    // Ensure we have a valid email address
-    const emailAddress = fullQuotation.customer_email || 
-                      (fullQuotation.customers ? fullQuotation.customers.email : null);
-    
-    if (!emailAddress) {
-      console.log('Optimized approve route - No valid email address found');
-      return NextResponse.json({ 
-        message: 'Quotation approved, but no valid email address found',
-        error: 'Missing email address'
-      }, { status: 200 });
-    }
-    
-    // Skip email if explicitly requested
-    if (skipEmail) {
-      console.log('Optimized approve route - Skipping email notification as requested');
-      return NextResponse.json({ 
-        message: 'Quotation approved, email notification skipped' 
-      }, { status: 200 });
-    }
-
-    // OPTIMIZATION 2: Parallel processing - update database and prepare email data simultaneously
-    console.log('Optimized approve route - Starting parallel processing');
-    const [updateResult, emailPreparation] = await Promise.allSettled([
-      // Update quotation status and log activity in parallel
-      Promise.all([
-        // Update quotation status
-        !skipStatusCheck ? supabase
-          .from('quotations')
-          .update({ 
-            status: 'approved',
-            customer_notes: notes,
-            approved_at: new Date().toISOString(),
-            approved_by: authUser.id,
-            approval_signature: signature
-          })
-          .eq('id', id) : Promise.resolve({ error: null }),
-        
-        // Log activity
-        supabase
-          .from('quotation_activities')
-          .insert({
-            quotation_id: id,
-            user_id: authUser.id,
-            action: 'approved',
-            details: {
-              notes: notes || null,
-              approved_by_customer_id: customerId,
-              approved_by_staff_id: authUser.id
-            }
-          })
-      ]),
-      
-      // Prepare email data in parallel
-      Promise.all([
-        // Get updated quotation for PDF generation
-        supabase
-          .from('quotations')
-          .select('*, quotation_items (*)')
-          .eq('id', id)
-          .single(),
-        
-        // Prepare email configuration
-        Promise.resolve({
-          emailDomain: process.env.NEXT_PUBLIC_EMAIL_DOMAIN || 'japandriver.com',
-          appUrl: process.env.NEXT_PUBLIC_APP_URL || 
-                 (process.env.NODE_ENV === 'production' ? 'https://driver-companion.vercel.app' : 'http://localhost:3000'),
-          formattedQuotationId: `QUO-JPDR-${fullQuotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`,
-          customerName: (fullQuotation.customers ? fullQuotation.customers.name : null) || 
-                       fullQuotation.customer_name || 
-                       'Customer',
-          bccEmailList: bcc_emails.split(',').map((email: string) => email.trim()).filter((email: string) => email)
-        })
-      ])
-    ]);
-
-    // Check for update errors
-    if (updateResult.status === 'rejected' || 
-        (updateResult.status === 'fulfilled' && updateResult.value[0]?.error)) {
-      console.error('Optimized approve route - Error updating quotation:', updateResult);
-      return NextResponse.json({ 
-        message: 'Quotation approved, but failed to update status',
-        error: updateResult.status === 'rejected' ? 'Update failed' : updateResult.value[0]?.error?.message
-      }, { status: 200 });
-    }
-
-    if (emailPreparation.status === 'rejected') {
-      console.error('Optimized approve route - Error preparing email data:', emailPreparation);
-      return NextResponse.json({ 
-        message: 'Quotation approved, but failed to prepare email data',
-        error: 'Email preparation failed'
-      }, { status: 200 });
-    }
-
-    const [updatedQuotation, emailConfig] = emailPreparation.status === 'fulfilled' ? emailPreparation.value : [null, null];
-    console.log('Optimized approve route - Parallel processing complete');
-
-    // Validate email config
-    if (!emailConfig) {
-      console.error('Optimized approve route - Email configuration failed');
-      return NextResponse.json({ 
-        message: 'Quotation approved, but failed to prepare email configuration',
-        error: 'Email configuration failed'
-      }, { status: 200 });
-    }
-
-    // OPTIMIZATION 3: Parallel PDF generation and email preparation
-    console.log('Optimized approve route - Starting PDF generation and email preparation');
-    const [pdfResult, emailHtmlResult] = await Promise.allSettled([
-      // Generate PDF
-      generateOptimizedQuotationPDF(
-        updatedQuotation?.data || fullQuotation, 
-        'en', 
-        selectedPackage, 
-        selectedPromotion
-      ),
-      
-      // Generate email HTML
-      Promise.resolve(
-        generateEmailHtml(
-          'en', 
-          emailConfig.customerName, 
-          emailConfig.formattedQuotationId, 
-          fullQuotation, 
-          emailConfig.appUrl, 
-          notes, 
-          (fullQuotation.team_location as 'japan' | 'thailand') || 'thailand'
-        )
-      )
-    ]);
-
-    // Check PDF generation result
-    if (pdfResult.status === 'rejected') {
-      console.error('Optimized approve route - PDF generation failed:', pdfResult.reason);
-      return NextResponse.json({ 
-        message: 'Quotation approved, but failed to generate PDF for email', 
-        error: pdfResult.reason instanceof Error ? pdfResult.reason.message : 'PDF generation failed'
-      }, { status: 200 });
-    }
-
-    const pdfBuffer = pdfResult.status === 'fulfilled' ? pdfResult.value : null;
-    const emailHtml = emailHtmlResult.status === 'fulfilled' ? emailHtmlResult.value : '';
-
-    console.log('Optimized approve route - PDF and email preparation complete');
-
-    // OPTIMIZATION 4: Send email with optimized timeout
+    // Generate PDF with signature
+    let pdfAttachment = null
     try {
-      console.log(`Optimized approve route - Sending approval email to: ${emailAddress}`);
+      console.log('🔄 [APPROVE-API] Generating PDF with signature...')
       
-      // Check if API key is configured
-      if (!process.env.RESEND_API_KEY) {
-        console.error('Optimized approve route - RESEND_API_KEY environment variable is not configured');
-        return NextResponse.json(
-          { error: 'Email service not configured' },
-          { status: 500 }
-        );
+      const pdfBuffer = await generateOptimizedQuotationPDF(
+        updatedQuotation || quotation,
+        'en',
+        selectedPackage,
+        selectedPromotion
+      )
+      
+      pdfAttachment = {
+        filename: `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || quotation.id.slice(-6).toUpperCase()}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
       }
       
-      // Initialize Resend with API key
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      
-      // Send email with reduced timeout (20 seconds instead of 30)
-      const emailSubject = `Your Quotation has been Approved - ${emailConfig.formattedQuotationId}`;
-      
-      const emailSendPromise = resend.emails.send({
-        from: `Driver Japan <booking@${emailConfig.emailDomain}>`,
-        to: [emailAddress],
-        bcc: emailConfig.bccEmailList,
-        subject: emailSubject,
-        html: emailHtml,
-        attachments: pdfBuffer ? [
-          {
-            filename: `${emailConfig.formattedQuotationId}-quotation.pdf`,
-            content: pdfBuffer.toString('base64')
-          }
-        ] : undefined
-      });
-
-      // Add timeout for email sending (20 seconds - reduced from 30)
-      const { data: emailData, error: resendError } = await Promise.race([
-        emailSendPromise,
-        new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Email sending timeout after 20 seconds')), 20000)
-        )
-      ]);
-
-      if (resendError) {
-        console.error('❌ [OPTIMIZED APPROVE ROUTE] Error reported by Resend:', JSON.stringify(resendError, null, 2));
-        throw new Error(`Resend API Error: ${resendError.message || 'Unknown error'}`); 
-      }
-      
-      const emailId = emailData?.id || 'unknown';
-      console.log(`Optimized approve route - Email sent successfully! ID: ${emailId}`);
-      
-      // Email sent successfully - no need to update timestamp as column doesn't exist
-      console.log('Optimized approve route - Email sent successfully');
-      
-      clearTimeout(timeoutId);
-      return NextResponse.json({ 
-        message: 'Quotation approved and notification email sent', 
-        emailId: emailId 
-      }, { status: 200 });
-      
-    } catch (emailError) {
-      console.error('❌ [OPTIMIZED APPROVE ROUTE] Email sending error:', emailError);
-      return NextResponse.json({ 
-        message: 'Quotation approved, but failed to send notification email',
-        error: emailError instanceof Error ? emailError.message : 'Email sending failed'
-      }, { status: 200 });
+      console.log('✅ [APPROVE-API] PDF generated with signature:', pdfAttachment.filename)
+    } catch (error) {
+      console.warn('⚠️ [APPROVE-API] PDF generation failed:', error)
     }
-    
-  } catch (error) {
-    console.error('❌ [OPTIMIZED APPROVE ROUTE] Unexpected error:', error);
-    clearTimeout(timeoutId);
-    return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error occurred'
-      },
-      { status: 500 }
-    );
-  }
-}
 
-// Helper function to generate approval email HTML (matching the original design)
-function generateEmailHtml(language: string, customerName: string, formattedQuotationId: string, quotation: any, appUrl: string, notes?: string, teamLocation: 'japan' | 'thailand' = 'thailand') {
-  const isJapanese = language === 'ja';
-  
-  return `
-    <!DOCTYPE html>
-    <html lang="${language}">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>Your Quotation has been Approved</title>
-      <style>
-        body, table, td, a {
-          -webkit-text-size-adjust:100%;
-          -ms-text-size-adjust:100%;
-          font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
-        }
-        table, td { mso-table-lspace:0; mso-table-rspace:0; }
-        img {
-          border:0;
-          line-height:100%;
-          outline:none;
-          text-decoration:none;
-          -ms-interpolation-mode:bicubic;
-        }
-        table { border-collapse:collapse!important; }
-        body {
-          margin:0;
-          padding:0;
-          width:100%!important;
-          background:#F2F4F6;
-        }
-        .greeting {
-          color:#32325D;
-          margin:24px 24px 16px;
-          line-height:1.4;
-          font-size: 14px;
-        }
-        @media only screen and (max-width:600px) {
-          .container { width:100%!important; }
-          .stack { display:block!important; width:100%!important; text-align:center!important; }
-        }
-        .details-table td, .details-table th {
-          padding: 10px 0;
-          font-size: 14px;
-        }
-        .details-table th {
-           color: #8898AA;
-           text-transform: uppercase;
-           text-align: left;
-        }
-        .button {
-          background-color: #E03E2D;
-          color: white;
-          padding: 12px 24px;
-          text-decoration: none;
-          border-radius: 6px;
-          display: inline-block;
-          margin: 16px 0;
-        }
-        .reason {
-          background-color: #f0fdf4;
-          border-left: 4px solid #059669;
-          padding: 16px;
-          margin: 16px 0;
-          border-radius: 4px;
-        }
-      </style>
-    </head>
-    <body style="background:#F2F4F6; margin:0; padding:0;">
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-        <tr>
-          <td align="center" style="padding:24px;">
-            <table class="container" width="600" cellpadding="0" cellspacing="0" role="presentation"
-                   style="background:#FFFFFF; border-radius:8px; overflow:hidden; max-width: 600px;">
-              
-              <!-- Header -->
-              <tr>
-                <td style="background:linear-gradient(135deg,#E03E2D 0%,#F45C4C 100%); padding:32px 24px; text-align:center;">
-                  <table cellpadding="0" cellspacing="0" style="background:#FFFFFF; border-radius:50%; width:64px; height:64px; margin:0 auto 12px;">
-                    <tr><td align="center" valign="middle" style="text-align:center;">
-                        <img src="https://japandriver.com/img/driver-invoice-logo.png" width="48" height="48" alt="Driver logo" style="display:block; margin:0 auto;">
-                    </td></tr>
-                  </table>
-                  <h1 style="color:white; margin:0; font-size:24px; font-weight:600;">
-                    ${isJapanese ? '見積書が承認されました' : 'Your Quotation has been Approved'}
-                  </h1>
-                  <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
-                    Quotation #${formattedQuotationId}
-                  </p>
-                </td>
-              </tr>
-              
-              <!-- Content -->
-              <tr>
-                <td style="padding:32px 24px;">
-                  <div class="greeting">
-                    <p>Hello ${customerName},</p>
-                    
-                    <p>Great news! Your quotation has been approved.</p>
-                    
-                    <div style="background:#f8f9fa; padding:20px; border-radius:8px; margin:20px 0;">
-                      <h3 style="margin:0 0 12px 0; color:#32325D;">Quotation Details</h3>
-                      <p style="margin:0; color:#525f7f;">
-                        <strong>Quotation ID:</strong> ${formattedQuotationId}<br>
-                        <strong>Title:</strong> ${quotation.title || 'Untitled'}<br>
-                        <strong>Total Amount:</strong> ${quotation.currency || 'JPY'} ${quotation.total_amount?.toLocaleString() || '0'}<br>
-                        <strong>Status:</strong> <span style="color:#059669; font-weight:600;">Approved</span><br>
-                        <strong>Date:</strong> ${new Date().toLocaleDateString()}
-                      </p>
-                    </div>
-                    
-                    ${notes ? `
-                      <div class="reason">
-                        <h4 style="margin:0 0 8px 0; color:#32325D;">Approved Notes:</h4>
-                        <p style="margin:0; color:#525f7f;">${notes}</p>
-                      </div>
-                    ` : ''}
-                    
-                    <p>You can now proceed with the next steps. If you have any questions or need assistance, please don't hesitate to contact us.</p>
-                    
-                    <p>Thank you for choosing Driver Japan!</p>
-                    
-                  </div>
-                </td>
-              </tr>
-              
-              <!-- Footer -->
-              <tr>
-                <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; font-size:12px; color:#8898AA;">
-                  <p style="margin:0;">
-                    Best regards,<br>
-                    ${teamLocation === 'japan' ? 'Japan Team' : 'Thailand Team'}<br>
-                    Driver (Thailand) Company Limited
-                  </p>
-                  <p style="margin:8px 0 0 0;">
-                    <a href="https://japandriver.com" style="color:#8898AA; text-decoration:none;">japandriver.com</a>
-                  </p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </body>
-    </html>
-  `;
+    // Send approval email using unified template system
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const customerEmail = quotation.customer_email || quotation.customers?.email
+
+    if (!customerEmail) {
+      console.warn('⚠️ [APPROVE-API] No customer email found')
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Quotation approved but no email sent (no customer email)' 
+      })
+    }
+
+    console.log('🔄 [APPROVE-API] Preparing template variables for approval email')
+
+    // Transform database quotation data to match EmailVariableMapper interface
+    const transformedQuotation = {
+      ...updatedQuotation || quotation,
+      
+      // Fix field name mismatches
+      pickup_location: quotation.pickup_location || `${quotation.customer_notes || 'Pick up location'}`,
+      dropoff_location: quotation.dropoff_location || `${quotation.merchant_notes || 'Drop off location'}`,
+      date: quotation.pickup_date || 'TBD',
+      time: quotation.pickup_time || 'TBD',
+      
+      // Fix currency and pricing fields
+      currency: quotation.currency || 'JPY',
+      display_currency: quotation.currency || 'JPY',
+      total_amount: quotation.total_amount || 0,
+      service_total: quotation.total_amount || 0,
+      subtotal: quotation.total_amount || 0,
+      tax_amount: 0,
+      tax_percentage: 0,
+      discount_percentage: 0,
+      regular_discount: 0,
+      promotion_discount: 0,
+      final_total: quotation.total_amount || 0,
+      
+      // Fix service details
+      service_type: quotation.service_type || 'Service',
+      vehicle_type: quotation.vehicle_type || 'Vehicle',
+      duration_hours: quotation.duration_hours || 1,
+      service_days: quotation.service_days || 1,
+      hours_per_day: quotation.hours_per_day || 1,
+      
+      // Customer info
+      customer_name: quotation.customer_name || 'Customer',
+      customer_email: quotation.customer_email || quotation.customers?.email || 'customer@example.com',
+      
+      // Status and metadata
+      status: quotation.status || 'draft',
+      created_at: quotation.created_at || new Date().toISOString(),
+      updated_at: quotation.updated_at || new Date().toISOString(),
+      last_sent_at: (quotation as any).last_sent_at || undefined,
+      team_location: quotation.team_location || 'japan',
+      
+      // Package and promotion codes
+      selected_package_code: quotation.selected_package_id || undefined,
+      selected_promotion_code: quotation.selected_promotion_code || undefined
+    }
+
+    // Prepare template variables using the proper mapper
+    const templateVariables = EmailVariableMapper.mapQuotationVariables(
+      transformedQuotation,
+      selectedPackage as any,
+      selectedPromotion as any,
+      null, // magicLink
+      false // isUpdated
+    )
+
+    // Override specific variables for approval email
+    templateVariables.greeting_text = 'Great news! Your quotation has been approved and is ready for the next steps.'
+    templateVariables.subject = `Your Quotation has been Approved - #QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || quotation.id.slice(-6).toUpperCase()}`
+    
+    // Add approval-specific variables
+    templateVariables.approval_notes = notes || ''
+    templateVariables.approval_signature = signature || ''
+    templateVariables.approval_date = new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
+
+    console.log('🔄 [APPROVE-API] Rendering approval email template')
+
+    // Render the template using emailTemplateService
+    const rendered = await emailTemplateService.renderTemplate(
+      'Quotation Approved',
+      templateVariables,
+      'japan',
+      'en'
+    )
+
+    if (!rendered) {
+      console.error('❌ [APPROVE-API] Template rendering failed')
+      return NextResponse.json({ error: 'Failed to render email template' }, { status: 500 })
+    }
+
+    console.log('✅ [APPROVE-API] Template rendered successfully')
+
+    // Send email
+    const { data: emailData, error: emailError } = await resend.emails.send({
+      from: 'Driver Japan <booking@japandriver.com>',
+      to: [customerEmail],
+      bcc: [bccEmails],
+      subject: templateVariables.subject,
+      html: rendered.html,
+      text: rendered.text,
+      attachments: pdfAttachment ? [pdfAttachment] : []
+    })
+
+    if (emailError) {
+      console.error('❌ [APPROVE-API] Email sending failed:', emailError)
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Quotation approved but email failed to send',
+        error: emailError.message 
+      })
+    }
+
+    console.log('✅ [APPROVE-API] Approval email sent successfully:', emailData?.id)
+
+    return NextResponse.json({
+      success: true,
+      message: 'Quotation approved and email sent successfully',
+      quotation_id: quotationId,
+      email_id: emailData?.id
+    })
+
+  } catch (error) {
+    console.error('❌ [APPROVE-API] Unexpected error:', error)
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
+  }
 }

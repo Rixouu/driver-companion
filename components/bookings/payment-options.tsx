@@ -18,7 +18,7 @@ import { PaymentModal } from '@/components/bookings/payment-modal'
 interface PaymentOptionsProps {
   formData: any
   calculatedPrice: any
-  onPaymentAction: (action: 'upgrade-only' | 'full-quote', emailData?: any) => void
+  onPaymentAction: (action: 'upgrade-only' | 'full-quote', emailData?: any, bookingId?: string) => void
   isLoading?: boolean
 }
 
@@ -35,10 +35,14 @@ export function PaymentOptions({
   const upgradeAmount = formData.upgradeDowngradeData?.priceDifference || 0
   
   // Check if required fields are present for payment processing
-  const hasRequiredFields = formData.vehicle_id && formData.driver_id
+  // For normal bookings, only vehicle is required. Driver can be assigned later.
+  // For upgrade/downgrade, both vehicle and driver are required since they're already assigned.
+  const hasRequiredFields = hasUpgradeDowngrade ? 
+    (formData.vehicle_id && formData.driver_id) : 
+    formData.vehicle_id
   const missingFields = []
   if (!formData.vehicle_id) missingFields.push('Vehicle')
-  if (!formData.driver_id) missingFields.push('Driver')
+  if (hasUpgradeDowngrade && !formData.driver_id) missingFields.push('Driver')
   
   // Calculate full quote amount correctly
   const fullQuoteAmount = formData.upgradeDowngradeData ? 
@@ -53,8 +57,9 @@ export function PaymentOptions({
     setShowPaymentModal(true)
   }
 
-  const handlePaymentAction = (action: 'upgrade-only' | 'full-quote', emailData?: any) => {
-    onPaymentAction(action, emailData)
+  const handlePaymentAction = (action: 'upgrade-only' | 'full-quote', emailData?: any, bookingId?: string) => {
+    console.log('🔍 [PAYMENT-OPTIONS] handlePaymentAction called with:', { action, emailData, bookingId });
+    onPaymentAction(action, emailData, bookingId)
     setShowPaymentModal(false)
     setSelectedPaymentType(null)
   }

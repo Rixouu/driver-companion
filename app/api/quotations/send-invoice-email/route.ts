@@ -1,283 +1,365 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth/main";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { sendInvoiceEmail } from "@/lib/email/send-email";
+import { NextRequest, NextResponse } from 'next/server'
+import { createServiceClient } from '@/lib/supabase/service-client'
+import { EmailAPIWrapper } from '@/lib/services/email-api-wrapper'
+import { PricingPackage, PricingPromotion } from '@/types/quotations'
+import { emailTemplateService } from '@/lib/email/template-service'
+import { Resend } from 'resend'
+import { generateOptimizedPdfFromHtml } from '@/lib/optimized-html-pdf-generator'
+import { generateInvoiceHtml } from '@/app/api/quotations/generate-invoice-pdf/route'
 
-export async function POST(req: NextRequest) {
+// =============================================================================
+// MIGRATED INVOICE EMAIL API - Now uses unified notification templates
+// =============================================================================
+// This route has been migrated from hardcoded templates to the unified system.
+
+export async function POST(request: NextRequest) {
+  console.log('🔄 [MIGRATED-INVOICE-API] Processing invoice email request')
+  
   try {
-    // Allow unauthenticated in development to facilitate testing
-    const session = await getServerSession(authOptions);
-    const supabaseAuth = await getSupabaseServerClient();
-    const { data: { user: supabaseUser } } = await supabaseAuth.auth.getUser();
-    const isDev = process.env.NODE_ENV !== 'production';
-    if (!isDev && !session?.user && !supabaseUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const formData = await request.formData()
+    const quotationId = formData.get('quotation_id') as string
+    const email = formData.get('email') as string
+    const language = (formData.get('language') as string) || 'en'
+    const bccEmails = formData.get('bcc_emails') as string || 'booking@japandriver.com'
+
+    if (!quotationId) {
+      return NextResponse.json({ error: 'Quotation ID is required' }, { status: 400 })
     }
 
-    // Parse form data for file upload
-    const contentType = req.headers.get('content-type') || '';
-    const formData = contentType.includes('multipart/form-data') ? await req.formData() : null;
-    const email = formData ? (formData.get('email') as string) : (await req.json()).email;
-    const quotationId = formData ? (formData.get('quotation_id') as string) : (await req.json()).quotation_id;
-    const customerName = formData ? (formData.get('customer_name') as string) : (await req.json()).customer_name;
-    const includeDetails = formData ? formData.get('include_details') === 'true' : Boolean((await req.json()).include_details);
-    const language = formData ? ((formData.get('language') as string) || 'en') : ((await req.json()).language || 'en');
-    const pdfFile = formData ? (formData.get('invoice_pdf') as File) : null;
-    const overridePaymentLink = formData ? ((formData.get('payment_link') as string) || '') : ((await req.json()).payment_link || '');
-
-    if (!email || !quotationId) {
-      return NextResponse.json(
-        { error: "Missing required fields: email and quotation_id are required" },
-        { status: 400 }
-      );
+    if (!email) {
+      return NextResponse.json({ error: 'Email address is required' }, { status: 400 })
     }
 
-    // Get quotation data from database
-    const supabase = await getSupabaseServerClient();
-    
-    const { data: quotationData, error: quotationError } = await supabase
+    console.log(`🔄 [UNIFIED-EMAIL-API] Processing quotation ${quotationId} for ${email}`)
+
+    // Get quotation data
+    const supabase = createServiceClient()
+    const { data: quotation, error: quotationError } = await supabase
       .from('quotations')
-      .select(`
-        *,
-        quotation_items (*),
-        customers:customer_id (*)
-      `)
+      .select('*')
       .eq('id', quotationId)
-      .single();
+      .single()
 
-    if (quotationError || !quotationData) {
-      return NextResponse.json(
-        { error: "Quotation not found" },
-        { status: 404 }
-      );
-    }
-
-    // Check if quotation is approved or paid
-    if (!['approved', 'paid', 'converted'].includes(quotationData.status)) {
-      return NextResponse.json(
-        { error: "Can only send invoices for approved, paid, or converted quotations" },
-        { status: 400 }
-      );
+    if (quotationError || !quotation) {
+      console.error('❌ [UNIFIED-EMAIL-API] Quotation not found:', quotationError)
+      return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
     }
     
-    // Convert the PDF file to buffer for email attachment
-    let pdfBuffer: Buffer | null = null;
-    if (pdfFile) {
-      pdfBuffer = Buffer.from(await pdfFile.arrayBuffer());
-    }
-    
-    // Generate invoice ID
-    const invoiceId = `INV-${quotationId}`;
-    
-    // Determine base URL for links
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin;
+    console.log('✅ [UNIFIED-EMAIL-API] Quotation found:', !!quotation, 'Keys:', Object.keys(quotation || {}).length)
 
-    // Prepare derived fields
-    const displayCurrency = (quotationData as any).display_currency || (quotationData as any).currency || 'JPY';
-    const serviceSummary = (() => {
-      try {
-        const items = (quotationData as any).quotation_items as Array<any> | null;
-        if (items && items.length > 0) {
-          // Create detailed service description
-          const serviceDetails = items.map(item => {
-            const serviceName = item.service_type_name || item.description || 'Service';
-            const vehicleType = item.vehicle_type || '';
-            const duration = item.duration_hours ? `${item.duration_hours}h` : 
-                           item.service_days ? `${item.service_days} day(s)` : '';
-            const location = item.pickup_location || item.dropoff_location ? 
-                           ` (${[item.pickup_location, item.dropoff_location].filter(Boolean).join(' → ')})` : '';
-            
-            return `${serviceName}${vehicleType ? ` - ${vehicleType}` : ''}${duration ? ` (${duration})` : ''}${location}`;
-          });
-          
-          // Show first 2 services with details, then count for remainder
-          if (serviceDetails.length <= 2) {
-            return serviceDetails.join(' + ');
-          } else {
-            return `${serviceDetails.slice(0, 2).join(' + ')} + ${serviceDetails.length - 2} more service(s)`;
-          }
-        }
-        
-        // Fallback for single service quotations
-        const serviceType = (quotationData as any).service_type || (quotationData as any).service_type_name || 'Transportation Service';
-        const vehicle = (quotationData as any).vehicle_type || '';
-        const duration = (quotationData as any).duration_hours ? `${(quotationData as any).duration_hours}h` : '';
-        
-        return `${serviceType}${vehicle ? ` - ${vehicle}` : ''}${duration ? ` (${duration})` : ''}`;
-      } catch { 
-        return (quotationData as any).title || 'Transportation Service'; 
-      }
-    })();
-
-    // Fetch package and promotion data if available
-    let selectedPackage: any = null;
-    let selectedPromotion: any = null;
-
-    if (quotationData.selected_package_id) {
-      try {
-        const { data: packageData } = await supabase
-          .from('pricing_packages')
-          .select('*, items:pricing_package_items(*)')
-          .eq('id', quotationData.selected_package_id)
-          .single();
-        selectedPackage = packageData;
-      } catch (error) {
-        console.error('Error fetching package data:', error);
-      }
+    // Get selected package if exists
+    let selectedPackage: PricingPackage | null = null
+    if (quotation.selected_package_id) {
+      const { data: packageData } = await supabase
+        .from('pricing_packages')
+        .select('*')
+        .eq('id', quotation.selected_package_id)
+        .single()
+      selectedPackage = packageData as PricingPackage | null
     }
 
-    if (quotationData.selected_promotion_code) {
-      try {
-        const { data: promotionData } = await supabase
-          .from('pricing_promotions')
-          .select('*')
-          .eq('code', quotationData.selected_promotion_code)
-          .single();
-        selectedPromotion = promotionData;
-      } catch (error) {
-        console.error('Error fetching promotion data:', error);
-      }
-    } else if (quotationData.selected_promotion_name) {
-      // Try to fetch by name as fallback
-      try {
-        const { data: promotionData } = await supabase
-          .from('pricing_promotions')
-          .select('*')
-          .eq('name', quotationData.selected_promotion_name)
-          .single();
-        selectedPromotion = promotionData;
-      } catch (error) {
-        console.error('Error fetching promotion data by name:', error);
-        // Create temporary promotion object - but don't set discount_value since we'll use stored promotion_discount
-        selectedPromotion = {
-          id: quotationData.selected_promotion_id || 'stored-promotion',
-          name: quotationData.selected_promotion_name,
-          code: quotationData.selected_promotion_code || 'APPLIED',
-          description: quotationData.selected_promotion_description || '',
-          discount_type: 'percentage',
-          discount_value: 0, // Don't use this - use stored promotion_discount instead
-          is_active: true,
-          created_at: '',
-          updated_at: ''
-        };
-      }
+    // Get selected promotion if exists
+    let selectedPromotion: PricingPromotion | null = null
+    if (quotation.selected_promotion_id) {
+      const { data: promotionData } = await supabase
+        .from('pricing_promotions')
+        .select('*')
+        .eq('id', quotation.selected_promotion_id)
+        .single()
+      selectedPromotion = promotionData as PricingPromotion | null
     }
 
-    // Calculate proper totals like in PDF - EXACTLY matching the PDF logic
-    const calculateTotals = () => {
-      let serviceBaseTotal = 0;
-      let serviceTimeAdjustment = 0;
-      
-      if ((quotationData as any).quotation_items && (quotationData as any).quotation_items.length > 0) {
-        (quotationData as any).quotation_items.forEach((item: any) => {
-          const itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
-          serviceBaseTotal += itemBasePrice;
-          
-          if (item.time_based_adjustment) {
-            const timeAdjustment = itemBasePrice * (item.time_based_adjustment / 100);
-            serviceTimeAdjustment += timeAdjustment;
-          }
-        });
-      } else {
-        // Fallback for older quotations
-        serviceBaseTotal = quotationData.amount || 0;
-      }
-      
-      const serviceTotal = serviceBaseTotal + serviceTimeAdjustment;
-      const packageTotal = selectedPackage ? selectedPackage.base_price : 0;
-      const baseTotal = serviceTotal + packageTotal;
-      
-      const discountPercentage = quotationData.discount_percentage || 0;
-      const taxPercentage = quotationData.tax_percentage || 0;
-      
-      // Calculate promotion discount exactly like PDF - but use stored value if selectedPromotion has no discount_value
-      const promotionDiscount = selectedPromotion && selectedPromotion.discount_value > 0 ? 
-        (selectedPromotion.discount_type === 'percentage' ? 
-          baseTotal * (selectedPromotion.discount_value / 100) : 
-          selectedPromotion.discount_value) : (quotationData.promotion_discount || 0);
-      
-      const regularDiscount = baseTotal * (discountPercentage / 100);
-      const totalDiscount = promotionDiscount + regularDiscount;
-      
-      const subtotal = Math.max(0, baseTotal - totalDiscount);
-      const taxAmount = subtotal * (taxPercentage / 100);
-      const finalTotal = subtotal + taxAmount;
-      
-      return {
-        serviceBaseTotal,
-        serviceTimeAdjustment,
-        serviceTotal,
-        packageTotal,
-        baseTotal,
-        promotionDiscount,
-        regularDiscount,
-        totalDiscount,
-        subtotal,
-        taxAmount,
-        finalTotal
-      };
-    };
-
-    const totals = calculateTotals();
-
-    // Prepare email data - no payment link for regular invoice emails
-    const emailData = {
-      to: email,
-      customerName: customerName || quotationData.customer_name || quotationData.customers?.name || 'Customer',
-      invoiceId: `INV-JPDR-${String(quotationData.quote_number || 0).padStart(6, '0')}`,
-      quotationId: `QUO-JPDR-${String(quotationData.quote_number || 0).padStart(6, '0')}`,
-      amount: quotationData.total_amount || totals.finalTotal, // Use calculated final total
-      currencyCode: displayCurrency,
-      paymentLink: '', // Empty payment link - admin will send separately
-      serviceName: serviceSummary,
-      pdfAttachment: pdfBuffer || undefined,
-      // Add breakdown details for enhanced email template
-      quotationData: quotationData,
-      totals: totals,
-      selectedPackage: selectedPackage,
-      selectedPromotion: selectedPromotion
-    };
-    
-    const emailResult = await sendInvoiceEmail(emailData);
-    
-    if (!emailResult.success) {
-      return NextResponse.json(
-        { error: 'Failed to send email' },
-        { status: 500 }
-      );
-    }
-
-    // Log the activity
+    // Generate payment link for invoice (customer hasn't paid yet)
+    let paymentLink: string | null = null
     try {
-      await supabase
-        .from('quotation_activities')
-        .insert({
-          quotation_id: quotationId,
-          action: 'invoice_sent',
-          user_id: (session?.user as any)?.id || null,
-          user_name: session?.user?.name || session?.user?.email || 'system',
-          details: {
-            email: email,
-            invoice_id: invoiceId,
-            language: language
-          }
-        });
-    } catch (activityError) {
-      console.error('Error logging activity:', activityError);
-      // Don't fail the request if activity logging fails
+      const paymentLinkResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/quotations/generate-omise-payment-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          quotation_id: quotationId
+        })
+      })
+      
+      if (paymentLinkResponse.ok) {
+        const paymentLinkData = await paymentLinkResponse.json()
+        paymentLink = paymentLinkData.payment_link
+        console.log('✅ [MIGRATED-INVOICE-API] Payment link generated:', paymentLink)
+      } else {
+        console.error('❌ [MIGRATED-INVOICE-API] Payment link generation failed:', await paymentLinkResponse.text())
+      }
+    } catch (error) {
+      console.warn('⚠️ [MIGRATED-INVOICE-API] Could not generate payment link:', error)
     }
 
-    return NextResponse.json({ 
+    // Generate magic link as well
+    let magicLink: string | null = null
+    try {
+      const magicLinkResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/quotations/create-magic-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          quotation_id: quotationId, 
+          customer_email: quotation.customer_email 
+        })
+      })
+      
+      if (magicLinkResponse.ok) {
+        const magicLinkData = await magicLinkResponse.json()
+        magicLink = magicLinkData.magic_link
+        console.log('✅ [MIGRATED-INVOICE-API] Magic link generated:', magicLink)
+      } else {
+        console.error('❌ [MIGRATED-INVOICE-API] Magic link generation failed:', await magicLinkResponse.text())
+      }
+    } catch (error) {
+      console.warn('⚠️ [MIGRATED-INVOICE-API] Could not generate magic link:', error)
+    }
+
+    // Determine if this is an updated quotation
+    const isUpdated = (quotation.status === 'sent' && quotation.updated_at) || 
+                     (quotation.updated_at && quotation.created_at && 
+                      new Date(quotation.updated_at).getTime() > new Date(quotation.created_at).getTime() + 60000)
+
+    console.log(`✅ [UNIFIED-EMAIL-API] Quotation data prepared: ${quotationId}`)
+
+    console.log('🔄 [UNIFIED-EMAIL-API] Raw quotation data:', JSON.stringify({
+      id: quotation.id,
+      quote_number: quotation.quote_number,
+      customer_name: quotation.customer_name,
+      service_type: quotation.service_type,
+      vehicle_type: quotation.vehicle_type,
+      pickup_date: quotation.pickup_date,
+      pickup_time: quotation.pickup_time
+    }, null, 2))
+    
+    // Transform database quotation data to match EmailVariableMapper interface
+    const transformedQuotation = {
+      id: quotation.id,
+      quote_number: quotation.quote_number,
+      customer_name: quotation.customer_name,
+      customer_email: quotation.customer_email,
+      service_type: quotation.service_type,
+      vehicle_type: quotation.vehicle_type,
+      duration_hours: quotation.duration_hours,
+      service_days: quotation.service_days || 1,
+      hours_per_day: quotation.hours_per_day || quotation.duration_hours || 1,
+      
+      // Fix field name mismatches
+      pickup_location: quotation.pickup_location || `${quotation.customer_notes || 'Pick up location'}`,
+      dropoff_location: quotation.dropoff_location || `${quotation.merchant_notes || 'Drop off location'}`,
+      date: quotation.pickup_date,
+      time: quotation.pickup_time,
+      
+      // Fix currency and pricing fields
+      currency: quotation.currency,
+      display_currency: quotation.display_currency || quotation.currency,
+      total_amount: quotation.total_amount,
+      service_total: quotation.amount || quotation.total_amount,
+      subtotal: quotation.amount || quotation.total_amount,
+      tax_amount: quotation.total_amount * ((quotation.tax_percentage || 0) / 100),
+      tax_percentage: quotation.tax_percentage,
+      discount_percentage: quotation.discount_percentage,
+      regular_discount: quotation.amount * ((quotation.discount_percentage || 0) / 100),
+      promotion_discount: quotation.promotion_discount || 0,
+      final_total: quotation.total_amount,
+      
+      // Add missing fields
+      expiry_date: quotation.expiry_date,
+      service_name: quotation.service_type, // Template uses service_name
+      
+      // Package and promotion codes
+      selected_package_code: quotation.selected_package_name,
+      selected_promotion_code: quotation.selected_promotion_code,
+      
+      // Status and metadata
+      status: quotation.status,
+      created_at: quotation.created_at,
+      updated_at: quotation.updated_at,
+      last_sent_at: quotation.updated_at,
+      team_location: quotation.team_location || 'japan'
+    }
+
+    console.log(`🔄 [UNIFIED-EMAIL-API] Transformed data:`, {
+      date: transformedQuotation.date,
+      time: transformedQuotation.time,
+      service_type: transformedQuotation.service_type,
+      total_amount: transformedQuotation.total_amount,
+      currency: transformedQuotation.currency
+    })
+
+    console.log('🔄 [UNIFIED-EMAIL-API] Starting template variable creation')
+    
+    // Complete template variables with all required data  
+    const templateVariables = {
+      // Basic identifiers
+      customer_name: quotation.customer_name || 'Valued Customer',
+      quotation_id: `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`,
+      quotation_number: quotation.quote_number,
+      
+      // Service details
+      service_type: quotation.service_type || 'Transportation Service', 
+      service_name: quotation.service_type || 'Transportation Service',
+      vehicle_type: quotation.vehicle_type || 'Standard Vehicle',
+      duration_hours: quotation.duration_hours || 1,
+      
+      // Location and timing
+      pickup_location: quotation.pickup_location || quotation.customer_notes || 'Pick up location',
+      dropoff_location: quotation.dropoff_location || quotation.merchant_notes || 'Drop off location', 
+      date: quotation.pickup_date || 'TBD',
+      time: quotation.pickup_time || 'TBD',
+      
+      // Financial information
+      total_amount: quotation.total_amount || 0,
+      amount: quotation.total_amount || 0,
+      currency: quotation.currency || 'JPY',
+      service_total: quotation.total_amount || 0,
+      final_total: quotation.total_amount || 0,
+      
+      // Important dates
+      expiry_date: quotation.expiry_date || '2025-10-15',
+      created_at: quotation.created_at,
+      updated_at: quotation.updated_at,
+      
+      // Status and metadata
+      status: quotation.status,
+      is_updated: isUpdated.toString(),
+      magic_link: magicLink || '', // Ensure it's always a string
+      
+      // Payment information - Invoice requires payment
+      payment_required: true, // Show payment section for invoice
+      payment_link: paymentLink || '', // Payment link for customer to pay
+      
+      // Localization
+      language,
+      team_location: quotation.team_location || 'japan',
+      
+      // Invoice dates (issue and due dates)
+      issue_date: new Date().toLocaleDateString(language === 'ja' ? 'ja-JP' : 'en-US'),
+      due_date: quotation.expiry_date 
+        ? new Date(quotation.expiry_date).toLocaleDateString(language === 'ja' ? 'ja-JP' : 'en-US')
+        : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(language === 'ja' ? 'ja-JP' : 'en-US'), // 7 days from now
+      
+      // Greeting message - Invoice specific (payment required)
+      greeting_text: language === 'ja' 
+        ? 'インボイスをお送りいたします。下記のリンクからお支払いをお願いいたします。'
+        : 'Please find your invoice below. You can complete your payment using the link provided.'
+    }
+
+    console.log('🔄 [UNIFIED-EMAIL-API] Using direct template service')
+    
+    // Generate invoice PDF attachment using existing professional system
+    console.log('🔄 [MIGRATED-INVOICE-API] Generating invoice PDF attachment using existing system')
+    let pdfAttachment = null
+    try {
+      // Get customers and quotation_items for proper invoice generation (same as existing system)
+      const supabaseForPdf = createServiceClient()
+      const { data: quotationWithRelations, error: fetchError } = await supabaseForPdf
+        .from('quotations')
+        .select('*, customers (*), quotation_items (*)')
+        .eq('id', quotationId)
+        .single()
+
+      if (fetchError || !quotationWithRelations) {
+        throw new Error(`Failed to fetch quotation data: ${fetchError?.message}`)
+      }
+
+      // Use the EXISTING generateInvoiceHtml function - same as the professional system
+      const htmlContent = generateInvoiceHtml(
+        quotationWithRelations,
+        language as 'en' | 'ja',
+        selectedPackage,
+        selectedPromotion
+      )
+      
+      // Use the same PDF generation as the existing system
+      const pdfBuffer = await generateOptimizedPdfFromHtml(htmlContent, {
+        format: 'A4',
+        margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },
+        printBackground: true
+      }, quotationWithRelations, selectedPackage, selectedPromotion, language)
+      
+      pdfAttachment = {
+        filename: `INV-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || quotation.id.slice(-6).toUpperCase()}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }
+      console.log('✅ [MIGRATED-INVOICE-API] Professional invoice PDF attachment generated:', pdfAttachment.filename)
+    } catch (error) {
+      console.warn('⚠️ [MIGRATED-INVOICE-API] Could not generate professional invoice PDF attachment:', error)
+      console.error('PDF generation error details:', error)
+    }
+    
+    // Render the template using emailTemplateService directly - Use Invoice Email template
+    const rendered = await emailTemplateService.renderTemplate(
+      'Invoice Email',
+      templateVariables,
+      'japan',
+      language as 'en' | 'ja'
+    )
+
+    if (!rendered) {
+      console.error('❌ [UNIFIED-EMAIL-API] Template rendering failed')
+      return NextResponse.json({ error: 'Failed to render template' }, { status: 500 })
+    }
+
+    console.log('✅ [UNIFIED-EMAIL-API] Template rendered successfully')
+
+    // Send email using Resend directly  
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const emailData = {
+      from: 'Driver Japan <booking@japandriver.com>',
+      to: email,
+      bcc: bccEmails.split(',').map(e => e.trim()).filter(e => e),
+      subject: language === 'ja' ? 'インボイス - お支払いをお願いいたします' : 'Invoice - Payment Required',
+      html: rendered.html,
+      text: rendered.text,
+      ...(pdfAttachment && { attachments: [pdfAttachment] })
+    }
+
+    console.log('🔄 [UNIFIED-EMAIL-API] Sending email')
+    const { data, error: sendError } = await resend.emails.send(emailData)
+
+    if (sendError) {
+      console.error('❌ [UNIFIED-EMAIL-API] Resend error:', JSON.stringify(sendError, null, 2))
+      console.error('❌ [UNIFIED-EMAIL-API] Email data used:', JSON.stringify(emailData, null, 2))
+      return NextResponse.json({ 
+        error: 'Failed to send email', 
+        details: sendError,
+        emailConfig: emailData 
+      }, { status: 500 })
+    }
+
+    const result = { success: true, messageId: data?.id || 'unknown' }
+
+    console.log('✅ [UNIFIED-EMAIL-API] Email sent successfully:', result.messageId)
+
+    // Update quotation status and last sent time
+    const { error: updateError } = await supabase
+      .from('quotations')
+      .update({ 
+        status: 'sent',
+        last_sent_at: new Date().toISOString()
+      })
+      .eq('id', quotationId)
+
+    if (updateError) {
+      console.warn('⚠️ [UNIFIED-EMAIL-API] Could not update quotation status:', updateError)
+    }
+
+    console.log(`✅ [UNIFIED-EMAIL-API] Quotation email sent successfully: ${quotationId}`)
+
+    return NextResponse.json({
       success: true,
-      message: "Invoice email sent successfully"
-    });
+      messageId: result.messageId,
+      quotationId,
+      email,
+      language,
+      isUpdated
+    })
 
   } catch (error) {
-    console.error("Error in send-invoice-email API:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error('❌ [UNIFIED-EMAIL-API] Unexpected error:', error)
+    return NextResponse.json({ 
+      error: 'Internal server error' 
+    }, { status: 500 })
   }
 }

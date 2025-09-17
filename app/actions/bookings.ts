@@ -587,11 +587,21 @@ export async function getBookingByWpId(
       billing_country: booking.billing_country || undefined,
       coupon_code: booking.coupon_code || undefined,
       coupon_discount_percentage: booking.coupon_discount_percentage?.toString() || undefined,
+      // Pricing fields
+      tax_percentage: booking.tax_percentage || undefined,
+      discount_percentage: booking.discount_percentage || undefined,
       created_at: booking.created_at || undefined,
       updated_at: booking.updated_at || undefined,
       // Flight information
       flight_number: booking.flight_number || undefined,
       terminal: booking.terminal || undefined,
+      // Passenger and luggage information
+      number_of_passengers: booking.number_of_passengers || undefined,
+      number_of_bags: booking.number_of_bags || undefined,
+      // Service duration fields
+      hours_per_day: booking.hours_per_day || undefined,
+      duration_hours: booking.duration_hours || undefined,
+      service_days: booking.service_days || undefined,
       // Add vehicle details if available
       vehicle: booking.vehicles && !('code' in booking.vehicles) ? {
         id: booking.vehicles.id,

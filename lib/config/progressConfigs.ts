@@ -31,8 +31,8 @@ export const progressConfigs: Record<string, ProgressConfig> = {
       { label: 'Sending email', value: 70 },
       { label: 'Finalizing', value: 90 }
     ],
-    totalDuration: 3000, // Shorter duration for faster completion
-    stepDelays: [100, 800, 600, 300] // Faster initial start, more time for PDF/email
+    totalDuration: 3000, // Restored original duration
+    stepDelays: [100, 800, 600, 300] // Restored original timing
   },
   
   sendReminder: {
@@ -74,6 +74,26 @@ export const progressConfigs: Record<string, ProgressConfig> = {
     ],
     totalDuration: 2000,
     stepDelays: [400, 500, 400, 300]
+  },
+  
+  saveDraft: {
+    steps: [
+      { label: 'Validating data', value: 20 },
+      { label: 'Saving quotation', value: 60 },
+      { label: 'Finalizing', value: 90 }
+    ],
+    totalDuration: 1500,
+    stepDelays: [200, 400, 300]
+  },
+  
+  updateDraft: {
+    steps: [
+      { label: 'Validating data', value: 15 },
+      { label: 'Updating quotation', value: 50 },
+      { label: 'Finalizing', value: 90 }
+    ],
+    totalDuration: 1200,
+    stepDelays: [150, 350, 250]
   }
 } as const;
 

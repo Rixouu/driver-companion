@@ -13,19 +13,21 @@ async function testUnifiedEmailSystem() {
   console.log('🧪 [EMAIL-TEST] Starting unified email system test')
   
   try {
-    // Test 1: Populate templates
-    console.log('\n📝 [EMAIL-TEST] Step 1: Populating unified templates')
-    const populateResponse = await fetch(`${API_BASE}/api/admin/email-templates/populate-unified`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    })
+    // Test 1: Check if templates exist (don't populate to avoid clearing production data)
+    console.log('\n📝 [EMAIL-TEST] Step 1: Checking existing templates')
+    const templatesResponse = await fetch(`${API_BASE}/api/admin/email-templates?category=quotation`)
     
-    if (!populateResponse.ok) {
-      throw new Error(`Failed to populate templates: ${populateResponse.statusText}`)
+    if (!templatesResponse.ok) {
+      throw new Error(`Failed to fetch templates: ${templatesResponse.statusText}`)
     }
     
-    const populateResult = await populateResponse.json()
-    console.log(`✅ [EMAIL-TEST] Templates populated: ${populateResult.message}`)
+    const templatesResult = await templatesResponse.json()
+    console.log(`✅ [EMAIL-TEST] Found ${templatesResult.count || 0} existing templates`)
+    
+    if (templatesResult.count === 0) {
+      console.log('⚠️ [EMAIL-TEST] No templates found. Please populate templates manually if needed.')
+      console.log('   Use: POST /api/admin/email-templates/populate-unified (but this will clear existing data!)')
+    }
     
     // Test 2: Get templates
     console.log('\n📋 [EMAIL-TEST] Step 2: Fetching templates')

@@ -416,7 +416,13 @@ export function useInspectionReportExport({
       
       // Get inspector name - same logic as inspection details page
       const inspectorName = inspection.inspector?.name || t('common.notAssigned');
-      const inspectionDateFormatted = new Date(inspection.created_at || inspection.updated_at || new Date()).toLocaleDateString(currentLanguage === 'ja' ? 'ja-JP' : 'en-US');
+      const inspectionDateForDisplay = new Date(inspection.created_at || inspection.updated_at || new Date());
+      const inspectionDateFormatted = (() => {
+        const day = inspectionDateForDisplay.getDate().toString().padStart(2, '0')
+        const month = (inspectionDateForDisplay.getMonth() + 1).toString().padStart(2, '0')
+        const year = inspectionDateForDisplay.getFullYear()
+        return `${day}/${month}/${year}`
+      })();
       
       inspectorInfo.innerHTML = `
         <div style="font-weight: bold; margin-bottom: 5px;">Inspector: ${inspectorName}</div>
@@ -426,15 +432,23 @@ export function useInspectionReportExport({
       footerSection.appendChild(inspectorInfo);
       pdfContainer.appendChild(footerSection);
       
-      const footerText = `${t('inspections.details.pdfFooter.generatedOn')} ${new Date().toLocaleDateString(currentLanguage === 'ja' ? 'ja-JP' : 'en-US')} | ${t('inspections.details.pdfFooter.vehicleName')}: ${inspection.vehicle?.name || 'N/A'}`;
+      const footerDate = (() => {
+        const date = new Date()
+        const day = date.getDate().toString().padStart(2, '0')
+        const month = (date.getMonth() + 1).toString().padStart(2, '0')
+        const year = date.getFullYear()
+        return `${day}/${month}/${year}`
+      })();
+      const footerText = `${t('inspections.details.pdfFooter.generatedOn')} ${footerDate} | ${t('inspections.details.pdfFooter.vehicleName')}: ${inspection.vehicle?.name || 'N/A'}`;
       document.body.appendChild(pdfContainer);
       // Generate filename in format: inspection-report-{date}-{brand}-{model}-{inspector-name}
       const inspectionDateForFilename = new Date(inspection.created_at || inspection.updated_at || new Date());
-      const dateFormatted = inspectionDateForFilename.toLocaleDateString('en-GB', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric' 
-      }).replace(/\//g, '-');
+      const dateFormatted = (() => {
+        const day = inspectionDateForFilename.getDate().toString().padStart(2, '0')
+        const month = (inspectionDateForFilename.getMonth() + 1).toString().padStart(2, '0')
+        const year = inspectionDateForFilename.getFullYear()
+        return `${day}-${month}-${year}`
+      })();
       
       const brand = (inspection.vehicle as any)?.make || (inspection.vehicle as any)?.brand || 'unknown-brand';
       const model = (inspection.vehicle as any)?.model || 'unknown-model';

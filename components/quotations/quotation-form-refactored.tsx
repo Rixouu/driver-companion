@@ -303,6 +303,18 @@ export default function QuotationFormRefactored({
 
   // Submit the form
   const onSubmit = async (data: FormData, sendToCustomer = false) => {
+    console.log('🚀 [FORM] onSubmit called', { sendToCustomer, submittingAndSending, timestamp: new Date().toISOString() });
+    
+    // Guard against duplicate submissions
+    if (submittingAndSending) {
+      console.log('🚫 [FORM] Duplicate submission prevented');
+      return;
+    }
+
+    // Set submitting state immediately to prevent duplicates
+    setSubmittingAndSending(sendToCustomer);
+    console.log('🔒 [FORM] Set submittingAndSending to true');
+
     // Guard: require a valid service type when there are no service items
     // For packages, use Charter Services as the fallback service type since packages don't have service_type_id in the service_types table
     const effectiveServiceType = (
@@ -313,6 +325,7 @@ export default function QuotationFormRefactored({
     ).toString().trim();
     
     if (!effectiveServiceType) {
+      setSubmittingAndSending(false); // Reset state on validation error
       toast({
         title: t('quotations.form.error') || 'Error',
         description: t('quotations.form.errors.serviceTypeRequired') || 'Please select a service type before saving',
@@ -321,10 +334,17 @@ export default function QuotationFormRefactored({
       return;
     }
     try {
-      setSubmittingAndSending(sendToCustomer);
       // Progress overlay setup
       setProgressOpen(true);
       setProgressTitle(sendToCustomer ? (initialData?.id ? 'Updating & Sending' : 'Sending Quotation') : (initialData?.id ? 'Updating Draft' : 'Saving Draft'));
+      
+      // Start progress animation for draft saving
+      let progressPromise: Promise<void> | null = null;
+      if (!sendToCustomer) {
+        const progressConfig = initialData?.id ? progressConfigs.updateDraft : progressConfigs.saveDraft;
+        setProgressSteps(progressConfig.steps);
+        progressPromise = startProgress(progressConfig);
+      }
       
       const formData = {
         ...data,
@@ -448,33 +468,36 @@ export default function QuotationFormRefactored({
           }
           
           if (sendToCustomer && result) {
-            // Send quotation with BCC settings
-            const formData = new FormData();
-            formData.append('email', form.getValues('customer_email') || result.customer_email || '');
-            formData.append('quotation_id', result.id);
-            formData.append('language', sendLanguage);
-            formData.append('include_details', 'true');
-            formData.append('bcc_emails', bccEmails);
-            
             // Set up email progress modal with unified approach
             setProgressVariant('email');
             setProgressTitle('Sending Quotation');
+            setProgressSteps(progressConfigs.sendEmail.steps);
             
-            // Start progress simulation immediately (runs independently)
-            startProgress(progressConfigs.sendEmail);
+            // Start progress simulation and API call in parallel
+            const progressPromise = startProgress(progressConfigs.sendEmail);
             
-            // Start API call and wait for it to complete
-            const emailResponse = await fetch('/api/quotations/send-email-optimized', {
+            const emailResponse = await fetch('/api/quotations/send-email-unified', {
               method: 'POST',
-              body: formData,
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                quotation_id: result.id,
+                email: form.getValues('customer_email') || result.customer_email || '',
+                language: sendLanguage,
+                bcc_emails: bccEmails
+              }),
             });
             
             if (!emailResponse.ok) {
               throw new Error('Failed to send quotation email');
             }
             
+            // Wait for progress animation to complete
+            await progressPromise;
+            
             advance('Emailing customer');
-            setProgressOpen(false); // Close modal immediately after email is sent
+            setProgressOpen(false); // Close modal after email is sent
             // Don't show toast here - let the parent component handle it
           }
         } else {
@@ -494,22 +517,33 @@ export default function QuotationFormRefactored({
             // Set up email progress modal with unified approach
             setProgressVariant('email');
             setProgressTitle('Sending Quotation');
+            setProgressSteps(progressConfigs.sendEmail.steps);
             
-            // Start progress simulation immediately (runs independently)
-            startProgress(progressConfigs.sendEmail);
+            // Start progress simulation and API call in parallel
+            const progressPromise = startProgress(progressConfigs.sendEmail);
             
-            // Start API call and wait for it to complete
-            const emailResponse = await fetch('/api/quotations/send-email-optimized', {
+            const emailResponse = await fetch('/api/quotations/send-email-unified', {
               method: 'POST',
-              body: formData,
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                quotation_id: result.id,
+                email: form.getValues('customer_email') || result.customer_email || '',
+                language: sendLanguage,
+                bcc_emails: bccEmails
+              }),
             });
             
             if (!emailResponse.ok) {
               throw new Error('Failed to send quotation email');
             }
             
+            // Wait for progress animation to complete
+            await progressPromise;
+            
             advance('Emailing customer');
-            setProgressOpen(false); // Close modal immediately after email is sent
+            setProgressOpen(false); // Close modal after email is sent
             // Don't show toast here - let the parent component handle it
           }
         }
@@ -518,33 +552,36 @@ export default function QuotationFormRefactored({
           result = await updateQuotation(initialData.id, input);
           advance('Quotation record saved');
           if (sendToCustomer && result) {
-            // Send quotation with BCC settings
-            const formData = new FormData();
-            formData.append('email', form.getValues('customer_email') || result.customer_email || '');
-            formData.append('quotation_id', result.id);
-            formData.append('language', sendLanguage);
-            formData.append('include_details', 'true');
-            formData.append('bcc_emails', bccEmails);
-            
             // Set up email progress modal with unified approach
             setProgressVariant('email');
             setProgressTitle('Sending Quotation');
+            setProgressSteps(progressConfigs.sendEmail.steps);
             
-            // Start progress simulation immediately (runs independently)
-            startProgress(progressConfigs.sendEmail);
+            // Start progress simulation and API call in parallel
+            const progressPromise = startProgress(progressConfigs.sendEmail);
             
-            // Start API call and wait for it to complete
-            const emailResponse = await fetch('/api/quotations/send-email-optimized', {
+            const emailResponse = await fetch('/api/quotations/send-email-unified', {
               method: 'POST',
-              body: formData,
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                quotation_id: result.id,
+                email: form.getValues('customer_email') || result.customer_email || '',
+                language: sendLanguage,
+                bcc_emails: bccEmails
+              }),
             });
             
             if (!emailResponse.ok) {
               throw new Error('Failed to send quotation email');
             }
             
+            // Wait for progress animation to complete
+            await progressPromise;
+            
             advance('Emailing customer');
-            setProgressOpen(false); // Close modal immediately after email is sent
+            setProgressOpen(false); // Close modal after email is sent
             // Don't show toast here - let the parent component handle it
           }
         } else {
@@ -562,22 +599,33 @@ export default function QuotationFormRefactored({
             // Set up email progress modal with unified approach
             setProgressVariant('email');
             setProgressTitle('Sending Quotation');
+            setProgressSteps(progressConfigs.sendEmail.steps);
             
-            // Start progress simulation immediately (runs independently)
-            startProgress(progressConfigs.sendEmail);
+            // Start progress simulation and API call in parallel
+            const progressPromise = startProgress(progressConfigs.sendEmail);
             
-            // Start API call and wait for it to complete
-            const emailResponse = await fetch('/api/quotations/send-email-optimized', {
+            const emailResponse = await fetch('/api/quotations/send-email-unified', {
               method: 'POST',
-              body: formData,
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                quotation_id: result.id,
+                email: form.getValues('customer_email') || result.customer_email || '',
+                language: sendLanguage,
+                bcc_emails: bccEmails
+              }),
             });
             
             if (!emailResponse.ok) {
               throw new Error('Failed to send quotation email');
             }
             
+            // Wait for progress animation to complete
+            await progressPromise;
+            
             advance('Emailing customer');
-            setProgressOpen(false); // Close modal immediately after email is sent
+            setProgressOpen(false); // Close modal after email is sent
             // Don't show toast here - let the parent component handle it
           }
         }
@@ -588,6 +636,12 @@ export default function QuotationFormRefactored({
       } else if (result) {
         router.push(`/quotations/${result.id}` as any);
       }
+      
+      // Wait for progress animation to complete for draft saving
+      if (progressPromise) {
+        await progressPromise;
+      }
+      
       setTimeout(() => setProgressOpen(false), 200);
     } catch (error) {
       console.error('Error in form submission:', error);
@@ -625,7 +679,7 @@ export default function QuotationFormRefactored({
   const [progressOpen, setProgressOpen] = useState(false);
   const [progressTitle, setProgressTitle] = useState('Saving');
   const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice'>('default');
-  const { progressValue, progressLabel, progressSteps, startProgress, resetProgress } = useProgressSteps();
+  const { progressValue, progressLabel, progressSteps, setProgressSteps, startProgress, resetProgress } = useProgressSteps();
   
   // Team selection state
   const [currentTeam, setCurrentTeam] = useState<'japan' | 'thailand'>(
@@ -845,7 +899,7 @@ export default function QuotationFormRefactored({
         label={progressLabel}
         value={progressValue}
         variant={progressVariant}
-        showSteps={progressVariant === 'email'}
+        showSteps={progressSteps.length > 0}
         steps={progressSteps}
         onOpenChange={setProgressOpen}
       />
@@ -927,6 +981,11 @@ export default function QuotationFormRefactored({
             </Button>
             <Button 
               onClick={async () => {
+                console.log('🚀 [BCC-DIALOG] Button clicked', { submittingAndSending, timestamp: new Date().toISOString() });
+                if (submittingAndSending) {
+                  console.log('🚫 [BCC-DIALOG] Duplicate submission prevented');
+                  return;
+                }
                 setIsBccDialogOpen(false);
                 // Submit the form with the BCC settings
                 await form.handleSubmit((data) => onSubmit(data, true))();

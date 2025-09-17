@@ -149,19 +149,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create activity log
-    await supabase
-      .from('quotation_activities')
-      .insert({
-        quotation_id: quotation.id,
-        user_id: session.user.id,
-        action: 'created',
-        details: { status: quotation.status }
-      });
-
-    // Create notification for quotation creation
-    try {
-      await notificationService.createAdminNotification(
+    // Create activity log and notification in parallel for better performance
+    const [activityResult, notificationResult] = await Promise.allSettled([
+      supabase
+        .from('quotation_activities')
+        .insert({
+          quotation_id: quotation.id,
+          user_id: session.user.id,
+          action: 'created',
+          details: { status: quotation.status }
+        }),
+      // Only create notification for non-draft quotations
+      quotation.status !== 'draft' ? notificationService.createAdminNotification(
         'quotation_created',
         {
           id: quotation.id,
@@ -172,10 +171,15 @@ export async function POST(request: NextRequest) {
           currency: quotation.currency
         },
         quotation.id
-      );
-    } catch (notificationError) {
-      console.error('Error creating quotation notification:', notificationError);
-      // Don't fail the quotation creation if notification fails
+      ) : Promise.resolve()
+    ]);
+
+    // Log any errors but don't fail the quotation creation
+    if (activityResult.status === 'rejected') {
+      console.error('Error creating quotation activity:', activityResult.reason);
+    }
+    if (notificationResult.status === 'rejected') {
+      console.error('Error creating quotation notification:', notificationResult.reason);
     }
 
     return NextResponse.json(quotation);

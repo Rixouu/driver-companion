@@ -95,7 +95,40 @@ export function VehicleSelectionTab({
         return;
       }
       
-      // If selecting a different vehicle, check for upgrade/downgrade
+      // Show modal immediately with estimated pricing for better UX
+      const currentVehicle = vehiclesWithCategories.find(v => v.id === currentVehicleId);
+      const newVehicle = vehicle;
+      
+      if (currentVehicle && newVehicle) {
+        // Calculate basic price difference based on category sort order
+        // For now, we'll use a simple estimation based on category names
+        // The actual pricing will be calculated by the API
+        const currentCategoryName = currentVehicle.category_name;
+        const newCategoryName = newVehicle.category_name;
+        
+        if (currentCategoryName && newCategoryName) {
+          // Show modal immediately with estimated pricing
+          // Check if it's a same category change
+          const isSameCategory = currentCategoryName === newCategoryName;
+          const estimatedPriceDiff = isSameCategory ? 0 : 10000; // 0 for same category, estimation for different
+          const assignmentType = isSameCategory ? 'update' : 'upgrade'; // 'update' for same category
+          
+          if (onVehicleChange) {
+            onVehicleChange({
+              priceDifference: estimatedPriceDiff,
+              assignmentType,
+              currentPrice: 0, // Will be updated by API
+              newPrice: 0, // Will be updated by API
+              currentCategory: currentCategoryName,
+              newCategory: newCategoryName,
+              currency: 'JPY',
+              isEstimated: !isSameCategory // Only estimated if different categories
+            });
+          }
+        }
+      }
+      
+      // Fetch detailed pricing in the background
       console.log('🚗 Vehicle selection - calling pricing API with:', {
         currentVehicleId,
         newVehicleId,
@@ -126,9 +159,12 @@ export function VehicleSelectionTab({
           const pricingData = await response.json();
           console.log('Vehicle pricing data:', pricingData);
           
-          // Call the parent component's handler if provided
+          // Update with actual pricing data
           if (onVehicleChange) {
-            onVehicleChange(pricingData);
+            onVehicleChange({
+              ...pricingData,
+              isEstimated: false // Mark as actual data
+            });
           }
         } else {
           console.error('Failed to get vehicle pricing:', await response.text());

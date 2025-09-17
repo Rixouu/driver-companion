@@ -7,7 +7,7 @@ import { getTeamAddressHtml, getTeamFooterHtml } from '@/lib/team-addresses'
 import { safeEncodeText } from '@/lib/utils/character-encoding';
 
 // Generate invoice HTML (similar to quotation but focused on invoice format)
-function generateInvoiceHtml(
+export function generateInvoiceHtml(
   quotation: any, 
   language: 'en' | 'ja' = 'en',
   selectedPackage: PricingPackage | null = null,

@@ -325,9 +325,16 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
 
   // Regenerate magic link for the quotation and send by email
   const handleRegenerateMagicLink = async () => {
+    // Check if already processing to prevent duplicates
+    if (isLoading) {
+      console.log('🚫 [QUOTATION-DETAILS] Magic link regeneration already in progress');
+      return;
+    }
+    
     setIsLoading(true);
     setProgressOpen(true);
     setProgressTitle('Regenerating Magic Link');
+    setProgressVariant('email');
     
     try {
       // Start progress simulation and API call in parallel
@@ -384,6 +391,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
 
   // Send the quotation to the customer
   const handleSend = async () => {
+    // DISABLED - This was causing duplicate email sends
+    return;
     setIsLoading(true);
     setProgressOpen(true);
     setProgressVariant('email');
@@ -393,7 +402,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
       // Start progress simulation and API call in parallel
       const progressPromise = startProgress(progressConfigs.sendEmail);
       
-      const apiCall = fetch('/api/quotations/send-email-optimized', {
+      const apiCall = fetch('/api/quotations/send-email-unified', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1046,8 +1055,10 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                           },
                           body: JSON.stringify({
                             id: quotation.id,
+                            email: quotation.customer_email,
                             reason: reason,
                             signature: signature,
+                            language: 'en',
                             bcc_emails: bccEmails
                           }),
                         });
@@ -1139,7 +1150,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               currency: quotation.currency,
               receipt_url: (quotation as any).receipt_url,
             }}
-            onSendQuotation={quotation.status === 'draft' ? handleSend : undefined}
             onRefresh={() => router.refresh()}
             onSendReminder={async () => {
               setIsLoading(true);
@@ -1404,8 +1414,11 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       },
                       body: JSON.stringify({
                         id: quotation.id,
+                        email: quotation.customer_email,
                         reason: reason,
-                        signature: signature
+                        signature: signature,
+                        language: 'en',
+                        bcc_emails: 'booking@japandriver.com'
                       }),
                     });
                     

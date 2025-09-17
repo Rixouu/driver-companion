@@ -34,13 +34,13 @@ async function generateBookingInvoiceHtml(
     }).format(amount);
   };
 
-  // Format date
+  // Format date to DD/MM/YYYY
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
+    return `${day}/${month}/${year}`;
   };
 
   // Safe text encoding function
@@ -686,6 +686,8 @@ export async function POST(request: NextRequest) {
     // Authentication is handled by the calling API
     
     // Fetch booking data
+    console.log('🔍 [PDF-GENERATION] Looking for booking with ID:', booking_id);
+    
     const { data: booking, error } = await supabase
       .from('bookings')
       .select(`
@@ -698,7 +700,15 @@ export async function POST(request: NextRequest) {
       .eq('id', booking_id)
       .single();
     
+    console.log('🔍 [PDF-GENERATION] Query result:', { 
+      hasBooking: !!booking, 
+      error: error?.message,
+      bookingId: booking?.id,
+      wpId: booking?.wp_id 
+    });
+    
     if (error || !booking) {
+      console.error('❌ [PDF-GENERATION] Booking not found:', error);
       return NextResponse.json(
         { error: 'Booking not found' },
         { status: 404 }

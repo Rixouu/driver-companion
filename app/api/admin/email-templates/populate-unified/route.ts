@@ -355,9 +355,22 @@ export async function POST(request: NextRequest) {
     
     const supabase = createServiceClient()
     
-    // Clear existing templates first
-    console.log('🧹 [UNIFIED-TEMPLATE-POPULATE] Clearing existing templates')
-    await supabase.from('notification_templates').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    // Check if templates already exist to avoid clearing production data
+    const { data: existingTemplates } = await supabase
+      .from('notification_templates')
+      .select('id')
+      .limit(1)
+    
+    if (existingTemplates && existingTemplates.length > 0) {
+      console.log('⚠️ [UNIFIED-TEMPLATE-POPULATE] Templates already exist - skipping population to avoid data loss')
+      return NextResponse.json({
+        success: false,
+        message: 'Templates already exist. Use clear endpoint first if you want to repopulate.',
+        existingCount: existingTemplates.length
+      })
+    }
+    
+    console.log('📝 [UNIFIED-TEMPLATE-POPULATE] No existing templates found - proceeding with population')
     
     // Insert new templates
     console.log(`📝 [UNIFIED-TEMPLATE-POPULATE] Inserting ${UNIFIED_TEMPLATES.length} templates`)

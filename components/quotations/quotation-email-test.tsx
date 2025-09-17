@@ -46,15 +46,20 @@ export function QuotationEmailTest() {
     try {
       console.log('🧪 [EMAIL-TEST] Testing unified email system')
       
-      // Test 1: Populate templates
-      console.log('📝 [EMAIL-TEST] Step 1: Populating templates')
-      const populateResponse = await fetch('/api/admin/email-templates/populate-unified', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      })
+      // Test 1: Check existing templates (don't populate to avoid clearing production data)
+      console.log('📝 [EMAIL-TEST] Step 1: Checking existing templates')
+      const templatesResponse = await fetch('/api/admin/email-templates?category=quotation')
       
-      if (!populateResponse.ok) {
-        throw new Error('Failed to populate templates')
+      if (!templatesResponse.ok) {
+        throw new Error('Failed to fetch templates')
+      }
+      
+      const templatesResult = await templatesResponse.json()
+      console.log(`✅ [EMAIL-TEST] Found ${templatesResult.count || 0} existing templates`)
+      
+      if (templatesResult.count === 0) {
+        console.log('⚠️ [EMAIL-TEST] No templates found. Please populate templates manually if needed.')
+        return
       }
       
       // Test 2: Send quotation email

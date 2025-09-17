@@ -108,13 +108,18 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < quotationItems.length; i++) {
       const item = quotationItems[i];
       
-      // Generate service name based on the item description
-      const serviceName = item.description || `Service ${i + 1} from Quotation`;
+      // Use service type for both service_name and service_type (clean, not full description)
+      const serviceType = item.service_type_name || quotation.service_type || `Service ${i + 1} from Quotation`;
       
       // Get vehicle information from the item
-      const vehicleType = item.vehicle_type || 'Standard Vehicle';
-      const vehicleCategoryId = item.vehicle_category || 'Standard';
+      const vehicleType = item.vehicle_type || quotation.vehicle_type || 'Standard Vehicle';
+      const vehicleCategoryId = item.vehicle_category || quotation.vehicle_category || 'Standard';
       const vehicleCategory = categoryMap.get(vehicleCategoryId) || vehicleCategoryId;
+      
+      // Extract vehicle make and model from vehicle_type
+      const vehicleParts = vehicleType.split(' ');
+      const vehicleMake = vehicleParts[0] || 'Unknown';
+      const vehicleModel = vehicleParts.slice(1).join(' ') || 'Unknown';
       
       // Calculate item total (including time-based adjustments)
       const itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
@@ -140,8 +145,13 @@ export async function POST(request: NextRequest) {
           customer_name: quotation.customer_name,
           customer_email: quotation.customer_email,
           customer_phone: quotation.customer_phone,
-          service_name: serviceName,
+          service_name: serviceType,
           service_id: item.service_type_id || quotation.service_type_id,
+          service_type: serviceType,
+          vehicle_make: vehicleMake,
+          vehicle_model: vehicleModel,
+          vehicle_capacity: 4, // Default capacity, should be fetched from vehicle data
+          vehicle_category: vehicleCategoryId,
           date: item.pickup_date || quotation.pickup_date || new Date().toISOString().split('T')[0],
           time: item.pickup_time || quotation.pickup_time || '09:00:00',
           status: 'confirmed',

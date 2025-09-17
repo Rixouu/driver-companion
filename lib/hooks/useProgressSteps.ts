@@ -25,14 +25,18 @@ export const useProgressSteps = () => {
     setProgressLabel('Starting...');
     setProgressSteps(steps);
     
-    // Start immediately with first step
+    // Ensure modal is visible before starting animation
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Start with first step immediately
     if (steps.length > 0) {
       setProgressLabel(steps[0].label);
       setProgressValue(steps[0].value);
+      setProgressSteps(prev => prev.map((s, idx) => ({
+        ...s,
+        completed: idx < 1
+      })));
     }
-    
-    // Very small delay to ensure the modal is visible before continuing
-    await new Promise(resolve => setTimeout(resolve, 10));
     
     // Calculate delays if not provided
     const delays = stepDelays || steps.map((_, index) => {
@@ -44,19 +48,20 @@ export const useProgressSteps = () => {
     for (let i = 1; i < steps.length; i++) {
       const step = steps[i];
       
+      // Wait for this step's delay
+      await new Promise(resolve => setTimeout(resolve, delays[i]));
+      
       // Update progress
       setProgressLabel(step.label);
       setProgressValue(step.value);
       setProgressSteps(prev => prev.map((s, idx) => ({
         ...s,
-        completed: idx < i
+        completed: idx < i + 1
       })));
-      
-      // Wait for this step
-      await new Promise(resolve => setTimeout(resolve, delays[i]));
     }
     
     // Final completion step (95% → 100%)
+    await new Promise(resolve => setTimeout(resolve, 200));
     setProgressLabel('Finalizing...');
     setProgressValue(95);
     setProgressSteps(prev => prev.map(step => ({ ...step, completed: true })));
@@ -76,6 +81,7 @@ export const useProgressSteps = () => {
     progressValue,
     progressLabel,
     progressSteps,
+    setProgressSteps,
     startProgress,
     resetProgress
   };

@@ -2,7 +2,7 @@
 // EMAIL VARIABLE MAPPER - Clean Data Transformation
 // =============================================================================
 
-import { PricingPackage, PricingPromotion } from '@/types/pricing'
+import { PricingPackage, PricingPromotion } from '@/types/quotations'
 
 export interface QuotationData {
   id: string
@@ -363,12 +363,55 @@ export class EmailVariableMapper {
   }
 
   /**
-   * Merge common variables with specific variables
+   * Merge common variables with specific variables and add helper functions
    */
   static mergeVariables(specific: Record<string, any>): Record<string, any> {
     return {
       ...this.getCommonVariables(),
-      ...specific
+      ...specific,
+      
+      // Helper functions for templates
+      formatCurrency: (amount: number, currency: string) => {
+        if (!amount || isNaN(amount)) return `${currency} 0`
+        if (currency === 'JPY') {
+          return `¥${Math.round(amount).toLocaleString()}`
+        }
+        if (currency === 'USD') {
+          return `$${amount.toLocaleString()}`
+        }
+        if (currency === 'EUR') {
+          return `€${amount.toLocaleString()}`
+        }
+        return `${currency} ${amount.toLocaleString()}`
+      },
+      
+      formatDate: (date: string, language: string = 'en') => {
+        if (!date) return ''
+        try {
+          const dateObj = new Date(date)
+          if (language === 'ja') {
+            return dateObj.toLocaleDateString('ja-JP')
+          }
+          return dateObj.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long', 
+            day: 'numeric'
+          })
+        } catch (error) {
+          return date
+        }
+      },
+      
+      formatTime: (time: string) => {
+        if (!time) return ''
+        try {
+          // Handle both HH:MM:SS and HH:MM formats
+          const timeParts = time.split(':')
+          return `${timeParts[0]}:${timeParts[1]}`
+        } catch (error) {
+          return time
+        }
+      }
     }
   }
 }

@@ -486,7 +486,7 @@ export const useQuotationService = () => {
       if (serviceItems && serviceItems.length > 0) {
         console.log('SAVE & SEND DEBUG - Service items from form:', JSON.stringify(serviceItems));
         
-        // Log each service item with its pricing details
+        // Log each service item with its pricing details (only for debugging)
         serviceItems.forEach((item, index) => {
           console.log(`SAVE & SEND DEBUG - Service item ${index}:`, {
             description: item.description,
@@ -498,65 +498,11 @@ export const useQuotationService = () => {
             service_days: item.service_days,
             hours_per_day: item.hours_per_day
           });
-          
-          // For each service item, query the database to see what the price should be
-          setTimeout(async () => {
-            try {
-              // Look up the current price for this service in the database
-              const { data: dbPrices, error: dbError } = await supabase
-                .from('pricing_items')
-                .select('*')
-                .eq('service_type_id', item.service_type_id)
-                .eq('vehicle_type', item.vehicle_type)
-                .eq('is_active', true);
-                
-              if (dbError) {
-                console.log(`PRICE VALIDATION - Error fetching prices for item ${index}:`, dbError.message);
-              } else if (dbPrices && dbPrices.length > 0) {
-                const exactMatch = dbPrices.find(p => p.duration_hours === (item.hours_per_day || 1));
-                if (exactMatch) {
-                  console.log(`PRICE VALIDATION - Item ${index} exact match from DB:`, {
-                    item_price: item.unit_price,
-                    db_price: Number(exactMatch.price),
-                    match: item.unit_price === Number(exactMatch.price) ? 'MATCH ✓' : 'MISMATCH ✗',
-                    db_id: exactMatch.id,
-                    vehicle_id: exactMatch.vehicle_id,
-                    duration_hours: exactMatch.duration_hours
-                  });
-                } else {
-                  // Try to find the hourly rate
-                  const hourlyRate = dbPrices.find(p => p.duration_hours === 1);
-                  if (hourlyRate) {
-                    console.log(`PRICE VALIDATION - Item ${index} hourly rate from DB:`, {
-                      item_price: item.unit_price,
-                      db_hourly_price: Number(hourlyRate.price),
-                      hours: item.hours_per_day || 1,
-                      expected_price: Number(hourlyRate.price) * (item.hours_per_day || 1),
-                      match: item.unit_price === Number(hourlyRate.price) * (item.hours_per_day || 1) ? 'MATCH ✓' : 'MISMATCH ✗'
-                    });
-                  } else {
-                    console.log(`PRICE VALIDATION - Item ${index} no hourly rate found:`, {
-                      item_price: item.unit_price,
-                      db_prices: dbPrices.map(p => ({
-                        id: p.id,
-                        price: p.price,
-                        duration_hours: p.duration_hours
-                      }))
-                    });
-                  }
-                }
-              } else {
-                console.log(`PRICE VALIDATION - Item ${index} no pricing found in DB:`, {
-                  service_type_id: item.service_type_id,
-                  vehicle_type: item.vehicle_type,
-                  used_price: item.unit_price 
-                });
-              }
-            } catch (validationError) {
-              console.error(`PRICE VALIDATION - Error validating price for item ${index}:`, validationError);
-            }
-          }, 0);
         });
+        
+        // NOTE: Price validation queries removed for performance
+        // These expensive database queries were causing slow draft saving
+        // Price validation should only happen when sending to customers, not for drafts
         
         // Calculate the total with multiple services (including promotion/package discounts)
         const totalsObj = calculateTotalWithMultipleServices(

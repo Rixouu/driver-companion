@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, Loader2, Mail, FileText, Clock, Zap } from 'lucide-react';
+import { CheckCircle, Loader2, Mail, FileText, Clock, Zap, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LoadingModalProps {
@@ -10,7 +10,7 @@ interface LoadingModalProps {
   label: string;
   value: number;
   onOpenChange?: (open: boolean) => void;
-  variant?: 'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice';
+  variant?: 'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice' | 'upgrade';
   showSteps?: boolean;
   steps?: Array<{
     label: string;
@@ -81,6 +81,16 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
           ringColor: 'ring-purple-500/20',
           titleColor: 'text-purple-600 dark:text-purple-400'
         };
+      case 'upgrade':
+        return {
+          icon: CreditCard,
+          iconColor: 'text-orange-500',
+          bgGradient: 'from-orange-500 to-orange-600',
+          progressColor: 'bg-orange-500',
+          accentColor: 'border-orange-200 bg-orange-50/50 dark:border-orange-800 dark:bg-orange-900/20',
+          ringColor: 'ring-orange-500/20',
+          titleColor: 'text-orange-600 dark:text-orange-400'
+        };
       default:
         return {
           icon: Loader2,
@@ -99,7 +109,7 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md border-0 shadow-2xl">
+      <DialogContent className="sm:max-w-md border-0 shadow-2xl duration-200">
         <DialogHeader className="sr-only">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{label}</DialogDescription>

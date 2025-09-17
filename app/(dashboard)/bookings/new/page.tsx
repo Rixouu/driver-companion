@@ -160,6 +160,7 @@ export default function NewBookingPage() {
   // Email sending state
   const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false)
+  const [createdBookingId, setCreatedBookingId] = useState<string | null>(null)
   
   // Payment modal state
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
@@ -451,6 +452,33 @@ export default function NewBookingPage() {
     }
   }
 
+  // Handle payment action from payment modal
+  const handlePaymentAction = (action: 'upgrade-only' | 'full-quote', emailData?: any, bookingId?: string) => {
+    console.log('🔍 [PAYMENT-ACTION] Called with:', { 
+      action, 
+      bookingId, 
+      emailData,
+      allArgs: arguments 
+    });
+    
+    if (bookingId) {
+      console.log('✅ [PAYMENT-ACTION] Setting createdBookingId to:', bookingId);
+      // Booking was created by payment modal, update state and redirect
+      setCreatedBookingId(bookingId)
+      setSaveResult({ 
+        success: true, 
+        message: `Booking created successfully! Payment link sent to ${emailData?.customerEmail || formData.customer_email}` 
+      })
+      
+      // Redirect to bookings list after successful creation
+      setTimeout(() => {
+        router.push('/bookings')
+      }, 2000)
+    } else {
+      console.log('⚠️ [PAYMENT-ACTION] No bookingId provided');
+    }
+  }
+
   // Calculate booking price
   const calculateBookingPrice = async () => {
     if (!formData.service_name || !formData.vehicle_id) {
@@ -523,6 +551,40 @@ export default function NewBookingPage() {
 
   // Handle form submission
   const handleSubmit = async (sendPaymentLink = false) => {
+    console.log('🔍 [HANDLE-SUBMIT] Called with:', { sendPaymentLink, createdBookingId, formDataId: formData.id, isSaving });
+    
+    // Prevent multiple submissions
+    if (isSaving) {
+      console.log('🚫 [HANDLE-SUBMIT] Already saving, ignoring duplicate submission');
+      return;
+    }
+    
+    // If booking was already created by payment modal, don't create another one
+    if (createdBookingId) {
+      console.log('🚫 [HANDLE-SUBMIT] Booking already created, skipping creation');
+      setSaveResult({ 
+        success: true, 
+        message: 'Booking already created and payment link sent!' 
+      })
+      setTimeout(() => {
+        router.push('/bookings')
+      }, 2000)
+      return
+    }
+    
+    // If formData.id exists, it means booking was already created
+    if (formData.id) {
+      console.log('🚫 [HANDLE-SUBMIT] Booking already exists with ID:', formData.id);
+      setSaveResult({ 
+        success: true, 
+        message: 'Booking already exists!' 
+      })
+      setTimeout(() => {
+        router.push('/bookings')
+      }, 2000)
+      return
+    }
+
     if (!formData.customer_email || !formData.service_name || !formData.pickup_location || !formData.dropoff_location) {
       setError('Please fill in all required fields')
       return
@@ -549,6 +611,8 @@ export default function NewBookingPage() {
       const result = await createBookingAction(bookingData)
       
       if (result.success) {
+        setCreatedBookingId(result.bookingId!)
+        
         // If payment is required and method is send_payment_link, generate and send payment link
         if (sendPaymentLink && paymentOptions.requiresPayment && paymentOptions.paymentMethod === 'send_payment_link') {
           setProgressLabel('Generating invoice PDF...')
@@ -819,7 +883,7 @@ export default function NewBookingPage() {
                   paymentOptions={paymentOptions}
                   setPaymentOptions={setPaymentOptions}
                   getStatusColor={getStatusColor}
-                  onPaymentAction={() => {}}
+                  onPaymentAction={handlePaymentAction}
                   isProcessingPayment={isSaving || isGeneratingPayment || isSendingEmail}
                   handleInputChange={handleInputChange}
                       refundCouponDiscount={0}

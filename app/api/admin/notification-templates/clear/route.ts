@@ -5,6 +5,19 @@ export async function DELETE(request: NextRequest) {
   try {
     const supabase = createServiceClient()
     
+    // Add safety check - require confirmation parameter
+    const { searchParams } = new URL(request.url)
+    const confirm = searchParams.get('confirm')
+    
+    if (confirm !== 'true') {
+      return NextResponse.json({
+        error: 'Safety check failed. Add ?confirm=true to the URL to confirm template deletion.',
+        warning: 'This will delete ALL notification templates permanently!'
+      }, { status: 400 })
+    }
+    
+    console.log('⚠️ [CLEAR-TEMPLATES] WARNING: Clearing all notification templates')
+    
     // Clear all existing templates
     const { error } = await supabase
       .from('notification_templates')

@@ -182,8 +182,8 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     setProgressTitle('Sending Quotation');
     
     try {
-      // Start progress simulation immediately (runs independently)
-      startProgress(progressConfigs.sendEmail);
+      // Start progress simulation and API call in parallel
+      const progressPromise = startProgress(progressConfigs.sendEmail);
       
       // Use the new unified email system
       const formData = new FormData();
@@ -196,6 +196,9 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         method: 'POST',
         body: formData,
       });
+      
+      // Wait for both progress animation and API call to complete
+      await Promise.all([progressPromise, response]);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -206,9 +209,9 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       setProgressOpen(false);
       setIsSendQuotationDialogOpen(false);
       
-      // Call the parent's onSendQuotation callback to refresh the workflow
-      if (onSendQuotation) {
-        onSendQuotation();
+      // Refresh the page to show updated status
+      if (onRefresh) {
+        onRefresh();
       }
       
     } catch (error) {
@@ -381,6 +384,8 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         description: `Payment link has been sent to ${emailAddress}`,
       });
       
+      // Close the progress modal and payment link dialog
+      setProgressOpen(false);
       setIsPaymentLinkDialogOpen(false);
       // Don't call the callback since we're handling everything internally now
       // if (onSendPaymentLink) {
@@ -602,6 +607,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               quotation_id: quotation.id,
+              email: quotation.customer_email,
               language: paymentEmailLanguage,
               bcc_emails: paymentEmailBcc
             })
@@ -1236,6 +1242,11 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                           description: "New Omise payment link has been created",
                           variant: "default",
                         });
+                        
+                        // Close the progress modal after successful generation
+                        setTimeout(() => {
+                          setProgressOpen(false);
+                        }, 500);
                       } else {
                         throw new Error('Failed to generate payment link');
                       }
@@ -1246,6 +1257,11 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                         description: "Failed to generate payment link",
                         variant: "destructive",
                       });
+                      
+                      // Close the progress modal on error
+                      setTimeout(() => {
+                        setProgressOpen(false);
+                      }, 1000);
                     }
                   }}
                   className="px-3"

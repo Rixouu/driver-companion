@@ -18,7 +18,7 @@ interface PaymentModalProps {
   paymentType: 'upgrade-only' | 'full-quote'
   formData: any
   calculatedPrice: any
-  onPaymentAction: (action: 'upgrade-only' | 'full-quote', emailData?: any) => void
+  onPaymentAction: (action: 'upgrade-only' | 'full-quote', emailData?: any, bookingId?: string) => void
   isLoading?: boolean
 }
 
@@ -71,44 +71,29 @@ export function PaymentModal({
 
 
   const handlePaymentSubmit = async () => {
+    // Prevent multiple submissions
+    if (showLoadingModal) {
+      console.log('🚫 [PAYMENT-MODAL] Already processing, ignoring duplicate submission');
+      return;
+    }
+    
+    console.log('🚀 [PAYMENT-MODAL] Starting payment submission');
     setShowLoadingModal(true)
+    
+    // Set initial state
     setLoadingProgress(0)
     setLoadingTitle(
       paymentType === 'upgrade-only' 
         ? (isDowngrade ? 'Processing Downgrade Refund' : 'Processing Upgrade Payment')
-        : 'Generating Full Quote'
+        : 'Generating Payment Link'
     )
-    setLoadingLabel('Preparing your payment request...')
+    setLoadingLabel('Preparing your request...')
 
     try {
-      // Debug logging
-      console.log('Payment submit debug:', {
-        paymentType,
-        hasUpgradeDowngrade: !!formData.upgradeDowngradeData,
-        upgradeDowngradeData: formData.upgradeDowngradeData,
-        priceDifference: formData.upgradeDowngradeData?.priceDifference,
-        formData: {
-          id: formData.id,
-          vehicle_id: formData.vehicle_id,
-          driver_id: formData.driver_id,
-          originalVehicleId: formData.originalVehicleId
-        }
-      });
-      
-      // Simulate progress steps
-      const steps = [
-        { label: 'Validating payment data...', progress: 20 },
-        { label: 'Generating payment link...', progress: 40 },
-        { label: 'Sending email notification...', progress: 60 },
-        { label: 'Updating booking status...', progress: 80 },
-        { label: 'Finalizing transaction...', progress: 100 }
-      ]
-
-      for (const step of steps) {
-        setLoadingLabel(step.label)
-        setLoadingProgress(step.progress)
-        await new Promise(resolve => setTimeout(resolve, 800))
-      }
+      // Update progress as we start - slower initial progress
+      setLoadingProgress(10)
+      setLoadingLabel('Validating payment data...')
+      await new Promise(resolve => setTimeout(resolve, 800))
 
       // Create operation first - only for upgrade/downgrade payments
       let operationId = null;
@@ -121,6 +106,9 @@ export function PaymentModal({
         if (!formData.driver_id) {
           throw new Error('Driver ID is required for payment processing. Please assign a driver first.');
         }
+
+        setLoadingProgress(25)
+        setLoadingLabel('Creating operation...')
 
         try {
           const operationResponse = await fetch(`/api/bookings/${formData.id}/store-assignment-operation`, {
@@ -144,6 +132,9 @@ export function PaymentModal({
           
           if (operationResult.success) {
             operationId = operationResult.operationId;
+            setLoadingProgress(40)
+            setLoadingLabel('Operation created successfully...')
+            await new Promise(resolve => setTimeout(resolve, 500))
           } else {
             throw new Error(operationResult.error || 'Failed to create operation');
           }
@@ -156,7 +147,15 @@ export function PaymentModal({
       if (paymentType === 'upgrade-only' && formData.upgradeDowngradeData && formData.upgradeDowngradeData.priceDifference !== undefined && formData.upgradeDowngradeData.priceDifference !== null) {
         if (formData.upgradeDowngradeData.priceDifference > 0) {
           // Upgrade payment - EXACT same as smart assignment
-          const response = await fetch(`/api/bookings/${formData.id}/generate-upgrade-payment`, {
+          setLoadingProgress(50)
+          setLoadingLabel('Preparing payment generation...')
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          
+          setLoadingProgress(60)
+          setLoadingLabel('Generating payment link...')
+          
+          // Start the API call
+          const responsePromise = fetch(`/api/bookings/${formData.id}/generate-upgrade-payment`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -166,6 +165,23 @@ export function PaymentModal({
               operationId: operationId
             })
           })
+          
+          // Update progress while API call is running
+          const progressInterval = setInterval(() => {
+            setLoadingProgress(prev => {
+              if (prev < 85) {
+                setLoadingLabel('Processing payment request...')
+                return prev + 2
+              }
+              return prev
+            })
+          }, 1000)
+          
+          const response = await responsePromise
+          clearInterval(progressInterval)
+          
+          setLoadingProgress(90)
+          setLoadingLabel('Sending email notification...')
           
           const result = await response.json()
           
@@ -183,7 +199,15 @@ export function PaymentModal({
           }
         } else {
           // Downgrade coupon - EXACT same as smart assignment
-          const response = await fetch(`/api/bookings/${formData.id}/send-downgrade-coupon`, {
+          setLoadingProgress(50)
+          setLoadingLabel('Preparing refund generation...')
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          
+          setLoadingProgress(60)
+          setLoadingLabel('Generating refund coupon...')
+          
+          // Start the API call
+          const responsePromise = fetch(`/api/bookings/${formData.id}/send-downgrade-coupon`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -195,6 +219,23 @@ export function PaymentModal({
               operationId: operationId
             })
           })
+          
+          // Update progress while API call is running
+          const progressInterval = setInterval(() => {
+            setLoadingProgress(prev => {
+              if (prev < 85) {
+                setLoadingLabel('Processing refund request...')
+                return prev + 2
+              }
+              return prev
+            })
+          }, 1000)
+          
+          const response = await responsePromise
+          clearInterval(progressInterval)
+          
+          setLoadingProgress(90)
+          setLoadingLabel('Sending email notification...')
           
           const result = await response.json()
           
@@ -212,110 +253,16 @@ export function PaymentModal({
           }
         }
       } else if (paymentType === 'full-quote') {
-        // Full quote - create operation first, then generate PDF
-        if (formData.upgradeDowngradeData && formData.upgradeDowngradeData.priceDifference !== undefined && formData.upgradeDowngradeData.priceDifference !== null) {
-          // Create operation for upgrade/downgrade
-          const operationResponse = await fetch(`/api/bookings/${formData.id}/store-assignment-operation`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              operationType: formData.upgradeDowngradeData.priceDifference > 0 ? 'upgrade' : 'downgrade',
-              previousVehicleId: formData.originalVehicleId,
-              newVehicleId: formData.vehicle_id,
-              driverId: formData.driver_id,
-              priceDifference: formData.upgradeDowngradeData.priceDifference,
-              paymentAmount: formData.upgradeDowngradeData.priceDifference > 0 ? formData.upgradeDowngradeData.priceDifference : 0,
-              couponCode: formData.upgradeDowngradeData.priceDifference < 0 ? `REFUND-${Math.random().toString(36).substr(2, 9).toUpperCase()}` : undefined,
-              refundAmount: formData.upgradeDowngradeData.priceDifference < 0 ? Math.abs(formData.upgradeDowngradeData.priceDifference) : 0,
-              customerEmail: emailData.customerEmail,
-              bccEmail: emailData.bccEmails || undefined
-            })
-          });
-          
-          const operationResult = await operationResponse.json();
-          
-          if (operationResult.success) {
-            operationId = operationResult.operationId;
-          } else {
-            throw new Error(operationResult.error || 'Failed to create operation for full quote');
-          }
-        }
+        // Full quote - just send payment link, don't create booking
+        setLoadingTitle('Payment Link Sent!')
+        setLoadingLabel('Payment link has been sent to the customer!')
         
-        // Generate full quote PDF - use correct parameter names
-        const response = await fetch('/api/bookings/generate-invoice-pdf', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            booking_id: formData.id,
-            language: emailData.language || 'en',
-            operation_type: undefined, // Full quote should not have operation_type
-            previous_vehicle_name: formData.upgradeDowngradeData ? formData.upgradeDowngradeData.currentVehicleName : undefined,
-            new_vehicle_name: formData.upgradeDowngradeData ? formData.upgradeDowngradeData.newVehicleName : undefined,
-            coupon_code: undefined,
-            refund_amount: formData.upgradeDowngradeData && formData.upgradeDowngradeData.priceDifference < 0 ? Math.abs(formData.upgradeDowngradeData.priceDifference) : undefined,
-            payment_amount: fullQuoteAmount,
-            customer_email: emailData.customerEmail,
-            bcc_email: emailData.bccEmails
-          })
-        })
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Full quote API error:', response.status, errorText);
-          throw new Error(`API error ${response.status}: ${errorText}`);
-        }
-        
-        // The API returns a PDF, not JSON - check if it's a PDF
-        const contentType = response.headers.get('content-type');
-        console.log('Full quote response content-type:', contentType);
-        console.log('Full quote response status:', response.status);
-        
-        // Since we know the API returns 200 for successful PDF generation, treat 200 as success
-        if (response.status === 200) {
-          // PDF generated successfully
-          console.log('PDF generated successfully (200 status), closing modal');
-          setLoadingProgress(100)
-          setLoadingTitle('Full quote sent successfully!')
-          setLoadingLabel('Complete quote generated and sent to customer!')
-          
-          setTimeout(() => {
-            setShowLoadingModal(false)
-            onClose()
-          }, 2000)
-        } else if (contentType && contentType.includes('application/pdf')) {
-          // PDF generated successfully
-          console.log('PDF generated successfully (content-type), closing modal');
-          setLoadingProgress(100)
-          setLoadingTitle('Full quote sent successfully!')
-          setLoadingLabel('Complete quote generated and sent to customer!')
-          
-          setTimeout(() => {
-            setShowLoadingModal(false)
-            onClose()
-          }, 2000)
-        } else {
-          // Try to parse as JSON for error messages
-          try {
-            const result = await response.json()
-            console.log('Full quote JSON result:', result);
-            if (result.success) {
-              setLoadingProgress(100)
-              setLoadingTitle('Full quote sent successfully!')
-              setLoadingLabel('Complete quote generated and sent to customer!')
-              
-              setTimeout(() => {
-                setShowLoadingModal(false)
-                onClose()
-              }, 2000)
-            } else {
-              throw new Error(result.error || 'Failed to generate full quote')
-            }
-          } catch (jsonError) {
-            console.error('JSON parsing error:', jsonError);
-            // If it's not JSON and not PDF, it's an error
-            throw new Error('Invalid response format from server')
-          }
-        }
+        setTimeout(() => {
+          console.log('🔍 [PAYMENT-MODAL] Calling onPaymentAction for full quote');
+          setShowLoadingModal(false)
+          onPaymentAction(paymentType, emailData, undefined) // Don't create booking
+          onClose()
+        }, 1000)
       }
     } catch (error) {
       console.error('Error processing payment:', error)
@@ -595,13 +542,13 @@ export function PaymentModal({
         title={loadingTitle}
         label={loadingLabel}
         value={loadingProgress}
-        variant={isUpgrade ? 'approval' : isDowngrade ? 'approval' : 'email'}
+        variant={isUpgrade ? 'upgrade' : isDowngrade ? 'approval' : 'email'}
         showSteps={true}
         steps={[
-          { label: 'Validating payment data...', value: 20, completed: loadingProgress >= 20 },
-          { label: 'Generating payment link...', value: 40, completed: loadingProgress >= 40 },
-          { label: 'Sending email notification...', value: 60, completed: loadingProgress >= 60 },
-          { label: 'Updating booking status...', value: 80, completed: loadingProgress >= 80 },
+          { label: 'Validating payment data...', value: 10, completed: loadingProgress >= 10 },
+          { label: 'Creating operation...', value: 25, completed: loadingProgress >= 25 },
+          { label: 'Generating payment link...', value: 60, completed: loadingProgress >= 60 },
+          { label: 'Sending email notification...', value: 90, completed: loadingProgress >= 90 },
           { label: 'Finalizing transaction...', value: 100, completed: loadingProgress >= 100 }
         ]}
       />

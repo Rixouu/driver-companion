@@ -51,18 +51,20 @@ export class EmailTemplateService {
     language: 'en' | 'ja' = 'en'
   ): Promise<{ subject: string; html: string; text: string } | null> {
     try {
-      const template = await this.getTemplate(templateName)
+      // Fetch template and app settings in parallel for better performance
+      const [template, settingsResult] = await Promise.all([
+        this.getTemplate(templateName),
+        this.supabase
+          .from('app_settings' as any)
+          .select('*')
+      ])
+
       if (!template) {
         console.error(`Template ${templateName} not found`)
         return null
       }
 
-      // Get app settings for branding
-      const { data: settings } = await this.supabase
-        .from('app_settings' as any)
-        .select('*')
-
-      const appSettings = settings?.reduce((acc: any, item: any) => {
+      const appSettings = settingsResult.data?.reduce((acc: any, item: any) => {
         try {
           acc[item.key] = JSON.parse(item.value)
         } catch (e) {
@@ -86,20 +88,143 @@ export class EmailTemplateService {
         logo_url: appSettings.logo_url || 'https://japandriver.com/img/driver-invoice-logo.png'
       }
 
-      // Simple template variable replacement
+      // Enhanced template variable replacement with Handlebars-like processing
       const replaceVariables = (content: string): string => {
-        return content.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
-          const trimmedKey = key.trim()
-          return (allVariables as any)[trimmedKey]?.toString() || match
+        return content.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
+          try {
+            const expr = expression.trim()
+            
+            // Handle ternary conditionals: {{language == "ja" ? "text1" : "text2"}}
+            if (expr.includes('?') && expr.includes(':')) {
+              const ternaryMatch = expr.match(/(.+?)\s*\?\s*"([^"]+)"\s*:\s*"([^"]+)"/)
+              if (ternaryMatch) {
+                const [, condition, trueValue, falseValue] = ternaryMatch
+                const conditionResult = evalCondition(condition, allVariables)
+                return conditionResult ? trueValue : falseValue
+              }
+            }
+            
+            // Handle function calls: {{formatCurrency total_amount currency}}
+            if (expr.includes(' ')) {
+              const parts = expr.split(/\s+/)
+              const funcName = parts[0]
+              if (funcName === 'formatCurrency' && parts.length >= 3) {
+                const amount = (allVariables as any)[parts[1]] || 0
+                const currency = (allVariables as any)[parts[2]] || 'JPY'
+                return formatCurrency(amount, currency)
+              }
+              if (funcName === 'formatDate' && parts.length >= 2) {
+                const date = (allVariables as any)[parts[1]]
+                const lang = parts[2] ? (allVariables as any)[parts[2]] : language
+                return formatDate(date, lang)
+              }
+            }
+            
+            // Handle simple variables: {{variable_name}}
+            return (allVariables as any)[expr]?.toString() || match
+            
+          } catch (error) {
+            console.warn('Template variable replacement error:', error, 'for expression:', expression)
+            return match
+          }
         })
+      }
+      
+      // Helper functions
+      const evalCondition = (condition: string, vars: any): boolean => {
+        try {
+          // Handle simple equality checks like: language == "ja"
+          const eqMatch = condition.match(/(\w+)\s*==\s*"([^"]+)"/)
+          if (eqMatch) {
+            const [, varName, value] = eqMatch
+            return vars[varName] === value
+          }
+          return false
+        } catch {
+          return false
+        }
+      }
+      
+      const formatCurrency = (amount: number, currency: string): string => {
+        if (!amount || isNaN(amount)) return `${currency} 0`
+        if (currency === 'JPY') {
+          return `¥${Math.round(amount).toLocaleString()}`
+        }
+        if (currency === 'USD') {
+          return `$${amount.toLocaleString()}`
+        }
+        return `${currency} ${amount.toLocaleString()}`
+      }
+      
+      const formatDate = (date: string, lang: string = 'en'): string => {
+        if (!date) return ''
+        try {
+          const dateObj = new Date(date)
+          if (lang === 'ja') {
+            return dateObj.toLocaleDateString('ja-JP')
+          }
+          return dateObj.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long', 
+            day: 'numeric'
+          })
+        } catch {
+          return date
+        }
       }
 
       // Extract core content from template (remove existing header/footer if present)
       const contentMatch = template.html_content.match(/<td style="padding:32px 24px;">\s*([\s\S]*?)\s*<\/td>/)
       const coreHtml = contentMatch ? contentMatch[1].trim() : template.html_content
 
-      // Replace variables in core content
-      const renderedCoreHtml = replaceVariables(coreHtml)
+      // Handle conditional blocks first: {{#if condition}}...{{/if}}
+      const processConditionals = (content: string): string => {
+        return content.replace(/\{\{#if\s+(.+?)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, condition, block) => {
+          const trimmedCondition = condition.trim()
+          
+          // First try complex condition evaluation
+          let conditionResult = evalCondition(trimmedCondition, allVariables)
+          
+          // If no complex condition, check simple variable value
+          if (conditionResult === false) {
+            const varValue = (allVariables as any)[trimmedCondition]
+            // Handle different falsy values properly
+            if (varValue === '' || varValue === null || varValue === undefined || varValue === 0 || varValue === false) {
+              conditionResult = false
+            } else {
+              conditionResult = Boolean(varValue)
+            }
+          }
+          
+          return conditionResult ? block : ''
+        })
+      }
+
+      // Process conditionals first, then replace variables
+      let processedHtml = processConditionals(coreHtml)
+      processedHtml = replaceVariables(processedHtml)
+      
+      // Handle square bracket placeholders: [MAGIC_LINK], [VARIABLE_NAME]
+      processedHtml = processedHtml.replace(/\[([A-Z_]+)\]/g, (match, varName) => {
+        const lowerVarName = varName.toLowerCase()
+        const replacement = (allVariables as any)[lowerVarName]?.toString()
+        
+        // Debug logging for troubleshooting
+        if (!replacement && varName === 'MAGIC_LINK') {
+          console.warn('⚠️ [TEMPLATE] MAGIC_LINK not found in variables')
+        }
+        
+        return replacement || match
+      })
+      
+      const renderedCoreHtml = processedHtml
+
+      // Also process subject and text content
+      let processedSubject = processConditionals(template.subject)
+      processedSubject = replaceVariables(processedSubject)
+      
+      let processedText = processConditionals(template.text_content || '')
+      processedText = replaceVariables(processedText)
 
       // Generate full HTML with header/footer using the new function
       const fullHtml = generateEmailTemplate({
@@ -107,18 +232,14 @@ export class EmailTemplateService {
         language: language as 'en' | 'ja',
         team: team as 'japan' | 'thailand',
         logoUrl: (allVariables as any).logo_url,
-        title: template.subject,
+        title: processedSubject, // Use processed subject for proper header rendering
         content: renderedCoreHtml
       })
 
-      // Replace variables in subject and text
-      const renderedSubject = replaceVariables(template.subject)
-      const renderedText = replaceVariables(template.text_content)
-
       return {
-        subject: renderedSubject,
+        subject: processedSubject,
         html: fullHtml,
-        text: renderedText
+        text: processedText
       }
     } catch (error) {
       console.error('Error rendering template:', error)

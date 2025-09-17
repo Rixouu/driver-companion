@@ -20,6 +20,7 @@ interface UpgradeDowngradeModalProps {
     currentCategory?: string
     newCategory?: string
     currency: string
+    isEstimated?: boolean
   }
   currentVehicle: VehicleWithCategory | null
   newVehicle: VehicleWithCategory | null
@@ -92,6 +93,10 @@ export function UpgradeDowngradeModal({
       onConfirm('upgrade', isFreeUpgrade ? 'free' : undefined)
     } else if (isDowngrade) {
       onConfirm('downgrade', couponCode || undefined)
+    } else if (isSamePrice) {
+      // For same price changes, we need to call the onConfirm with a special action
+      // Since the interface expects 'upgrade' | 'downgrade', we'll use 'upgrade' with a special flag
+      onConfirm('upgrade', 'same-price')
     }
   }
 
@@ -124,7 +129,9 @@ export function UpgradeDowngradeModal({
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">Current</Badge>
-                    <Badge variant="secondary">{pricingData.currentCategory}</Badge>
+                    <Badge variant="outline" className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                      {pricingData.currentCategory}
+                    </Badge>
                   </div>
                   <h4 className="font-semibold">
                     {currentVehicle?.brand} {currentVehicle?.model}
@@ -145,7 +152,9 @@ export function UpgradeDowngradeModal({
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">New</Badge>
-                    <Badge variant="secondary">{pricingData.newCategory}</Badge>
+                    <Badge variant="outline" className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                      {pricingData.newCategory}
+                    </Badge>
                   </div>
                   <h4 className="font-semibold">
                     {newVehicle?.brand} {newVehicle?.model}
@@ -162,18 +171,30 @@ export function UpgradeDowngradeModal({
           </div>
 
           {/* Price Difference */}
-          <Card className={isUpgrade ? 'border-orange-200 bg-orange-50' : isDowngrade ? 'border-green-200 bg-green-50' : 'border-blue-200 bg-blue-50'}>
+          <Card className={isUpgrade ? 'border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950' : isDowngrade ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950' : 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950'}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {isUpgrade && <CreditCard className="h-5 w-5 text-orange-500" />}
-                  {isDowngrade && <Gift className="h-5 w-5 text-green-500" />}
-                  <span className="font-medium">
+                  {isUpgrade && <CreditCard className="h-5 w-5 text-orange-500 dark:text-orange-400" />}
+                  {isDowngrade && <Gift className="h-5 w-5 text-green-500 dark:text-green-400" />}
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
                     {isUpgrade ? 'Additional Payment Required:' : isDowngrade ? 'Refund Amount:' : 'Price Difference:'}
                   </span>
+                  {pricingData.isEstimated && (
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                      Calculating...
+                    </span>
+                  )}
                 </div>
-                <span className={`text-xl font-bold ${isUpgrade ? 'text-orange-600' : isDowngrade ? 'text-green-600' : 'text-blue-600'}`}>
-                  {isUpgrade ? '+' : isDowngrade ? '-' : ''}{formatCurrency(Math.abs(pricingData.priceDifference))}
+                <span className={`text-xl font-bold ${isUpgrade ? 'text-orange-600 dark:text-orange-400' : isDowngrade ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                  {pricingData.isEstimated ? (
+                    <span className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                      {isUpgrade ? '+' : isDowngrade ? '-' : ''}{formatCurrency(Math.abs(pricingData.priceDifference))}
+                    </span>
+                  ) : (
+                    `${isUpgrade ? '+' : isDowngrade ? '-' : ''}${formatCurrency(Math.abs(pricingData.priceDifference))}`
+                  )}
                 </span>
               </div>
             </CardContent>
@@ -229,15 +250,15 @@ export function UpgradeDowngradeModal({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isLoading}>
+          <Button variant="outline" onClick={onClose} disabled={isLoading || pricingData.isEstimated}>
             Cancel
           </Button>
           <Button 
             onClick={handleConfirm} 
-            disabled={isLoading}
-            className={`text-white ${isUpgrade ? 'bg-orange-600 hover:bg-orange-700' : isDowngrade ? 'bg-green-600 hover:bg-green-700' : ''}`}
+            disabled={isLoading || pricingData.isEstimated}
+            className={`text-white ${isUpgrade ? 'bg-orange-600 hover:bg-orange-700' : isDowngrade ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
           >
-            {isLoading ? 'Processing...' : isUpgrade ? 'Proceed with Upgrade' : isDowngrade ? 'Proceed with Downgrade' : 'Confirm Change'}
+            {isLoading ? 'Processing...' : pricingData.isEstimated ? 'Calculating...' : isUpgrade ? 'Proceed with Upgrade' : isDowngrade ? 'Proceed with Downgrade' : 'Confirm Change'}
           </Button>
         </DialogFooter>
       </DialogContent>

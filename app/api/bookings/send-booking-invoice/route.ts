@@ -1,595 +1,296 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service-client'
+import { PricingPackage, PricingPromotion } from '@/types/quotations'
+import { emailTemplateService } from '@/lib/email/template-service'
 import { Resend } from 'resend'
+import { generateOptimizedPdfFromHtml } from '@/lib/optimized-html-pdf-generator'
+import { generateBookingInvoiceHtml } from '@/lib/booking-invoice-generator'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// =============================================================================
+// MIGRATED BOOKING INVOICE EMAIL API - Now uses unified notification templates
+// =============================================================================
+// This route has been migrated from hardcoded templates to the unified system.
 
 export async function POST(request: NextRequest) {
+  console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Processing booking invoice email request')
+  
   try {
-    console.log('🚀 [SEND-BOOKING-INVOICE] Starting invoice email send process...')
+    // Handle both JSON and FormData requests
+    let bookingId: string
+    let email: string
+    let language: string
+    let bccEmails: string
+
+    const contentType = request.headers.get('content-type') || ''
     
-    const { bookingId, bccEmails = [], customer_email } = await request.json()
-    console.log('📝 [SEND-BOOKING-INVOICE] Request data:', { bookingId, bccEmails, customer_email })
+    if (contentType.includes('application/json')) {
+      // Handle JSON request
+      const body = await request.json()
+      bookingId = body.bookingId || body.booking_id
+      email = body.email || body.customer_email || 'admin.rixou@gmail.com' // Default email if not provided
+      language = body.language || 'en'
+      bccEmails = Array.isArray(body.bccEmails) ? body.bccEmails.join(',') : (body.bccEmails || body.bcc_emails || 'booking@japandriver.com')
+      
+      console.log('📧 [MIGRATED-BOOKING-INVOICE-API] JSON request data:', {
+        bookingId,
+        email,
+        language,
+        bccEmails
+      })
+    } else {
+      // Handle FormData request
+      const formData = await request.formData()
+      bookingId = formData.get('booking_id') as string
+      email = formData.get('email') as string
+      language = (formData.get('language') as string) || 'en'
+      bccEmails = formData.get('bcc_emails') as string || 'booking@japandriver.com'
+    }
 
     if (!bookingId) {
-      console.error('❌ [SEND-BOOKING-INVOICE] Missing booking ID')
-      return NextResponse.json(
-        { error: 'Booking ID is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 })
     }
 
-    // Create Supabase client
-    console.log('🔌 [SEND-BOOKING-INVOICE] Creating Supabase client...')
+    console.log(`🔄 [MIGRATED-BOOKING-INVOICE-API] Processing booking ${bookingId} for ${email}`)
+
+    // Get booking data
     const supabase = createServiceClient()
-    console.log('✅ [SEND-BOOKING-INVOICE] Supabase client created successfully')
-
-    // Fetch booking details with customer information
-    console.log('🔍 [SEND-BOOKING-INVOICE] Fetching booking data for ID:', bookingId)
-    
-    // Check if this looks like a WordPress ID (starts with letters and contains hyphens)
-    const isWordPressId = /^[A-Z]+-\d+-\d+$/.test(bookingId)
-    const searchField = isWordPressId ? 'wp_id' : 'id'
-    
-    console.log(`🔍 [SEND-BOOKING-INVOICE] ID format detected: ${isWordPressId ? 'WordPress ID' : 'UUID'}`)
-    console.log(`🔍 [SEND-BOOKING-INVOICE] Searching by field: ${searchField}`)
-    
-    let { data: booking, error: bookingError } = await supabase
+    const { data: booking, error: bookingError } = await supabase
       .from('bookings')
-      .select(`
-        *,
-        customers (
-          id,
-          name,
-          email,
-          phone
-        ),
-        drivers!bookings_driver_id_fkey (
-          id,
-          first_name,
-          last_name,
-          phone
-        ),
-        vehicles!bookings_vehicle_id_fkey (
-          id,
-          plate_number,
-          brand,
-          model
-        )
-      `)
-      .eq(searchField, bookingId)
-      .maybeSingle()
-    
-    if (!booking && !bookingError) {
-      // If not found by the first method, try the other method
-      const alternateField = isWordPressId ? 'id' : 'wp_id'
-      console.log(`🔍 [SEND-BOOKING-INVOICE] Not found by ${isWordPressId ? 'WordPress ID' : 'UUID'}, trying ${alternateField}...`)
-      
-      const { data: altBooking, error: altError } = await supabase
-        .from('bookings')
-        .select(`
-          *,
-          customers (
-            id,
-            name,
-            email,
-            phone
-          ),
-          drivers!bookings_driver_id_fkey (
-            id,
-            first_name,
-            last_name,
-            phone
-          ),
-          vehicles!bookings_vehicle_id_fkey (
-            id,
-            plate_number,
-            brand,
-            model
-          )
-        `)
-        .eq(alternateField, bookingId)
-        .maybeSingle()
-      
-      if (altError) {
-        console.error(`❌ [SEND-BOOKING-INVOICE] Error fetching by ${alternateField}:`, altError)
-        bookingError = altError
-      } else {
-        booking = altBooking
-        console.log(`✅ [SEND-BOOKING-INVOICE] Found booking by ${alternateField}`)
-      }
-    }
+      .select('*')
+      .eq('id', bookingId)
+      .single()
 
-    if (bookingError) {
-      console.error('❌ [SEND-BOOKING-INVOICE] Error fetching booking:', bookingError)
-      return NextResponse.json(
-        { error: 'Database error while fetching booking', details: bookingError.message },
-        { status: 500 }
-      )
+    if (bookingError || !booking) {
+      console.error('❌ [MIGRATED-BOOKING-INVOICE-API] Booking not found:', bookingError)
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
     }
     
-    if (!booking) {
-      console.error('❌ [SEND-BOOKING-INVOICE] No booking found with ID:', bookingId)
-      return NextResponse.json(
-        { error: 'Booking not found' },
-        { status: 404 }
-      )
-    }
-    
-    console.log('✅ [SEND-BOOKING-INVOICE] Booking data fetched successfully:', {
-      id: booking.id,
-      wp_id: booking.wp_id,
-      service_name: booking.service_name,
-      customer_email: booking.customer_email,
-      customers: booking.customers
-    })
+    console.log('✅ [MIGRATED-BOOKING-INVOICE-API] Booking found:', !!booking, 'Keys:', Object.keys(booking || {}).length)
 
-    // Get customer email from either the customers relation or direct field
-    console.log('👤 [SEND-BOOKING-INVOICE] Processing customer data...')
-    
-    let customerEmail = customer_email || booking.customer_email
-    let customerName = booking.customer_name
-    
-    if (booking.customers && Array.isArray(booking.customers) && booking.customers.length > 0) {
-      const customer = booking.customers[0]
-      customerEmail = customerEmail || customer.email
-      customerName = customerName || customer.name
-      console.log('👥 [SEND-BOOKING-INVOICE] Customer data from relation:', {
-        email: customer.email,
-        name: customer.name
-      })
-    }
-    
-    // Ensure we have valid strings for the email generation
-    customerEmail = customerEmail || 'customer@example.com'
-    customerName = customerName || 'Customer'
-    
-    console.log('📧 [SEND-BOOKING-INVOICE] Final customer data:', {
-      email: customerEmail,
-      name: customerName
-    })
-    
-    if (!customerEmail) {
-      console.error('❌ [SEND-BOOKING-INVOICE] No customer email found')
-      return NextResponse.json(
-        { error: 'Customer email not found' },
-        { status: 400 }
-      )
-    }
-
-    // Calculate pricing for invoice
-    const baseAmount = (booking as any).base_amount || booking.price_amount || 0
-    const discountPercentage = booking.discount_percentage || 0
-    const taxPercentage = booking.tax_percentage || 10
-    const couponCode = booking.coupon_code || ''
-
-    // Calculate regular discount
-    const regularDiscount = baseAmount * (discountPercentage / 100)
-
-    // Calculate coupon discount
-    let couponDiscount = 0
-    let couponDiscountPercentage = 0
-    if (couponCode) {
-      // First try to use stored coupon discount percentage
-      if ((booking as any).coupon_discount_percentage) {
-        couponDiscountPercentage = (booking as any).coupon_discount_percentage
-        couponDiscount = baseAmount * ((booking as any).coupon_discount_percentage / 100)
-      } else {
-        // Fallback to calculating from coupon code
-        try {
-          const { data: couponData } = await supabase
-            .from('pricing_promotions')
-            .select('discount_type, discount_value, is_active, start_date, end_date, maximum_discount, minimum_amount')
-            .eq('code', couponCode)
-            .eq('is_active', true)
-            .single()
-
-          if (couponData) {
-            const now = new Date()
-            const validFrom = couponData.start_date ? new Date(couponData.start_date) : null
-            const validUntil = couponData.end_date ? new Date(couponData.end_date) : null
-
-            if ((!validFrom || now >= validFrom) && (!validUntil || now <= validUntil)) {
-              if (!couponData.minimum_amount || baseAmount >= couponData.minimum_amount) {
-                if (couponData.discount_type === 'percentage') {
-                  couponDiscountPercentage = couponData.discount_value
-                  couponDiscount = baseAmount * (couponData.discount_value / 100)
-                  if (couponData.maximum_discount && couponDiscount > couponData.maximum_discount) {
-                    couponDiscount = couponData.maximum_discount
-                  }
-                } else {
-                  couponDiscount = Math.min(couponData.discount_value, baseAmount)
-                  couponDiscountPercentage = (couponDiscount / baseAmount) * 100
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error validating coupon:', error)
-        }
-      }
-    }
-
-    // Total discount
-    const totalDiscount = regularDiscount + couponDiscount
-
-    // Subtotal after discounts
-    const subtotal = Math.max(0, baseAmount - totalDiscount)
-
-    // Calculate tax
-    const tax = subtotal * (taxPercentage / 100)
-
-    // Final total
-    const total = subtotal + tax
-
-    // Determine payment status for invoice
-    const isPaid = booking.status === 'confirmed' || booking.payment_status === 'paid'
-    const paymentStatus = isPaid ? 'PAID' : 'PENDING PAYMENT'
-
-    // Generate PDF invoice
-    let pdfBuffer: Buffer | undefined;
+    // Generate payment link for booking invoice
+    console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Generating payment link for booking invoice')
+    let paymentLink = ''
     try {
-      console.log('📄 [SEND-BOOKING-INVOICE] Generating PDF invoice...');
-      
-      // Use the same pattern as quotations - use request.nextUrl.origin
-      const baseUrl = request.nextUrl.origin;
-      
-      console.log('🌐 [SEND-BOOKING-INVOICE] Using base URL:', baseUrl);
-      
-      const pdfRequestData = {
-        booking_id: booking.id,
-        language: 'en'
-      };
-      
-      console.log('📤 [SEND-BOOKING-INVOICE] PDF request data:', pdfRequestData);
-      console.log('🔗 [SEND-BOOKING-INVOICE] PDF request URL:', `${baseUrl}/api/bookings/generate-invoice-pdf`);
-      
-      const pdfResponse = await fetch(`${baseUrl}/api/bookings/generate-invoice-pdf`, {
+      const paymentLinkResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/bookings/generate-payment-link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pdfRequestData)
-      });
+        body: JSON.stringify({ 
+          booking_id: bookingId,
+          customer_email: email
+        })
+      })
       
-      console.log('📥 [SEND-BOOKING-INVOICE] PDF response status:', pdfResponse.status);
-
-      if (pdfResponse.ok) {
-        pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
-        console.log('✅ [SEND-BOOKING-INVOICE] PDF generated successfully');
+      if (paymentLinkResponse.ok) {
+        const paymentLinkData = await paymentLinkResponse.json()
+        paymentLink = paymentLinkData.payment_link || ''
+        console.log('✅ [MIGRATED-BOOKING-INVOICE-API] Payment link generated:', !!paymentLink)
       } else {
-        const errorText = await pdfResponse.text();
-        console.warn('❌ [SEND-BOOKING-INVOICE] Failed to generate PDF:', {
-          status: pdfResponse.status,
-          statusText: pdfResponse.statusText,
-          error: errorText
-        });
+        console.warn('⚠️ [MIGRATED-BOOKING-INVOICE-API] Payment link generation failed:', paymentLinkResponse.status)
       }
-    } catch (pdfError) {
-      console.error('❌ [SEND-BOOKING-INVOICE] Error generating PDF:', pdfError);
+    } catch (error) {
+      console.warn('⚠️ [MIGRATED-BOOKING-INVOICE-API] Payment link generation error:', error)
     }
 
-    // Generate simple email HTML
-    const emailHtml = generateSimpleInvoiceEmailHtml({
-      booking,
-      customerName,
-      paymentStatus
-    })
-
-    // Generate plain text version
-    const emailText = generateSimpleInvoiceEmailText({
-      booking,
-      customerName,
-      paymentStatus
-    })
-
-    // Prepare email payload
-    const emailPayload: any = {
-      from: 'Driver Japan <booking@japandriver.com>',
-      to: [customerEmail],
-      subject: `Invoice - Booking ${booking.wp_id}`,
-      html: emailHtml,
-      text: emailText
+    // Prepare template variables for booking invoice
+    const templateVariables = {
+      // Customer information
+      customer_name: booking.customer_name || 'Customer',
+      customer_email: booking.customer_email || email,
+      customer_phone: booking.customer_phone || '',
+      
+      // Booking information
+      booking_id: booking.wp_id || booking.id.slice(-6).toUpperCase(),
+      booking_number: booking.wp_id || booking.id.slice(-6).toUpperCase(),
+      service_name: booking.service_name || booking.service_type || 'Service',
+      vehicle_make: booking.vehicle_make || '',
+      vehicle_model: booking.vehicle_model || '',
+      vehicle_capacity: booking.vehicle_capacity || 4,
+      pickup_location: booking.pickup_location || '',
+      dropoff_location: booking.dropoff_location || '',
+      date: booking.date ? new Date(booking.date).toLocaleDateString(language === 'ja' ? 'ja-JP' : 'en-US') : '',
+      time: booking.time || '',
+      passenger_count: booking.number_of_passengers || 1,
+      duration_hours: booking.duration_hours || 1,
+      service_days: booking.service_days || 1,
+      
+      // Driver information (if available)
+      driver_name: booking.driver_id ? 'Driver Name' : '', // Will be populated when driver is assigned
+      driver_phone: booking.driver_id ? 'Driver Phone' : '', // Will be populated when driver is assigned
+      
+      // Pricing information
+      amount: booking.base_amount || booking.price_amount || 0,
+      currency: booking.price_currency || 'JPY',
+      discount_percentage: booking.discount_percentage || 0,
+      tax_percentage: booking.tax_percentage || 0,
+      total_amount: booking.price_amount || booking.base_amount || 0,
+      
+      // Invoice dates - Format as DD/MM/YYYY
+      issue_date: (() => {
+        const date = new Date()
+        const day = date.getDate().toString().padStart(2, '0')
+        const month = (date.getMonth() + 1).toString().padStart(2, '0')
+        const year = date.getFullYear()
+        return `${day}/${month}/${year}`
+      })(),
+      due_date: (() => {
+        const date = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) // 2 days from now
+        const day = date.getDate().toString().padStart(2, '0')
+        const month = (date.getMonth() + 1).toString().padStart(2, '0')
+        const year = date.getFullYear()
+        return `${day}/${month}/${year}`
+      })(),
+      
+      // Payment information - Invoice requires payment
+      payment_required: 'true', // Show payment section for invoice
+      payment_link: paymentLink || '', // Payment link for customer to pay
+      payment_status: booking.status === 'paid' ? 'PAID' : 'PENDING PAYMENT', // Actual payment status
+      
+      // Localization
+      language,
+      team_location: booking.team_location || 'japan',
+      
+      // Greeting message - Invoice specific (payment required)
+      greeting_text: language === 'ja' 
+        ? '予約の請求書をお送りいたします。下記のリンクからお支払いをお願いいたします。'
+        : 'Please find your booking invoice below. You can complete your payment using the link provided.'
     }
 
-    // Add PDF attachment if generated successfully
-    if (pdfBuffer) {
-      emailPayload.attachments = [{
-        filename: `Invoice-${booking.wp_id}.pdf`,
+    console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Using direct template service')
+    
+    // Generate booking invoice PDF directly using the PDF generator
+    console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Generating booking invoice PDF directly')
+    let pdfAttachment = null
+    try {
+      // Import the PDF generator function directly
+      const { generateOptimizedPdfFromHtml } = await import('@/lib/optimized-html-pdf-generator')
+      
+      // Generate proper booking invoice HTML using the existing template system
+      const invoiceHtml = await generateBookingInvoiceHtml(
+        booking,
+        language as 'en' | 'ja'
+      )
+      
+      // Generate PDF
+      const pdfBuffer = await generateOptimizedPdfFromHtml(invoiceHtml, {
+        format: 'A4',
+        margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' }
+      })
+      
+      console.log('📄 [MIGRATED-BOOKING-INVOICE-API] PDF generated directly, size:', pdfBuffer.length, 'bytes')
+      
+      pdfAttachment = {
+        filename: `INV-BOOK-JPDR-${(booking.wp_id || booking.id.slice(-6)).toString().padStart(6, '0')}.pdf`,
         content: pdfBuffer,
         contentType: 'application/pdf'
-      }];
+      }
+      console.log('✅ [MIGRATED-BOOKING-INVOICE-API] Booking invoice PDF generated:', pdfAttachment.filename, 'Size:', pdfAttachment.content.length, 'bytes')
+    } catch (error) {
+      console.warn('⚠️ [MIGRATED-BOOKING-INVOICE-API] Could not generate booking invoice PDF:', error)
     }
 
-    // Add BCC if provided
-    if (bccEmails.length > 0) {
-      emailPayload.bcc = bccEmails
+    // Prepare email data (will be used later)
+    const emailData = {
+      from: 'booking@japandriver.com',
+      to: [email],
+      bcc: bccEmails ? bccEmails.split(',').map((email: string) => email.trim()) : ['admin.rixou@gmail.com'],
+      ...(pdfAttachment && { attachments: [pdfAttachment] })
     }
-
-    // Send email
-    console.log('📤 [SEND-BOOKING-INVOICE] Sending email via Resend...')
-    console.log('📧 [SEND-BOOKING-INVOICE] Email payload:', {
-      to: emailPayload.to,
-      bcc: emailPayload.bcc,
-      subject: emailPayload.subject
+    
+    console.log('📧 [MIGRATED-BOOKING-INVOICE-API] Email data prepared:', {
+      to: emailData.to,
+      bcc: emailData.bcc,
+      hasAttachments: !!pdfAttachment,
+      attachmentFilename: pdfAttachment?.filename
     })
-    
-    const { data: emailData, error: resendError } = await resend.emails.send(emailPayload)
 
-    if (resendError) {
-      console.error('❌ [SEND-BOOKING-INVOICE] Error sending email:', resendError)
-      return NextResponse.json(
-        { error: 'Failed to send email' },
-        { status: 500 }
-      )
+    console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Sending email with template service')
+    console.log('🔍 [MIGRATED-BOOKING-INVOICE-API] Template variables:', JSON.stringify(templateVariables, null, 2))
+    
+    // Render the template using emailTemplateService directly (same as quotation routes)
+    const rendered = await emailTemplateService.renderTemplate(
+      'Booking Invoice',
+      templateVariables,
+      'japan',
+      language as 'en' | 'ja'
+    )
+
+    if (!rendered) {
+      console.error('❌ [MIGRATED-BOOKING-INVOICE-API] Template rendering failed')
+      return NextResponse.json({ error: 'Failed to render template' }, { status: 500 })
+    }
+
+    console.log('✅ [MIGRATED-BOOKING-INVOICE-API] Template rendered successfully')
+
+    // Send email using Resend directly (same as quotation routes)
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const finalEmailData = {
+      from: 'Driver Japan <booking@japandriver.com>',
+      to: email,
+      bcc: bccEmails.split(',').map(e => e.trim()).filter(e => e),
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      ...(pdfAttachment && { attachments: [pdfAttachment] })
+    }
+
+    console.log('📧 [MIGRATED-BOOKING-INVOICE-API] Final email data:', {
+      to: finalEmailData.to,
+      bcc: finalEmailData.bcc,
+      subject: finalEmailData.subject,
+      hasAttachments: !!finalEmailData.attachments,
+      attachmentCount: finalEmailData.attachments?.length || 0,
+      attachmentFilename: finalEmailData.attachments?.[0]?.filename
+    })
+
+    console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Sending email')
+    const { data, error: sendError } = await resend.emails.send(finalEmailData)
+
+    if (sendError) {
+      console.error('❌ [MIGRATED-BOOKING-INVOICE-API] Resend error:', JSON.stringify(sendError, null, 2))
+      return NextResponse.json({ 
+        error: 'Failed to send email', 
+        details: sendError
+      }, { status: 500 })
     }
     
-    console.log('✅ [SEND-BOOKING-INVOICE] Email sent successfully:', emailData?.id)
-    console.log('🎉 [SEND-BOOKING-INVOICE] Process completed successfully')
-    
-    return NextResponse.json({
+    const emailResult = {
       success: true,
-      message: 'Invoice sent successfully',
-      emailId: emailData?.id,
-      paymentStatus
-    })
+      messageId: data?.id || 'unknown'
+    }
+
+    if (emailResult.success) {
+      console.log('✅ [MIGRATED-BOOKING-INVOICE-API] Email sent successfully:', emailResult.messageId)
+      
+      // Update booking status if needed
+      await supabase
+        .from('bookings')
+        .update({ 
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', bookingId)
+
+      return NextResponse.json({
+        success: true,
+        messageId: emailResult.messageId,
+        bookingId,
+        email,
+        language,
+        isUpdated: true
+      })
+    } else {
+      console.error('❌ [MIGRATED-BOOKING-INVOICE-API] Email sending failed')
+      return NextResponse.json({ 
+        error: 'Failed to send email' 
+      }, { status: 500 })
+    }
 
   } catch (error) {
-    console.error('💥 [SEND-BOOKING-INVOICE] Unexpected error:', error)
-    console.error('💥 [SEND-BOOKING-INVOICE] Error stack:', error instanceof Error ? error.stack : 'No stack trace')
-    return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    )
+    console.error('❌ [MIGRATED-BOOKING-INVOICE-API] Unexpected error:', error)
+    console.error('❌ [MIGRATED-BOOKING-INVOICE-API] Error details:', JSON.stringify(error, null, 2))
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    }, { status: 500 })
   }
-}
-
-function generateSimpleInvoiceEmailHtml({
-  booking,
-  customerName,
-  paymentStatus
-}: {
-  booking: any
-  customerName: string
-  paymentStatus: string
-}) {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
-
-  const formatTime = (timeString: string) => {
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    })
-  }
-
-  return `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>Invoice - Booking ${booking.wp_id}</title>
-      <style>
-        body, table, td, a {
-          -webkit-text-size-adjust:100%;
-          -ms-text-size-adjust:100%;
-          font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
-        }
-        table, td { mso-table-lspace:0; mso-table-rspace:0; }
-        img {
-          border:0;
-          line-height:100%;
-          outline:none;
-          text-decoration:none;
-          -ms-interpolation-mode:bicubic;
-        }
-        table { border-collapse:collapse!important; }
-        body {
-          margin:0;
-          padding:0;
-          width:100%!important;
-          background:#F2F4F6;
-        }
-        .greeting {
-          color:#32325D;
-          margin:24px 24px 16px;
-          line-height:1.4;
-          font-size: 14px;
-        }
-        @media only screen and (max-width:600px) {
-          .container { width:100%!important; }
-          .stack { display:block!important; width:100%!important; text-align:center!important; }
-          .info-block .flex { flex-direction: column!important; gap: 15px!important; }
-          .info-block .flex > div { width: 100%!important; }
-          .info-block .flex .flex { flex-direction: column!important; gap: 15px!important; }
-          .info-block .flex .flex > div { width: 100%!important; }
-        }
-        .status-badge {
-          display: inline-block;
-          padding: 4px 12px;
-          border-radius: 20px;
-          font-size: 12px;
-          font-weight: 600;
-          text-transform: uppercase;
-        }
-        .status-paid {
-          background-color: #d1fae5;
-          color: #065f46;
-        }
-        .status-pending {
-          background-color: #fef3c7;
-          color: #92400e;
-        }
-        .info-block {
-          background:#f8f9fa; 
-          padding:20px; 
-          border-radius:8px; 
-          margin:20px 0;
-        }
-        .info-block h3 {
-          margin:0 0 12px 0; 
-          color:#32325D;
-        }
-        .info-block p {
-          margin:0; 
-          color:#525f7f;
-        }
-        .info-block strong {
-          color: #32325D;
-        }
-        .pdf-notice {
-          background-color: #e0f2fe;
-          border-left: 4px solid #0288d1;
-          padding: 16px;
-          margin: 16px 0;
-          border-radius: 4px;
-        }
-      </style>
-    </head>
-    <body style="background:#F2F4F6; margin:0; padding:0;">
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-        <tr>
-          <td align="center" style="padding:24px;">
-            <table class="container" width="600" cellpadding="0" cellspacing="0" role="presentation"
-                   style="background:#FFFFFF; border-radius:8px; overflow:hidden; max-width: 600px;">
-              
-              <!-- Header -->
-              <tr>
-                <td style="background:linear-gradient(135deg,#E03E2D 0%,#F45C4C 100%);">
-                  <table width="100%" role="presentation">
-                    <tr>
-                      <td align="center" style="padding:24px;">
-                        <table cellpadding="0" cellspacing="0" style="background:#FFFFFF; border-radius:50%; width:64px; height:64px; margin:0 auto 12px;">
-                          <tr><td align="center" valign="middle" style="text-align:center;">
-                              <img src="https://japandriver.com/img/driver-invoice-logo.png" width="48" height="48" alt="Driver logo" style="display:block; margin:0 auto;">
-                          </td></tr>
-                        </table>
-                        <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">
-                          Invoice
-                        </h1>
-                        <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
-                          Booking ID: ${booking.wp_id}
-                        </p>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-              
-              <!-- Content -->
-              <tr>
-                <td style="padding:32px 24px;">
-                  <div class="greeting">
-                    <p>Hello ${customerName || 'there'},</p>
-                    
-                    <p>Please find your invoice for the vehicle service booking attached to this email.</p>
-                    
-                    <div class="info-block">
-                      <h3>Service Details</h3>
-                      <p>
-                        <strong>Service Type:</strong> ${booking.service_name}<br>
-                        <strong>Date:</strong> ${formatDate(booking.date)}<br>
-                        <strong>Time:</strong> ${formatTime(booking.time)}<br>
-                        <strong>Pickup Location:</strong> ${booking.pickup_location || 'Location TBD'}<br>
-                        <strong>Dropoff Location:</strong> ${booking.dropoff_location || 'Location TBD'}
-                      </p>
-                    </div>
-                    
-                    <div class="info-block">
-                      <h3>Payment Status</h3>
-                      <span class="status-badge ${paymentStatus === 'PAID' ? 'status-paid' : 'status-pending'}">
-                        ${paymentStatus}
-                      </span>
-                    </div>
-                    
-                    <div class="pdf-notice">
-                      <strong>📄 Invoice PDF Attached</strong><br>
-                      Please find the detailed invoice PDF attached to this email with complete pricing breakdown and payment information.
-                    </div>
-                    
-                    <p>If you have any questions about this invoice, please don't hesitate to contact us.</p>
-                    
-                    <p>Thank you for choosing Driver Japan!</p>
-                    
-                  </div>
-                </td>
-              </tr>
-              
-              <!-- Footer -->
-              <tr>
-                <td style="background:#f8f9fa; padding:24px; text-align:center;">
-                  <p style="margin:0; color:#8898AA; font-size:12px;">
-                    Driver (Thailand) Company Limited<br>
-                    <a href="https://japandriver.com" style="color:#E03E2D; text-decoration:none;">japandriver.com</a>
-                  </p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </body>
-    </html>
-  `;
-}
-
-function generateSimpleInvoiceEmailText({
-  booking,
-  customerName,
-  paymentStatus
-}: {
-  booking: any
-  customerName: string
-  paymentStatus: string
-}) {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
-
-  const formatTime = (timeString: string) => {
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    })
-  }
-
-  return `
-Invoice - Booking ${booking.wp_id}
-
-Hello ${customerName || 'there'}!
-
-Please find your invoice for the vehicle service booking attached to this email.
-
-SERVICE DETAILS:
-- Service Type: ${booking.service_name}
-- Date: ${formatDate(booking.date)}
-- Time: ${formatTime(booking.time)}
-- Pickup Location: ${booking.pickup_location || 'Location TBD'}
-- Dropoff Location: ${booking.dropoff_location || 'Location TBD'}
-
-PAYMENT STATUS: ${paymentStatus}
-
-INVOICE PDF ATTACHED:
-Please find the detailed invoice PDF attached to this email with complete pricing breakdown and payment information.
-
-If you have any questions about this invoice, please don't hesitate to contact us.
-
-Thank you for choosing Driver Japan!
-
-Best regards,
-Driver (Thailand) Company Limited
-japandriver.com
-  `
 }

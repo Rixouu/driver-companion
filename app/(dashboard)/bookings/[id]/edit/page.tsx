@@ -466,8 +466,8 @@ export default function EditBookingPage() {
       upgradeDowngradeData: pricingData
     }));
     
-    // Show modal if there's a price difference
-    if (pricingData.priceDifference !== 0) {
+    // Show modal if there's a price difference OR if it's a same price change
+    if (pricingData.priceDifference !== 0 || pricingData.assignmentType === 'update') {
       setShowUpgradeDowngradeModal(true);
     }
   }
@@ -475,6 +475,24 @@ export default function EditBookingPage() {
   // Handle upgrade/downgrade confirmation
   const handleUpgradeDowngradeConfirm = async (action: 'upgrade' | 'downgrade', couponCode?: string) => {
     if (!upgradeDowngradeData) return;
+
+    // Handle same price changes differently
+    if (couponCode === 'same-price') {
+      console.log('🔄 Same price vehicle change confirmed');
+      setShowUpgradeDowngradeModal(false);
+      setUpgradeDowngradeData(null);
+      
+      // For same price changes, just update the vehicle without any pricing logic
+      setFormData(prev => ({
+        ...prev,
+        upgradeDowngradeConfirmed: false, // No special pricing needed
+        upgradeDowngradeAction: undefined,
+        upgradeDowngradeCouponCode: undefined,
+        isFreeUpgrade: false
+      }));
+      
+      return;
+    }
 
     // Just close the modal and keep the pricing data
     // The actual payment/coupon generation will happen in the preview tab

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import LoadingModal from '@/components/ui/loading-modal';
 import { Badge } from '@/components/ui/badge';
-import { CheckIcon, UserIcon, CarIcon, Car, SearchIcon, SortAscIcon, SortDescIcon, UserX } from 'lucide-react';
+import { CheckIcon, UserIcon, CarIcon, Car, SearchIcon, SortAscIcon, SortDescIcon, UserX, HelpCircle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils/styles';
 import {
   Select,
@@ -121,6 +121,7 @@ export default function SmartAssignmentModal({
   const [progressValue, setProgressValue] = useState(0);
   const [progressLabel, setProgressLabel] = useState('');
   const [progressSteps, setProgressSteps] = useState<Array<{ label: string; value: number; completed: boolean }>>([]);
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   // Reset selections when modal opens/closes or booking changes
   useEffect(() => {
@@ -737,39 +738,51 @@ export default function SmartAssignmentModal({
         {/* Current Assignment Status */}
         {(booking.driver_id || booking.vehicle_id) && (
           <div className="mb-6 p-4 bg-muted/30 border rounded-lg">
-            <div className="flex items-center gap-2 mb-4">
-              <CheckIcon className={`h-4 w-4 ${booking.driver_id && booking.vehicle_id ? 'text-green-600' : 'text-muted-foreground'}`} />
-              <h4 className="font-semibold text-foreground">Current Assignment</h4>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <CheckIcon className={`h-4 w-4 ${booking.driver_id && booking.vehicle_id ? 'text-green-600' : 'text-muted-foreground'}`} />
+                <h4 className="font-semibold text-foreground">Current Assignment</h4>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowHelpModal(true)}
+                className="text-muted-foreground hover:text-foreground h-8 px-3"
+                title="Learn about smart assignment system"
+              >
+                <HelpCircle className="h-4 w-4 mr-2" />
+                Help
+              </Button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Current Driver */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <UserIcon className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium text-muted-foreground">Current Driver</span>
-                    </div>
-                  {booking.driver_id && onUnassignDriver && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={onUnassignDriver}
-                        className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground h-7 px-2"
-                      >
-                        <UserX className="h-3 w-3 mr-1" />
-                        Unassign
-                      </Button>
-                    )}
+              <div className="space-y-2 flex flex-col h-full">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <UserIcon className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">Current Driver</span>
                   </div>
-                
+                  {booking.driver_id && onUnassignDriver && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onUnassignDriver}
+                      className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground h-7 px-2"
+                    >
+                      <UserX className="h-3 w-3 mr-1" />
+                      Unassign
+                    </Button>
+                  )}
+                </div>
+              
                 {booking.driver_id ? (
-                  <div className="p-3 bg-background rounded-lg border">
+                  <div className="p-3 bg-background rounded-lg border flex-1 flex flex-col justify-center">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
                         <UserIcon className="h-5 w-5 text-muted-foreground" />
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <div className="font-semibold">
                           {(() => {
                             if (booking.driver_id) {
@@ -812,33 +825,32 @@ export default function SmartAssignmentModal({
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3 bg-background rounded-lg border min-h-[80px] flex items-center">
+                  <div className="p-3 bg-background rounded-lg border min-h-[80px] flex items-center flex-1">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
                         <UserIcon className="h-5 w-5 text-muted-foreground" />
                       </div>
                       <div className="text-sm text-muted-foreground">
                         No driver assigned
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
               </div>
+              
               {/* Current Vehicle */}
               {booking.vehicle_id && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CarIcon className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium text-muted-foreground">Current Vehicle</span>
-                    </div>
+                <div className="space-y-2 flex flex-col h-full">
+                  <div className="flex items-center gap-2">
+                    <CarIcon className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">Current Vehicle</span>
                   </div>
-                  <div className="p-3 bg-background rounded-lg border">
+                  <div className="p-3 bg-background rounded-lg border flex-1 flex flex-col justify-center">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
                         <CarIcon className="h-5 w-5 text-muted-foreground" />
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="font-semibold truncate">
                           {(() => {
                             if (booking.vehicle_id) {
@@ -1444,6 +1456,134 @@ export default function SmartAssignmentModal({
         steps={progressSteps}
         showSteps={true}
       />
+
+      {/* Help Modal */}
+      <Dialog open={showHelpModal} onOpenChange={setShowHelpModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-blue-600" />
+              Smart Assignment System Guide
+            </DialogTitle>
+            <DialogDescription>
+              Learn how the smart assignment system works and how to make the best vehicle selections.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* How it works */}
+            <div className="bg-muted/20 rounded-lg p-4">
+              <h3 className="font-semibold text-foreground mb-2 flex items-center gap-2">
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                How Smart Assignment Works
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                The system analyzes your service type and current vehicle to suggest the best matches. 
+                Vehicles are scored based on brand consistency, model matching, and category alignment.
+              </p>
+            </div>
+
+            {/* Match percentages */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-foreground">Match Percentage Guide</h3>
+              <div className="grid grid-cols-1 gap-2">
+                <div className="flex items-center gap-3 p-2 rounded bg-muted/20">
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span className="text-sm font-medium text-foreground">90-100% - Perfect Match</span>
+                  <span className="text-xs text-muted-foreground">Exact model or current vehicle</span>
+                </div>
+                <div className="flex items-center gap-3 p-2 rounded bg-muted/20">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <span className="text-sm font-medium text-foreground">70-89% - Excellent Match</span>
+                  <span className="text-xs text-muted-foreground">Same brand, similar model</span>
+                </div>
+                <div className="flex items-center gap-3 p-2 rounded bg-muted/20">
+                  <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                  <span className="text-sm font-medium text-foreground">50-69% - Good Match</span>
+                  <span className="text-xs text-muted-foreground">Same category tier</span>
+                </div>
+                <div className="flex items-center gap-3 p-2 rounded bg-muted/20">
+                  <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+                  <span className="text-sm font-medium text-foreground">30-49% - Basic Match</span>
+                  <span className="text-xs text-muted-foreground">Available but not optimal</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Assignment types */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-foreground">Assignment Types</h3>
+              <div className="space-y-2">
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/20">
+                  <div className="w-6 h-6 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-orange-600 dark:text-orange-400 text-sm font-bold">↑</span>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground">Upgrade</div>
+                    <div className="text-sm text-muted-foreground">
+                      Moving to a higher-tier vehicle. Customer pays the price difference.
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/20">
+                  <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-green-600 dark:text-green-400 text-sm font-bold">↓</span>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground">Downgrade</div>
+                    <div className="text-sm text-muted-foreground">
+                      Moving to a lower-tier vehicle. Customer receives a refund coupon.
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/20">
+                  <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-blue-600 dark:text-blue-400 text-sm font-bold">↔</span>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground">Update</div>
+                    <div className="text-sm text-muted-foreground">
+                      Same pricing category. No payment changes required.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tips */}
+            <div className="bg-muted/20 rounded-lg p-4">
+              <h3 className="font-semibold text-foreground mb-2">💡 Pro Tips</h3>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                <li>• Higher match percentages indicate better vehicle compatibility</li>
+                <li>• Same brand vehicles get bonus points for consistency</li>
+                <li>• Current vehicle always shows 100% match for reference</li>
+                <li>• Use the search and sort features to find specific vehicles</li>
+                <li>• Check assignment type before confirming to understand payment implications</li>
+              </ul>
+            </div>
+
+            {/* Vehicle unassignment note */}
+            <div className="bg-muted/20 border border-muted rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-medium text-foreground">About Vehicle Unassignment</div>
+                  <div className="text-sm text-muted-foreground mt-1">
+                    To change the current vehicle, select a new one from the recommendations below. 
+                    The system will automatically handle the upgrade/downgrade process and pricing adjustments.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-4">
+            <Button onClick={() => setShowHelpModal(false)}>
+              Got it!
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

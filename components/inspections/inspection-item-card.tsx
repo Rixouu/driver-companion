@@ -89,9 +89,9 @@ export function InspectionItemCard({
             {itemNumber && (
               <div className="flex-shrink-0 mt-1">
                 <div className={`flex items-center justify-center w-6 h-6 rounded-full text-sm font-medium 
-                  ${item.status === 'fail' ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' : 
-                    item.status === 'pass' ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' : 
-                    'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}
+                  ${item.status === 'fail' ? 'bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-300' : 
+                    item.status === 'pass' ? 'bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-300' : 
+                    'bg-gray-500/10 dark:bg-gray-500/20 text-gray-700 dark:text-gray-300'}
                 `}>
                   {itemNumber}
                 </div>
@@ -100,7 +100,7 @@ export function InspectionItemCard({
             <div className="flex-grow">
               <CardTitle className={`text-base ${titleColor}`}>{itemName}</CardTitle>
               {itemDescription && (
-                <CardDescription className={`${item.status === 'fail' ? 'text-red-700/80 dark:text-red-400/80' : item.status === 'pass' ? 'text-green-700/80 dark:text-green-400/80' : ''} mt-1 text-xs`}>
+                <CardDescription className={`${item.status === 'fail' ? 'text-red-600 dark:text-red-400' : item.status === 'pass' ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'} mt-1 text-xs`}>
                   {itemDescription}
                 </CardDescription>
               )}

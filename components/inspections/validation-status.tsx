@@ -9,10 +9,10 @@ export function ValidationStatus({ status }: ValidationStatusProps) {
 
   const statusClassName = `status-badge ${
     status === 'passed' 
-      ? 'bg-green-500/10 text-green-500' 
+      ? 'bg-green-500/10 text-green-700 dark:text-green-300' 
       : status === 'failed'
-        ? 'bg-red-500/10 text-red-500'
-        : 'bg-gray-500/10 text-gray-500'
+        ? 'bg-red-500/10 text-red-700 dark:text-red-300'
+        : 'bg-gray-500/10 text-gray-700 dark:text-gray-300'
   }`
 
   return (

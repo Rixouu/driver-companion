@@ -16,65 +16,65 @@ export function getStatusBadgeClasses(status: string): string {
   switch (status?.toLowerCase()) {
     case 'active':
     case 'available':
-      // Treat active similar to confirmed/completed (green)
-      return 'bg-green-100 text-green-800 border-green-300 dark:bg-transparent dark:text-green-400 dark:border-green-500';
+      // Treat active similar to confirmed/completed (green) - improved contrast
+      return 'bg-green-500/10 text-green-700 border-green-500/20 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/40';
     case 'inactive':
     case 'unavailable':
-      // Inactive shown as destructive (red) for clear visibility
-      return 'bg-red-100 text-red-800 border-red-300 dark:bg-transparent dark:text-red-400 dark:border-red-500';
+      // Inactive shown as destructive (red) for clear visibility - improved contrast
+      return 'bg-red-500/10 text-red-700 border-red-500/20 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/40';
     case 'completed':
     case 'confirmed':
-      return 'bg-green-100 text-green-800 border-green-300 dark:bg-transparent dark:text-green-400 dark:border-green-500';
+      return 'bg-green-500/10 text-green-700 border-green-500/20 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/40';
     case 'pending':
-      return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-transparent dark:text-yellow-400 dark:border-yellow-500';
+      return 'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40';
     case 'cancelled':
     case 'canceled':
     case 'trash':
     case 'draft':
-      return 'bg-red-100 text-red-800 border-red-300 dark:bg-transparent dark:text-red-400 dark:border-red-500';
+      return 'bg-red-500/10 text-red-700 border-red-500/20 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/40';
     case 'assigned':
     case 'booking':
-      return 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-transparent dark:text-purple-400 dark:border-purple-500';
+      return 'bg-purple-500/10 text-purple-700 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/40';
     case 'leave':
     case 'on_leave':
-        return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-transparent dark:text-amber-400 dark:border-amber-500';
+        return 'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40';
     case 'training':
-        return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-transparent dark:text-sky-400 dark:border-sky-500';
+        return 'bg-blue-500/10 text-blue-700 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/40';
     default:
-      return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-transparent dark:text-gray-400 dark:border-gray-500';
+      return 'bg-gray-500/10 text-gray-700 border-gray-500/20 dark:bg-gray-500/20 dark:text-gray-300 dark:border-gray-500/40';
   }
 }
 
 export function getPaymentStatusBadgeClasses(status: string): string {
   switch (status?.toLowerCase()) {
     case 'paid':
-      return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700';
+      return 'bg-green-500/10 text-green-700 border-green-500/20 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/40';
     case 'pending':
-      return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700';
+      return 'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40';
     case 'failed':
     case 'cancelled':
     case 'expired':
-      return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700';
+      return 'bg-red-500/10 text-red-700 border-red-500/20 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/40';
     default:
-      return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700';
+      return 'bg-gray-500/10 text-gray-700 border-gray-500/20 dark:bg-gray-500/20 dark:text-gray-300 dark:border-gray-500/40';
   }
 }
 
 export function getQuotationStatusBadgeClasses(status: string): string {
   switch (status?.toLowerCase()) {
     case 'approved':
-      return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700';
+      return 'bg-green-500/10 text-green-700 border-green-500/20 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/40';
     case 'rejected':
-      return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700';
+      return 'bg-red-500/10 text-red-700 border-red-500/20 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/40';
     case 'expired':
-      return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700';
+      return 'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40';
     case 'sent':
-      return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700';
+      return 'bg-blue-500/10 text-blue-700 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/40';
     case 'converted':
-      return 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700';
+      return 'bg-purple-500/10 text-purple-700 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/40';
     case 'draft':
-      return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600';
+      return 'bg-gray-500/10 text-gray-700 border-gray-500/20 dark:bg-gray-500/20 dark:text-gray-300 dark:border-gray-500/40';
     default:
-      return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
+      return 'bg-gray-500/10 text-gray-700 border-gray-500/20 dark:bg-gray-500/20 dark:text-gray-300 dark:border-gray-500/40';
   }
 } 

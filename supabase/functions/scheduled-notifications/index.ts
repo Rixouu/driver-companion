@@ -11,7 +11,7 @@ interface NotificationData {
   type: string
   related_id: string
   title: string
-  description: string
+  message: string
   user_id?: string
 }
 
@@ -106,7 +106,7 @@ async function processQuotationExpiryNotifications(supabase: any) {
             type: 'quotation_expiring_24h',
             related_id: quotation.id,
             title: `Quotation #${quotation.quote_number} expires in 24 hours`,
-            description: `Quotation for ${quotation.customer_name} (${quotation.service_type}) expires tomorrow at ${new Date(quotation.expiry_date).toLocaleString()}`
+            message: `Quotation for ${quotation.customer_name} (${quotation.service_type}) expires tomorrow at ${new Date(quotation.expiry_date).toLocaleString()}`
           })
           console.log(`[Scheduled Notifications] Sent 24h expiry notification for quotation #${quotation.quote_number}`)
         }
@@ -137,7 +137,7 @@ async function processQuotationExpiryNotifications(supabase: any) {
             type: 'quotation_expiring_2h',
             related_id: quotation.id,
             title: `Urgent: Quotation #${quotation.quote_number} expires in 2 hours`,
-            description: `Quotation for ${quotation.customer_name} (${quotation.service_type}) expires soon at ${new Date(quotation.expiry_date).toLocaleString()}`
+            message: `Quotation for ${quotation.customer_name} (${quotation.service_type}) expires soon at ${new Date(quotation.expiry_date).toLocaleString()}`
           })
           console.log(`[Scheduled Notifications] Sent 2h expiry notification for quotation #${quotation.quote_number}`)
         }
@@ -173,7 +173,7 @@ async function processQuotationExpiryNotifications(supabase: any) {
             type: 'quotation_expired',
             related_id: quotation.id,
             title: `Quotation #${quotation.quote_number} has expired`,
-            description: `Quotation for ${quotation.customer_name} (${quotation.service_type}) expired at ${new Date(quotation.expiry_date).toLocaleString()}`
+            message: `Quotation for ${quotation.customer_name} (${quotation.service_type}) expired at ${new Date(quotation.expiry_date).toLocaleString()}`
           })
           console.log(`[Scheduled Notifications] Marked quotation #${quotation.quote_number} as expired`)
         }
@@ -204,7 +204,7 @@ async function processBookingReminderNotifications(supabase: any) {
     const { data: bookings24h } = await supabase
       .from('bookings')
       .select('*')
-      .in('status', ['confirmed', 'pending'])
+      .in('status', ['confirmed', 'pending', 'assigned'])
       .gte('date', tomorrowStart.toISOString().split('T')[0])
       .lt('date', tomorrowEnd.toISOString().split('T')[0])
 
@@ -223,7 +223,7 @@ async function processBookingReminderNotifications(supabase: any) {
             type: 'booking_reminder_24h',
             related_id: booking.id,
             title: `Booking reminder: ${booking.service_name} tomorrow`,
-            description: `Booking for ${booking.customer_name} (${booking.service_name}) is scheduled for tomorrow at ${booking.time}. Pickup: ${booking.pickup_location}`
+            message: `Booking for ${booking.customer_name} (${booking.service_name}) is scheduled for tomorrow at ${booking.time}. Pickup: ${booking.pickup_location}`
           })
           console.log(`[Scheduled Notifications] Sent 24h reminder for booking ${booking.wp_id}`)
         }
@@ -231,13 +231,13 @@ async function processBookingReminderNotifications(supabase: any) {
     }
 
     // Get bookings starting in 2 hours
-    const now = new Date()
-    const currentDate = now.toISOString().split('T')[0]
+    const now2h = new Date()
+    const currentDate = now2h.toISOString().split('T')[0]
 
     const { data: bookings2h } = await supabase
       .from('bookings')
       .select('*')
-      .in('status', ['confirmed', 'pending'])
+      .in('status', ['confirmed', 'pending', 'assigned'])
       .eq('date', currentDate)
 
     if (bookings2h && bookings2h.length > 0) {
@@ -247,7 +247,7 @@ async function processBookingReminderNotifications(supabase: any) {
         const bookingDateTime = new Date()
         bookingDateTime.setHours(hours, minutes, 0, 0)
 
-        const timeDiff = bookingDateTime.getTime() - now.getTime()
+        const timeDiff = bookingDateTime.getTime() - now2h.getTime()
         const hoursDiff = timeDiff / (1000 * 60 * 60)
 
         if (hoursDiff > 1.5 && hoursDiff < 2.5) {
@@ -264,7 +264,7 @@ async function processBookingReminderNotifications(supabase: any) {
               type: 'booking_reminder_2h',
               related_id: booking.id,
               title: `Urgent: Booking starts in 2 hours - ${booking.service_name}`,
-              description: `Booking for ${booking.customer_name} (${booking.service_name}) starts at ${booking.time}. Pickup: ${booking.pickup_location}`
+              message: `Booking for ${booking.customer_name} (${booking.service_name}) starts at ${booking.time}. Pickup: ${booking.pickup_location}`
             })
             console.log(`[Scheduled Notifications] Sent 2h reminder for booking ${booking.wp_id}`)
           }
@@ -291,10 +291,13 @@ async function processTripReminderEmails(supabase: any) {
     const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
 
     // Get bookings starting in 24 hours
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const tomorrowStart = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate())
-    const tomorrowEnd = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate() + 1)
+    const now24h = new Date()
+    const tomorrow = new Date(now24h.getTime() + 24 * 60 * 60 * 1000) // Add 24 hours
+    
+    // Create UTC date strings for tomorrow
+    const tomorrowDateStr = tomorrow.toISOString().split('T')[0]
+    const tomorrowStartStr = tomorrowDateStr + 'T00:00:00.000Z'
+    const tomorrowEndStr = tomorrowDateStr + 'T23:59:59.999Z'
 
     const { data: bookings24h } = await supabase
       .from('bookings')
@@ -309,27 +312,43 @@ async function processTripReminderEmails(supabase: any) {
         vehicles:vehicle_id (
           plate_number,
           brand,
-          model,
-          color
+          model
         ),
         customers:customer_id (
           email,
-          first_name,
-          last_name
+          name
         )
       `)
-      .in('status', ['confirmed', 'pending'])
-      .gte('date', tomorrowStart.toISOString().split('T')[0])
-      .lt('date', tomorrowEnd.toISOString().split('T')[0])
+      .in('status', ['confirmed', 'pending', 'assigned'])
+      .gte('date', tomorrowStartStr)
+      .lte('date', tomorrowEndStr)
+
+    console.log(`[Scheduled Notifications] Query parameters:`, {
+      tomorrowDateStr: tomorrowDateStr,
+      tomorrowStartStr: tomorrowStartStr,
+      tomorrowEndStr: tomorrowEndStr,
+      currentDate: new Date().toISOString().split('T')[0]
+    })
 
     if (bookings24h && bookings24h.length > 0) {
+      console.log(`[Scheduled Notifications] Found ${bookings24h.length} bookings for 24h reminders`)
       for (const booking of bookings24h) {
+        console.log(`[Scheduled Notifications] Processing booking ${booking.wp_id}:`, {
+          id: booking.id,
+          wp_id: booking.wp_id,
+          drivers: booking.drivers,
+          customers: booking.customers,
+          driver_id: booking.driver_id,
+          customer_id: booking.customer_id
+        })
+        
         // Check if we already sent 24h trip reminder email
         const { data: existing } = await supabase
           .from('notifications')
           .select('id')
-          .eq('type', 'trip_reminder_24h_email')
+          .eq('type', 'booking_reminder_24h')
           .eq('related_id', booking.id)
+          .like('title', '%Trip reminder email sent%')
           .single()
 
         if (!existing) {
@@ -337,11 +356,13 @@ async function processTripReminderEmails(supabase: any) {
           console.log(`[Scheduled Notifications] Sent 24h trip reminder email for booking ${booking.wp_id}`)
         }
       }
+    } else {
+      console.log(`[Scheduled Notifications] No bookings found for 24h reminders`)
     }
 
     // Get bookings starting in 2 hours
-    const now = new Date()
-    const currentDate = now.toISOString().split('T')[0]
+    const now2h = new Date()
+    const currentDate = now2h.toISOString().split('T')[0]
 
     const { data: bookings2h } = await supabase
       .from('bookings')
@@ -356,16 +377,14 @@ async function processTripReminderEmails(supabase: any) {
         vehicles:vehicle_id (
           plate_number,
           brand,
-          model,
-          color
+          model
         ),
         customers:customer_id (
           email,
-          first_name,
-          last_name
+          name
         )
       `)
-      .in('status', ['confirmed', 'pending'])
+      .in('status', ['confirmed', 'pending', 'assigned'])
       .eq('date', currentDate)
 
     if (bookings2h && bookings2h.length > 0) {
@@ -375,7 +394,7 @@ async function processTripReminderEmails(supabase: any) {
         const bookingDateTime = new Date()
         bookingDateTime.setHours(hours, minutes, 0, 0)
 
-        const timeDiff = bookingDateTime.getTime() - now.getTime()
+        const timeDiff = bookingDateTime.getTime() - now2h.getTime()
         const hoursDiff = timeDiff / (1000 * 60 * 60)
 
         if (hoursDiff > 1.5 && hoursDiff < 2.5) {
@@ -383,8 +402,9 @@ async function processTripReminderEmails(supabase: any) {
           const { data: existing } = await supabase
             .from('notifications')
             .select('id')
-            .eq('type', 'trip_reminder_2h_email')
+            .eq('type', 'booking_reminder_2h')
             .eq('related_id', booking.id)
+            .like('title', '%Trip reminder email sent%')
             .single()
 
           if (!existing) {
@@ -417,6 +437,9 @@ async function sendTripReminderEmail(supabase: any, resend: any, booking: any, r
 
     if (!booking.customers?.email || !booking.drivers?.email || !creator?.email) {
       console.warn(`[Trip Reminder] Missing email data for booking ${booking.wp_id}`)
+      console.warn(`[Trip Reminder] Debug - customers:`, booking.customers)
+      console.warn(`[Trip Reminder] Debug - drivers:`, booking.drivers)
+      console.warn(`[Trip Reminder] Debug - creator:`, creator)
       return
     }
 
@@ -437,11 +460,11 @@ async function sendTripReminderEmail(supabase: any, resend: any, booking: any, r
       booking,
       customer: {
         email: booking.customers.email,
-        name: `${booking.customers.first_name || ''} ${booking.customers.last_name || ''}`.trim() || 'Customer'
+        name: booking.customer_name || 'Customer'
       },
       creator: {
         email: creator.email,
-        name: `${creator.first_name || ''} ${creator.last_name || ''}`.trim() || 'Admin'
+        name: creator.full_name || 'Admin'
       },
       driver: {
         email: booking.drivers.email,
@@ -456,11 +479,11 @@ async function sendTripReminderEmail(supabase: any, resend: any, booking: any, r
       booking,
       customer: {
         email: booking.customers.email,
-        name: `${booking.customers.first_name || ''} ${booking.customers.last_name || ''}`.trim() || 'Customer'
+        name: booking.customer_name || 'Customer'
       },
       creator: {
         email: creator.email,
-        name: `${creator.first_name || ''} ${creator.last_name || ''}`.trim() || 'Admin'
+        name: creator.full_name || 'Admin'
       },
       driver: {
         email: booking.drivers.email,
@@ -476,39 +499,26 @@ async function sendTripReminderEmail(supabase: any, resend: any, booking: any, r
     
     const subject = `${urgencyText}Your Trip is Coming Soon - ${booking.wp_id} (${timeText} reminder)`
 
-    // Send to customer
+    // Send single email with BCC to all recipients
     await resend.emails.send({
       from: 'Driver Japan <booking@japandriver.com>',
       to: [booking.customers.email],
+      bcc: [
+        creator.email,
+        booking.drivers.email,
+        'booking@japandriver.com'
+      ],
       subject,
-      html: emailHtml,
-      text: emailText
-    })
-
-    // Send to creator (BCC)
-    await resend.emails.send({
-      from: 'Driver Japan <booking@japandriver.com>',
-      to: [creator.email],
-      subject: `[Internal] ${subject}`,
-      html: emailHtml,
-      text: emailText
-    })
-
-    // Send to driver (BCC)
-    await resend.emails.send({
-      from: 'Driver Japan <booking@japandriver.com>',
-      to: [booking.drivers.email],
-      subject: `[Driver] ${subject}`,
       html: emailHtml,
       text: emailText
     })
 
     // Create notification record
     await createAdminNotification(supabase, {
-      type: `trip_reminder_${reminderType}_email`,
+      type: `booking_reminder_${reminderType}`,
       related_id: booking.id,
       title: `Trip reminder email sent - ${booking.wp_id}`,
-      description: `${timeText} trip reminder email sent to customer, creator, and driver for booking ${booking.wp_id}`
+      message: `${timeText} trip reminder email sent to customer with BCC to creator, driver, and booking@japandriver.com for booking ${booking.wp_id}`
     })
 
     console.log(`✅ [Trip Reminder ${reminderType.toUpperCase()}] Trip reminder emails sent for booking ${booking.wp_id}`)
@@ -931,8 +941,8 @@ async function createAdminNotification(supabase: any, notificationData: Notifica
         type: notificationData.type,
         related_id: notificationData.related_id,
         title: notificationData.title,
-        description: notificationData.description,
-        user_id: notificationData.user_id || null, // Admin notifications don't have specific user
+        message: notificationData.message,
+        user_id: notificationData.user_id || '5ae543dc-88b4-4ac4-9e02-a1024ad6d0b7', // Use admin user ID for admin notifications
         is_read: false,
         created_at: new Date().toISOString()
       })

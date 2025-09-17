@@ -41,15 +41,15 @@ export function BookingShareButtons({ booking }: BookingShareButtonsProps) {
   const currentUrl = getCurrentUrl();
   
   // Create share message
-  const shareMessage = `Check out this booking: ${formattedBookingNumber}\n\n${currentUrl}`;
+  const shareMessage = t('bookings.details.fields.checkOutBooking', { bookingNumber: formattedBookingNumber }) + `\n\n${currentUrl}`;
 
   const handleWhatsAppShare = () => {
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareMessage)}`;
     window.open(whatsappUrl, '_blank');
     setIsOpen(false);
     toast({
-      title: 'Opened WhatsApp',
-      description: 'Share the booking via WhatsApp',
+      title: t('bookings.details.fields.openedWhatsApp'),
+      description: t('bookings.details.fields.shareViaWhatsApp'),
     });
   };
 
@@ -58,8 +58,8 @@ export function BookingShareButtons({ booking }: BookingShareButtonsProps) {
     window.open(lineUrl, '_blank');
     setIsOpen(false);
     toast({
-      title: 'Opened LINE',
-      description: 'Share the booking via LINE',
+      title: t('bookings.details.fields.openedLine'),
+      description: t('bookings.details.fields.shareViaLine'),
     });
   };
 
@@ -68,13 +68,13 @@ export function BookingShareButtons({ booking }: BookingShareButtonsProps) {
       await navigator.clipboard.writeText(currentUrl);
       setIsOpen(false);
       toast({
-        title: 'Link copied!',
-        description: 'Booking link copied to clipboard',
+        title: t('bookings.details.fields.linkCopied'),
+        description: t('bookings.details.fields.bookingLinkCopied'),
       });
     } catch (error) {
       toast({
-        title: 'Failed to copy link',
-        description: 'Please copy the URL manually',
+        title: t('bookings.details.fields.failedToCopyLink'),
+        description: t('bookings.details.fields.copyUrlManually'),
         variant: 'destructive',
       });
     }
@@ -85,21 +85,21 @@ export function BookingShareButtons({ booking }: BookingShareButtonsProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="gap-2 h-9 w-full sm:w-auto">
           <Share2 className="h-4 w-4" />
-          Share
+          {t('bookings.details.fields.share')}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem onClick={handleWhatsAppShare} className="gap-2">
           <MessageCircle className="h-4 w-4 text-green-600" />
-          WhatsApp
+          {t('bookings.details.fields.shareWhatsApp')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleLineShare} className="gap-2">
           <Phone className="h-4 w-4 text-green-500" />
-          LINE
+          {t('bookings.details.fields.shareLine')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleCopyLink} className="gap-2">
           <Share2 className="h-4 w-4" />
-          Copy Link
+          {t('bookings.details.fields.copyLink')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

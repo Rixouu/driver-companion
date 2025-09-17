@@ -40,6 +40,7 @@ export function UICustomizationManagement() {
     ui_primary_button_color: '#171717',
     ui_primary_button_text_color: '#fafafa',
     ui_secondary_button_color: '#f5f5f5',
+    ui_secondary_button_text_color: '#262626',
     
     // Status Colors
     ui_success_color: '#16a34a',
@@ -69,6 +70,8 @@ export function UICustomizationManagement() {
     ui_dark_card_border_color: '#0f0f0f',
     ui_dark_primary_button_color: '#f2f2f2',
     ui_dark_primary_button_text_color: '#050505',
+    ui_dark_secondary_button_color: '#1a1a1a',
+    ui_dark_secondary_button_text_color: '#f2f2f2',
     
     // Sidebar Logo
     ui_sidebar_logo_text: 'DRIVER',
@@ -694,6 +697,63 @@ export function UICustomizationManagement() {
                   </div>
                   
                   <div className="space-y-2">
+                    <Label htmlFor="primary_btn_text">Primary Button Text</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        id="primary_btn_text"
+                        value={formData.ui_primary_button_text_color}
+                        onChange={(e) => handleFormDataChange('ui_primary_button_text_color', e.target.value)}
+                        className="w-12 h-10 p-1"
+                      />
+                      <Input
+                        value={formData.ui_primary_button_text_color}
+                        onChange={(e) => handleColorInputChange('ui_primary_button_text_color', e.target.value)}
+                        className="flex-1 font-mono text-sm"
+                        placeholder="#000000"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="secondary_btn">Secondary Button</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        id="secondary_btn"
+                        value={formData.ui_secondary_button_color}
+                        onChange={(e) => handleFormDataChange('ui_secondary_button_color', e.target.value)}
+                        className="w-12 h-10 p-1"
+                      />
+                      <Input
+                        value={formData.ui_secondary_button_color}
+                        onChange={(e) => handleColorInputChange('ui_secondary_button_color', e.target.value)}
+                        className="flex-1 font-mono text-sm"
+                        placeholder="#000000"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="secondary_btn_text">Secondary Button Text</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        id="secondary_btn_text"
+                        value={formData.ui_secondary_button_text_color}
+                        onChange={(e) => handleFormDataChange('ui_secondary_button_text_color', e.target.value)}
+                        className="w-12 h-10 p-1"
+                      />
+                      <Input
+                        value={formData.ui_secondary_button_text_color}
+                        onChange={(e) => handleColorInputChange('ui_secondary_button_text_color', e.target.value)}
+                        className="flex-1 font-mono text-sm"
+                        placeholder="#000000"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
                     <Label htmlFor="success_color">Success Color</Label>
                     <div className="flex gap-2">
                       <Input
@@ -946,6 +1006,44 @@ export function UICustomizationManagement() {
                       <Input
                         value={formData.ui_dark_primary_button_text_color}
                         onChange={(e) => handleColorInputChange('ui_dark_primary_button_text_color', e.target.value)}
+                        className="flex-1 font-mono text-sm"
+                        placeholder="#000000"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="dark_secondary_btn">Dark Secondary Button</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        id="dark_secondary_btn"
+                        value={formData.ui_dark_secondary_button_color}
+                        onChange={(e) => handleFormDataChange('ui_dark_secondary_button_color', e.target.value)}
+                        className="w-12 h-10 p-1"
+                      />
+                      <Input
+                        value={formData.ui_dark_secondary_button_color}
+                        onChange={(e) => handleColorInputChange('ui_dark_secondary_button_color', e.target.value)}
+                        className="flex-1 font-mono text-sm"
+                        placeholder="#000000"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="dark_secondary_btn_text">Dark Secondary Button Text</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        id="dark_secondary_btn_text"
+                        value={formData.ui_dark_secondary_button_text_color}
+                        onChange={(e) => handleFormDataChange('ui_dark_secondary_button_text_color', e.target.value)}
+                        className="w-12 h-10 p-1"
+                      />
+                      <Input
+                        value={formData.ui_dark_secondary_button_text_color}
+                        onChange={(e) => handleColorInputChange('ui_dark_secondary_button_text_color', e.target.value)}
                         className="flex-1 font-mono text-sm"
                         placeholder="#000000"
                       />
@@ -1247,6 +1345,16 @@ export function UICustomizationManagement() {
                       >
                         Primary Button
                       </button>
+                      <button 
+                        className="px-4 py-2 rounded text-sm font-medium"
+                        style={{
+                          backgroundColor: formData.ui_secondary_button_color,
+                          color: formData.ui_secondary_button_text_color,
+                          borderRadius: formData.ui_border_radius
+                        }}
+                      >
+                        Secondary Button
+                      </button>
                       <div className="flex gap-2">
                         <span 
                           className="text-xs px-2 py-1 rounded"
@@ -1326,6 +1434,16 @@ export function UICustomizationManagement() {
                         }}
                       >
                         Dark Primary Button
+                      </button>
+                      <button 
+                        className="px-4 py-2 rounded text-sm font-medium"
+                        style={{
+                          backgroundColor: formData.ui_dark_secondary_button_color,
+                          color: formData.ui_dark_secondary_button_text_color,
+                          borderRadius: formData.ui_border_radius
+                        }}
+                      >
+                        Dark Secondary Button
                       </button>
                     </div>
                   </>

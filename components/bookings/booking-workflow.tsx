@@ -472,14 +472,14 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
     const steps: WorkflowStep[] = [
       {
         id: 'pending',
-        title: 'Pending Booking',
-        description: 'Booking created and awaiting confirmation',
+        title: t('bookings.details.fields.pendingBooking'),
+        description: t('bookings.details.fields.pendingBookingDescription'),
         icon: <FileText className="h-4 w-4" />,
         status: booking.status === 'pending' ? 'current' : 'completed',
         date: booking.created_at,
         ...(booking.status === 'pending' && isOrganizationMember ? {
           action: {
-            label: 'Mark as Paid',
+            label: t('bookings.details.fields.markAsPaid'),
             onClick: () => setIsMarkAsPaidDialogOpen(true),
             disabled: false,
             icon: <CreditCard className="h-4 w-4" />
@@ -488,8 +488,8 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
       },
       {
         id: 'confirmed',
-        title: 'Confirmed',
-        description: 'Booking confirmed and payment received',
+        title: t('bookings.details.fields.confirmed'),
+        description: t('bookings.details.fields.confirmedDescription'),
         icon: <CheckCircle className="h-4 w-4" />,
         status: booking.status === 'pending' ? 'pending' : 
                 ['confirmed', 'assigned', 'completed'].includes(booking.status) ? 'completed' : 
@@ -499,8 +499,8 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
       },
       {
         id: 'assigned',
-        title: 'Assigned',
-        description: 'Driver and vehicle assigned to booking',
+        title: t('bookings.details.fields.assigned'),
+        description: t('bookings.details.fields.assignedDescription'),
         icon: <User className="h-4 w-4" />,
         status: booking.status === 'pending' ? 'pending' :
                 booking.driver_id && booking.vehicle_id ? 'completed' : 
@@ -517,8 +517,8 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
       },
       {
         id: 'completed',
-        title: 'Completed',
-        description: 'Booking service completed',
+        title: t('bookings.details.fields.completed'),
+        description: t('bookings.details.fields.completedDescription'),
         icon: <CheckCircle2 className="h-4 w-4" />,
         status: booking.status === 'pending' ? 'pending' :
                 booking.status === 'completed' ? 'completed' : 
@@ -526,7 +526,7 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
         date: booking.completed_at || (booking.status === 'completed' ? booking.created_at : undefined),
         ...(booking.status === 'assigned' && isOrganizationMember ? {
           action: {
-            label: 'Mark as Complete',
+            label: t('bookings.details.fields.markAsComplete'),
             onClick: () => setIsMarkAsCompleteDialogOpen(true),
             disabled: false,
             icon: <CheckCircle2 className="h-4 w-4" />
@@ -553,10 +553,10 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
             <div>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <FileText className="h-4 w-4" />
-                Booking Workflow
+                {t('bookings.details.fields.bookingWorkflow')}
               </CardTitle>
               <CardDescription>
-                Track the progress of this booking through each stage
+                {t('bookings.details.fields.bookingWorkflowDescription')}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -974,18 +974,18 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
       <Dialog open={isMarkAsCompleteDialogOpen} onOpenChange={setIsMarkAsCompleteDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Mark Booking as Complete</DialogTitle>
+            <DialogTitle>{t('bookings.details.fields.markBookingAsComplete')}</DialogTitle>
             <DialogDescription>
-              Confirm that the booking service has been completed.
+              {t('bookings.details.fields.markBookingAsCompleteDescription')}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="completion-notes">Completion Notes (Optional)</Label>
+              <Label htmlFor="completion-notes">{t('bookings.details.fields.completionNotes')}</Label>
               <Input
                 id="completion-notes"
-                placeholder="Add any notes about the completion..."
+                placeholder={t('bookings.details.fields.completionNotesPlaceholder')}
                 value={completionNotes}
                 onChange={(e) => setCompletionNotes(e.target.value)}
               />
@@ -1006,7 +1006,7 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
               className="flex items-center gap-2"
             >
               {isMarkingAsComplete && <Loader2 className="h-4 w-4 animate-spin" />}
-              Mark as Complete
+{t('bookings.details.fields.markAsComplete')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1015,10 +1015,10 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
       {/* Loading Modal */}
       <LoadingModal 
         open={isMarkingAsPaid || isMarkingAsComplete} 
-        title={isMarkingAsPaid ? "Marking as Paid..." : "Marking as Complete..."}
+        title={isMarkingAsPaid ? t('bookings.details.fields.markingAsPaid') : t('bookings.details.fields.markingAsComplete')}
         variant="default"
         value={progressPercentage}
-        label="Updating Booking Status"
+        label={t('bookings.details.fields.updatingBookingStatus')}
         steps={steps.map(step => ({
           label: step.title,
           value: step.status === 'completed' ? 100 : 0

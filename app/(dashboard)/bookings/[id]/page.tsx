@@ -605,14 +605,14 @@ export default function BookingDetailsPage() {
                 <div className="flex items-start gap-4 flex-1 min-w-0">
                   <div className="flex-1 min-w-0">
                     <h1 className="text-2xl font-bold mb-2 break-words">
-                      Booking Number #{booking.wp_id || booking.booking_id || 'N/A'}
+                      {t('bookings.details.fields.bookingNumber', { id: booking.wp_id || booking.booking_id || 'N/A' })}
                     </h1>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                       <p className="text-muted-foreground">
-                        Created on: {booking.created_at ? formatDateDDMMYYYY(booking.created_at) : 'N/A'}
+                        {t('bookings.details.createdOn', { date: booking.created_at ? formatDateDDMMYYYY(booking.created_at) : 'N/A' })}
                         {booking.creator && (
                           <span className="ml-2">
-                            • Created by: {booking.creator.full_name || 'Unknown User'}
+                            • {t('bookings.details.fields.createdBy')}: {booking.creator.full_name || t('bookings.details.fields.unknownUser')}
                           </span>
                         )}
                       </p>
@@ -632,7 +632,7 @@ export default function BookingDetailsPage() {
                     onClick={() => router.push(`/bookings/${id}/edit`)}
                   >
                     <Edit className="h-4 w-4" />
-                    Edit
+                    {t('common.edit')}
                   </Button>
                   <Button 
                     variant="outline" 
@@ -641,7 +641,7 @@ export default function BookingDetailsPage() {
                     disabled={loading}
                   >
                     <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
+                    {t('common.refresh')}
                   </Button>
                 </div>
               </div>
@@ -654,7 +654,7 @@ export default function BookingDetailsPage() {
                   onClick={() => setIsEmailModalOpen(true)}
                 >
                   <Mail className="h-4 w-4" />
-                  Send Booking Details
+                  {t('bookings.actions.sendDetails')}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -662,7 +662,7 @@ export default function BookingDetailsPage() {
                   onClick={() => setIsRescheduleModalOpen(true)}
                 >
                   <CalendarPlus className="h-4 w-4" />
-                  Reschedule Booking
+                  {t('bookings.actions.reschedule')}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -670,7 +670,7 @@ export default function BookingDetailsPage() {
                   onClick={() => setIsInvoiceModalOpen(true)}
                 >
                   <FileText className="h-4 w-4" />
-                  Send Booking Invoice PDF
+                  {t('bookings.actions.sendInvoice')}
                 </Button>
               </div>
             </div>
@@ -691,8 +691,8 @@ export default function BookingDetailsPage() {
                       <User className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold">Customer Information</h2>
-                      <p className="text-sm text-muted-foreground">Contact details and customer information</p>
+                      <h2 className="text-xl font-semibold">{t('bookings.details.fields.customerInformation')}</h2>
+                      <p className="text-sm text-muted-foreground">{t('bookings.details.fields.contactDetails')} and customer information</p>
                     </div>
                   </div>
                   
@@ -701,22 +701,22 @@ export default function BookingDetailsPage() {
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 mb-3">
                         <User className="h-4 w-4 text-muted-foreground" />
-                        <h3 className="font-medium text-base">Contact Details</h3>
+                        <h3 className="font-medium text-base">{t('bookings.details.fields.contactDetails')}</h3>
                       </div>
                       
                       <div className="space-y-3">
                         <div className="p-3 bg-muted/30 rounded-lg">
-                          <div className="text-sm text-muted-foreground mb-1">Customer Name</div>
+                          <div className="text-sm text-muted-foreground mb-1">{t('bookings.details.fields.customerName')}</div>
                           <div className="font-medium">{booking.customer_name || 'Aroon Muangkaew'}</div>
                         </div>
                         
                         <div className="p-3 bg-muted/30 rounded-lg">
-                          <div className="text-sm text-muted-foreground mb-1">Email Address</div>
+                          <div className="text-sm text-muted-foreground mb-1">{t('bookings.details.fields.email')}</div>
                           <div className="font-medium">{booking.customer_email || 'aroon.m@example.com'}</div>
                         </div>
                         
                         <div className="p-3 bg-muted/30 rounded-lg">
-                          <div className="text-sm text-muted-foreground mb-1">Phone Number</div>
+                          <div className="text-sm text-muted-foreground mb-1">{t('bookings.details.fields.phone')}</div>
                           <div className="font-medium">{booking.customer_phone || '+66 98 765 4321'}</div>
                         </div>
                       </div>
@@ -726,40 +726,40 @@ export default function BookingDetailsPage() {
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 mb-3">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <h3 className="font-medium text-base">Service Details</h3>
+                        <h3 className="font-medium text-base">{t('bookings.details.fields.serviceDetails')}</h3>
                       </div>
                       
                       <div className="space-y-3">
                         <div className="p-3 bg-muted/30 rounded-lg">
-                          <div className="text-sm text-muted-foreground mb-1">Service Type</div>
+                          <div className="text-sm text-muted-foreground mb-1">{t('bookings.details.fields.serviceType')}</div>
                           <div className="font-medium text-foreground">
                             {booking.service_name || booking.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer'}
                           </div>
                         </div>
                         
                         <div className="p-3 bg-muted/30 rounded-lg">
-                          <div className="text-sm text-muted-foreground mb-1">Pickup Date & Time</div>
+                          <div className="text-sm text-muted-foreground mb-1">{t('bookings.details.fields.pickupDate')} & {t('bookings.details.fields.pickupTime')}</div>
                           <div className="font-medium text-foreground">
-                            {booking.date && booking.time ? `${formatDateDDMMYYYY(booking.date)} at ${booking.time}` : 'Not provided'}
+                            {booking.date && booking.time ? `${formatDateDDMMYYYY(booking.date)} at ${booking.time}` : t('bookings.details.fields.notProvided')}
                           </div>
                         </div>
                         
                         <div className="p-3 bg-muted/30 rounded-lg">
                           <div className="text-sm text-muted-foreground mb-1">
                             {(booking.service_name || booking.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer') === 'Charter Services' 
-                              ? 'Services & Durations' 
-                              : 'Service Type'
+                              ? t('bookings.details.fields.servicesDurations')
+                              : t('bookings.details.fields.serviceType')
                             }
                           </div>
                           <div className="font-medium text-foreground">
                             {(booking.service_name || booking.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer') === 'Charter Services' 
                               ? (booking.service_days && booking.hours_per_day 
-                                  ? `${booking.service_days} day${booking.service_days > 1 ? 's' : ''} × ${booking.hours_per_day} hour${booking.hours_per_day > 1 ? 's' : ''} = ${booking.duration_hours || (booking.service_days * booking.hours_per_day)} total hour${(booking.duration_hours || (booking.service_days * booking.hours_per_day)) > 1 ? 's' : ''}`
+                                  ? `${booking.service_days} ${t('bookings.details.fields.day')}${booking.service_days > 1 ? t('bookings.details.fields.days') : ''} × ${booking.hours_per_day} ${t('bookings.details.fields.hour')}${booking.hours_per_day > 1 ? t('bookings.details.fields.hours') : ''} = ${booking.duration_hours || (booking.service_days * booking.hours_per_day)} ${t('bookings.details.fields.total')} ${t('bookings.details.fields.hour')}${(booking.duration_hours || (booking.service_days * booking.hours_per_day)) > 1 ? t('bookings.details.fields.hours') : ''}`
                                   : booking.duration_hours 
-                                    ? `${booking.duration_hours} hour${booking.duration_hours > 1 ? 's' : ''}`
-                                    : 'Not specified'
+                                    ? `${booking.duration_hours} ${t('bookings.details.fields.hour')}${booking.duration_hours > 1 ? t('bookings.details.fields.hours') : ''}`
+                                    : t('bookings.details.fields.notSpecified')
                                 )
-                              : 'Fixed Rate Service'
+                              : t('bookings.details.fields.fixedRateService')
                             }
                           </div>
                         </div>
@@ -780,8 +780,8 @@ export default function BookingDetailsPage() {
                       <FileText className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold">Additional Information</h2>
-                      <p className="text-sm text-muted-foreground">Flight details and passenger information</p>
+                      <h2 className="text-xl font-semibold">{t('bookings.details.fields.additionalInformation')}</h2>
+                      <p className="text-sm text-muted-foreground">{t('bookings.details.fields.flightDetails')}</p>
                     </div>
                   </div>
                   
@@ -789,16 +789,16 @@ export default function BookingDetailsPage() {
                     {/* Flight Information Row */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="p-3 bg-muted/30 rounded-lg">
-                        <div className="text-sm text-muted-foreground mb-1">Flight Number</div>
+                        <div className="text-sm text-muted-foreground mb-1">{t('bookings.details.fields.flightNumber')}</div>
                         <div className="font-medium text-foreground">
-                          {booking.flight_number || 'Not provided'}
+                          {booking.flight_number || t('bookings.details.fields.notProvided')}
                         </div>
                       </div>
                       
                       <div className="p-3 bg-muted/30 rounded-lg">
-                        <div className="text-sm text-muted-foreground mb-1">Terminal</div>
+                        <div className="text-sm text-muted-foreground mb-1">{t('bookings.details.fields.terminal')}</div>
                         <div className="font-medium text-foreground">
-                          {booking.terminal || 'Not provided'}
+                          {booking.terminal || t('bookings.details.fields.notProvided')}
                         </div>
                       </div>
                     </div>
@@ -806,16 +806,16 @@ export default function BookingDetailsPage() {
                     {/* Passenger & Bags Row */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="p-3 bg-muted/30 rounded-lg">
-                        <div className="text-sm text-muted-foreground mb-1">Passengers</div>
+                        <div className="text-sm text-muted-foreground mb-1">{t('bookings.details.fields.passengers')}</div>
                         <div className="font-medium text-foreground">
-                          {booking.number_of_passengers || 'Not specified'}
+                          {booking.number_of_passengers || t('bookings.details.fields.notSpecified')}
                         </div>
                       </div>
                       
                       <div className="p-3 bg-muted/30 rounded-lg">
-                        <div className="text-sm text-muted-foreground mb-1">Bags</div>
+                        <div className="text-sm text-muted-foreground mb-1">{t('bookings.details.fields.bags')}</div>
                         <div className="font-medium text-foreground">
-                          {booking.number_of_bags || 'Not specified'}
+                          {booking.number_of_bags || t('bookings.details.fields.notSpecified')}
                         </div>
                       </div>
                     </div>
@@ -834,8 +834,8 @@ export default function BookingDetailsPage() {
                       <Truck className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold">Vehicle & Driver Assignment</h2>
-                      <p className="text-sm text-muted-foreground">Vehicle details and driver assignment</p>
+                      <h2 className="text-xl font-semibold">{t('bookings.details.fields.vehicleDriverAssignment')}</h2>
+                      <p className="text-sm text-muted-foreground">{t('bookings.details.fields.vehicleDetails')}</p>
                     </div>
                   </div>
                   
@@ -843,7 +843,7 @@ export default function BookingDetailsPage() {
                   <div className="p-4 bg-muted/50 border rounded-lg">
                     <div className="flex items-center gap-2 mb-4">
                       <CheckIcon className={`h-4 w-4 ${assignedDriver && assignedVehicle ? 'text-green-600' : 'text-muted-foreground'}`} />
-                      <h4 className="font-medium">Current Assignment</h4>
+                      <h4 className="font-medium">{t('bookings.details.fields.currentAssignment')}</h4>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -851,7 +851,7 @@ export default function BookingDetailsPage() {
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm font-medium text-muted-foreground">Current Driver</span>
+                          <span className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.currentDriver')}</span>
                         </div>
                         {assignedDriver ? (
                           <div className="p-3 bg-background rounded-lg border">
@@ -864,10 +864,10 @@ export default function BookingDetailsPage() {
                                   {`${assignedDriver.first_name} ${assignedDriver.last_name}`}
                                 </div>
                                 <div className="text-sm text-muted-foreground">
-                                  {assignedDriver.email || 'No contact info'}
+                                  {assignedDriver.email || t('bookings.details.fields.noContactInfo')}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
-                                  {assignedDriver.phone || 'No phone'}
+                                  {assignedDriver.phone || t('bookings.details.fields.noPhone')}
                                 </div>
                               </div>
                             </div>
@@ -875,7 +875,7 @@ export default function BookingDetailsPage() {
                         ) : (
                           <div className="text-center p-4 bg-background rounded-lg border-2 border-dashed border-muted-foreground/20">
                             <User className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-sm text-muted-foreground">No driver assigned</p>
+                            <p className="text-sm text-muted-foreground">{t('bookings.details.fields.noDriverAssigned')}</p>
                           </div>
                         )}
                       </div>
@@ -884,7 +884,7 @@ export default function BookingDetailsPage() {
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <Car className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm font-medium text-muted-foreground">Current Vehicle</span>
+                          <span className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.currentVehicle')}</span>
                         </div>
                         {assignedVehicle ? (
                           <div className="p-3 bg-background rounded-lg border">
@@ -897,10 +897,10 @@ export default function BookingDetailsPage() {
                                   {`${assignedVehicle.brand} ${assignedVehicle.model}${assignedVehicle.year ? ` (${assignedVehicle.year})` : ''}`}
                                 </div>
                                 <div className="text-sm text-muted-foreground">
-                                  {assignedVehicle.plate_number || 'Plate not available'}
+                                  {assignedVehicle.plate_number || t('bookings.details.fields.plateNotAvailable')}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
-                                  {vehicleCategory || 'Not specified'}
+                                  {vehicleCategory || t('bookings.details.fields.notSpecified')}
                                 </div>
                               </div>
                             </div>
@@ -908,7 +908,7 @@ export default function BookingDetailsPage() {
                         ) : (
                           <div className="text-center p-4 bg-background rounded-lg border-2 border-dashed border-muted-foreground/20">
                             <Car className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-sm text-muted-foreground">No vehicle assigned</p>
+                            <p className="text-sm text-muted-foreground">{t('bookings.details.fields.noVehicleAssigned')}</p>
                           </div>
                         )}
                       </div>
@@ -923,7 +923,7 @@ export default function BookingDetailsPage() {
                       onClick={handleSmartAssignment}
                     >
                       <Truck className="h-4 w-4 mr-2" />
-                      {assignedDriver && assignedVehicle ? 'Reassign' : 'Assign Driver & Vehicle'}
+                      {assignedDriver && assignedVehicle ? t('bookings.details.fields.reassign') : t('bookings.details.fields.assignDriverVehicle')}
                     </Button>
                   </div>
                 </div>
@@ -942,7 +942,7 @@ export default function BookingDetailsPage() {
                     </div>
                     <div>
                       <h2 className="text-xl font-semibold">{t('bookings.details.sections.route')}</h2>
-                      <p className="text-sm text-muted-foreground">Pickup and dropoff locations with navigation</p>
+                      <p className="text-sm text-muted-foreground">{t('bookings.details.fields.pickupDropoffLocations')}</p>
                     </div>
                   </div>
                   
@@ -960,11 +960,11 @@ export default function BookingDetailsPage() {
                           </div>
                           <div className="p-4 bg-muted/30 rounded-lg border min-h-[140px] flex flex-col justify-between">
                             <div className="flex-1">
-                              <p className="text-sm font-medium leading-relaxed text-foreground">{booking.pickup_location || 'Not specified'}</p>
+                              <p className="text-sm font-medium leading-relaxed text-foreground">{booking.pickup_location || t('bookings.details.fields.notSpecified')}</p>
                             </div>
                             <Button size="sm" variant="outline" className="mt-3 w-full">
                               <Navigation className="h-4 w-4 mr-2" />
-                              Navigate to Pickup
+                              {t('bookings.details.fields.navigateToPickup')}
                             </Button>
                           </div>
                         </div>
@@ -979,11 +979,11 @@ export default function BookingDetailsPage() {
                           </div>
                           <div className="p-4 bg-muted/30 rounded-lg border min-h-[140px] flex flex-col justify-between">
                             <div className="flex-1">
-                              <p className="text-sm font-medium leading-relaxed text-foreground">{booking.dropoff_location || 'Not specified'}</p>
+                              <p className="text-sm font-medium leading-relaxed text-foreground">{booking.dropoff_location || t('bookings.details.fields.notSpecified')}</p>
                             </div>
                             <Button size="sm" variant="outline" className="mt-3 w-full">
                               <Navigation className="h-4 w-4 mr-2" />
-                              Navigate to Dropoff
+                              {t('bookings.details.fields.navigateToDropoff')}
                             </Button>
                           </div>
                         </div>
@@ -991,7 +991,7 @@ export default function BookingDetailsPage() {
 
                       {/* Route Map */}
                       <div className="space-y-3">
-                        <h3 className="font-semibold text-lg">Route Map</h3>
+                        <h3 className="font-semibold text-lg">{t('bookings.details.fields.routeMap')}</h3>
                         <div className="w-full h-64 rounded-lg overflow-hidden border">
                           {booking.pickup_location && booking.dropoff_location ? (
                             <iframe 
@@ -1037,8 +1037,8 @@ export default function BookingDetailsPage() {
                   ) : (
                     <div className="text-center p-8 bg-muted/30 rounded-lg border-2 border-dashed border-muted-foreground/20">
                       <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No Route Information</h3>
-                      <p className="text-muted-foreground">Pickup and dropoff locations are not specified for this booking.</p>
+                      <h3 className="text-lg font-semibold mb-2">{t('bookings.details.fields.noRouteInformation')}</h3>
+                      <p className="text-muted-foreground">{t('bookings.details.fields.noRouteInformationDescription')}</p>
                     </div>
                   )}
                 </div>
@@ -1052,7 +1052,7 @@ export default function BookingDetailsPage() {
             <Card className="border rounded-lg shadow-sm dark:border-gray-800">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-foreground">Booking Status</h3>
+                  <h3 className="text-lg font-semibold text-foreground">{t('bookings.details.fields.bookingStatus')}</h3>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1085,7 +1085,7 @@ export default function BookingDetailsPage() {
                               return <CheckCircle className="h-5 w-5 text-amber-500" />;
                           }
                         })()}
-                        <span className="text-sm font-medium text-muted-foreground">Status</span>
+                        <span className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.status')}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1134,7 +1134,7 @@ export default function BookingDetailsPage() {
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-5 w-5 text-muted-foreground" />
-                        <span className="text-sm font-medium text-muted-foreground">Created</span>
+                        <span className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.created')}</span>
                       </div>
                     </div>
                     <div className="text-sm text-muted-foreground">
@@ -1151,7 +1151,7 @@ export default function BookingDetailsPage() {
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
                         <Clock className="h-5 w-5 text-muted-foreground" />
-                        <span className="text-sm font-medium text-muted-foreground">Last Updated</span>
+                        <span className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.lastUpdated')}</span>
                       </div>
                     </div>
                     <div className="text-sm text-muted-foreground">
@@ -1219,8 +1219,8 @@ export default function BookingDetailsPage() {
                       <FileText className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold">Notes & Comments</h2>
-                      <p className="text-sm text-muted-foreground">Internal notes and communication</p>
+                      <h2 className="text-xl font-semibold">{t('bookings.details.fields.notesComments')}</h2>
+                      <p className="text-sm text-muted-foreground">{t('bookings.details.fields.internalNotesDescription')}</p>
                     </div>
                   </div>
                   
@@ -1228,15 +1228,15 @@ export default function BookingDetailsPage() {
                   <div>
                     <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                       <StickyNote className="h-3 w-3 text-muted-foreground" />
-                      Internal Notes
+{t('bookings.details.fields.internalNotes')}
                     </h4>
                     <div 
                       className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-orange-500 whitespace-pre-wrap break-words"
                     >
-                      {booking.notes || booking.meta?.chbs_comment || 'No internal notes available'}
+                      {booking.notes || booking.meta?.chbs_comment || t('bookings.details.fields.noInternalNotes')}
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Internal notes, not visible to the customer
+{t('bookings.details.fields.internalNotesNote')}
                     </p>
                   </div>
                 </div>

@@ -111,7 +111,7 @@ export function useUIStyles(settings: UISettings | null) {
         --primary: ${hexToHsl(currentSettings.ui_primary_button_color)};
         --primary-foreground: ${hexToHsl(currentSettings.ui_primary_button_text_color)};
         --secondary: ${hexToHsl(currentSettings.ui_secondary_button_color)};
-        --secondary-foreground: ${hexToHsl(currentSettings.ui_header_text_color)};
+        --secondary-foreground: ${hexToHsl(currentSettings.ui_secondary_button_text_color || currentSettings.ui_header_text_color)};
         
         --status-success: ${hexToHsl(currentSettings.ui_success_color)};
         --status-warning: ${hexToHsl(currentSettings.ui_warning_color)};
@@ -125,6 +125,8 @@ export function useUIStyles(settings: UISettings | null) {
         --sidebar-background: ${hexToHsl(currentSettings.ui_dark_sidebar_background)};
         --background: ${hexToHsl(currentSettings.ui_dark_page_background)};
         --card: ${hexToHsl(currentSettings.ui_dark_card_background)};
+        --secondary: ${hexToHsl(currentSettings.ui_dark_secondary_button_color || currentSettings.ui_secondary_button_color)};
+        --secondary-foreground: ${hexToHsl(currentSettings.ui_dark_secondary_button_text_color || currentSettings.ui_secondary_button_text_color || currentSettings.ui_dark_sidebar_text_color)};
       }
 
       /* Apply font family globally */

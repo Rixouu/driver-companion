@@ -82,6 +82,7 @@ export function UICustomizationProvider({ children }: { children: React.ReactNod
         --primary: ${hexToHsl(settings.ui_primary_button_color || '#3b82f6')};
         --primary-foreground: ${hexToHsl(settings.ui_primary_button_text_color || '#ffffff')};
         --secondary: ${hexToHsl(settings.ui_secondary_button_color || '#f3f4f6')};
+        --secondary-foreground: ${hexToHsl(settings.ui_secondary_button_text_color || '#262626')};
         
         --status-success: ${hexToHsl(settings.ui_success_color || '#10b981')};
         --status-warning: ${hexToHsl(settings.ui_warning_color || '#f59e0b')};
@@ -109,6 +110,8 @@ export function UICustomizationProvider({ children }: { children: React.ReactNod
         
         --primary: ${hexToHsl(settings.ui_dark_primary_button_color || '#f2f2f2')};
         --primary-foreground: ${hexToHsl(settings.ui_dark_primary_button_text_color || '#050505')};
+        --secondary: ${hexToHsl(settings.ui_dark_secondary_button_color || '#1a1a1a')};
+        --secondary-foreground: ${hexToHsl(settings.ui_dark_secondary_button_text_color || '#f2f2f2')};
       }
 
       /* Apply font family */

@@ -239,6 +239,22 @@ export default function SmartAssignmentModal({
         matchPercentage = 100;
         console.log('Perfect Hi-Ace match - 100%');
       }
+      // Same model as current vehicle gets 100% match (regardless of service name)
+      else if (booking?.vehicle_id && vehicleModel === vehicles.find(v => v.id === booking.vehicle_id)?.model?.toLowerCase()) {
+        matchPercentage = 100;
+        console.log('Same model as current vehicle - 100%');
+      }
+      // Same model and category as current vehicle gets 100% match
+      else if (booking?.vehicle_id) {
+        const currentVehicle = vehicles.find(v => v.id === booking.vehicle_id);
+        const currentVehicleModel = currentVehicle?.model?.toLowerCase() || '';
+        const currentVehicleCategory = currentVehicle?.pricing_category_vehicles?.[0]?.pricing_categories?.name?.toLowerCase() || '';
+        
+        if (vehicleModel === currentVehicleModel && vehicleCategory === currentVehicleCategory) {
+          matchPercentage = 100;
+          console.log('Same model and category as current vehicle - 100%');
+        }
+      }
       // Partial model matches
       else if (serviceName.includes('v-class') && vehicleModel.includes('v-class')) {
           matchPercentage = 90;
@@ -254,19 +270,19 @@ export default function SmartAssignmentModal({
         console.log('Toyota brand match - 80%');
       }
       
-      // Base scoring based on vehicle category tier
+      // Base scoring based on vehicle category tier (reduced to let brand logic drive final scores)
       if (vehicleCategory === 'elite') {
-        matchPercentage = Math.max(matchPercentage, 85);
-        console.log('Elite category base score - 85%');
+        matchPercentage = Math.max(matchPercentage, 50);
+        console.log('Elite category base score - 50%');
       } else if (vehicleCategory === 'platinum') {
-        matchPercentage = Math.max(matchPercentage, 75);
-        console.log('Platinum category base score - 75%');
+        matchPercentage = Math.max(matchPercentage, 45);
+        console.log('Platinum category base score - 45%');
       } else if (vehicleCategory === 'luxury') {
-        matchPercentage = Math.max(matchPercentage, 65);
-        console.log('Luxury category base score - 65%');
+        matchPercentage = Math.max(matchPercentage, 40);
+        console.log('Luxury category base score - 40%');
       } else if (vehicleCategory === 'premium') {
-        matchPercentage = Math.max(matchPercentage, 55);
-        console.log('Premium category base score - 55%');
+        matchPercentage = Math.max(matchPercentage, 35);
+        console.log('Premium category base score - 35%');
       }
       
       // Category-based scoring
@@ -284,8 +300,42 @@ export default function SmartAssignmentModal({
         console.log('Premium category match - 85%');
       }
       
+      // Brand consistency scoring - prioritize same brand as current vehicle
+      if (booking?.vehicle_id) {
+        const currentVehicle = vehicles.find(v => v.id === booking.vehicle_id);
+        const currentVehicleBrand = currentVehicle?.brand?.toLowerCase().trim() || '';
+        const currentVehicleCategory = currentVehicle?.pricing_category_vehicles?.[0]?.pricing_categories?.name?.toLowerCase() || '';
+        
+        // Same brand gets significant bonus
+        if (vehicleBrand === currentVehicleBrand) {
+          matchPercentage += 35; // 35% bonus for same brand (increased from 25%)
+          console.log(`Same brand bonus: +35% (${vehicleBrand})`);
+        }
+        
+        // Define category hierarchy (lower number = higher tier)
+        const categoryHierarchy = { 'elite': 1, 'platinum': 2, 'luxury': 3, 'premium': 4 };
+        const currentTier = categoryHierarchy[currentVehicleCategory as keyof typeof categoryHierarchy] || 4;
+        const vehicleTier = categoryHierarchy[vehicleCategory as keyof typeof categoryHierarchy] || 4;
+        
+        // If this vehicle is an upgrade from current vehicle, give it a bonus
+        if (vehicleTier < currentTier) {
+          const upgradeBonus = (currentTier - vehicleTier) * 5; // 5% bonus per tier upgrade
+          
+          // Reduce upgrade bonus for different brands
+          if (vehicleBrand !== currentVehicleBrand) {
+            const brandPenalty = 20; // 20% penalty for different brand upgrades (increased from 15%)
+            matchPercentage += Math.max(0, upgradeBonus - brandPenalty);
+            console.log(`Upgrade bonus (different brand): +${Math.max(0, upgradeBonus - brandPenalty)}% (${vehicleCategory} is ${currentTier - vehicleTier} tier(s) above ${currentVehicleCategory}, but different brand)`);
+          } else {
+            matchPercentage += upgradeBonus;
+            console.log(`Upgrade bonus (same brand): +${upgradeBonus}% (${vehicleCategory} is ${currentTier - vehicleTier} tier(s) above ${currentVehicleCategory})`);
+          }
+        }
+      }
+      
       // Ensure minimum score
       matchPercentage = Math.max(matchPercentage, 30);
+      matchPercentage = Math.min(matchPercentage, 100); // Cap at 100%
       
       console.log(`Final match percentage: ${matchPercentage}%`);
       

@@ -307,7 +307,8 @@ async function generateBookingInvoiceHtml(
   const time = booking.time || '';
 
   // Determine payment status and operation type
-  const isPaid = booking.status === 'confirmed' || booking.payment_status === 'paid';
+  // Simple logic: if booking status is not 'pending', it's considered PAID
+  const isPaid = booking.status !== 'pending';
   let statusText = isPaid ? 'PAID' : 'PENDING PAYMENT';
   let statusColor = isPaid ? '#10b981' : '#f59e0b'; // Green for paid, orange for pending
   

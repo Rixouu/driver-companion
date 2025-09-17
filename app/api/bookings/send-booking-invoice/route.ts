@@ -3,8 +3,6 @@ import { createServiceClient } from '@/lib/supabase/service-client'
 import { PricingPackage, PricingPromotion } from '@/types/quotations'
 import { emailTemplateService } from '@/lib/email/template-service'
 import { Resend } from 'resend'
-import { generateOptimizedPdfFromHtml } from '@/lib/optimized-html-pdf-generator'
-import { generateBookingInvoiceHtml } from '@/lib/booking-invoice-generator'
 
 // =============================================================================
 // MIGRATED BOOKING INVOICE EMAIL API - Now uses unified notification templates
@@ -67,28 +65,35 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ [MIGRATED-BOOKING-INVOICE-API] Booking found:', !!booking, 'Keys:', Object.keys(booking || {}).length)
 
-    // Generate payment link for booking invoice
-    console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Generating payment link for booking invoice')
+    // Generate payment link for booking invoice (only for pending bookings)
+    const bookingStatus = booking.status || 'pending'
+    const isPending = bookingStatus === 'pending'
     let paymentLink = ''
-    try {
-      const paymentLinkResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/bookings/generate-payment-link`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          booking_id: bookingId,
-          customer_email: email
+    
+    if (isPending) {
+      console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Generating payment link for pending booking invoice')
+      try {
+        const paymentLinkResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/bookings/generate-payment-link`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            booking_id: bookingId,
+            customer_email: email
+          })
         })
-      })
-      
-      if (paymentLinkResponse.ok) {
-        const paymentLinkData = await paymentLinkResponse.json()
-        paymentLink = paymentLinkData.payment_link || ''
-        console.log('✅ [MIGRATED-BOOKING-INVOICE-API] Payment link generated:', !!paymentLink)
-      } else {
-        console.warn('⚠️ [MIGRATED-BOOKING-INVOICE-API] Payment link generation failed:', paymentLinkResponse.status)
+        
+        if (paymentLinkResponse.ok) {
+          const paymentLinkData = await paymentLinkResponse.json()
+          paymentLink = paymentLinkData.payment_link || ''
+          console.log('✅ [MIGRATED-BOOKING-INVOICE-API] Payment link generated for pending booking:', !!paymentLink)
+        } else {
+          console.warn('⚠️ [MIGRATED-BOOKING-INVOICE-API] Payment link generation failed:', paymentLinkResponse.status)
+        }
+      } catch (error) {
+        console.warn('⚠️ [MIGRATED-BOOKING-INVOICE-API] Payment link generation error:', error)
       }
-    } catch (error) {
-      console.warn('⚠️ [MIGRATED-BOOKING-INVOICE-API] Payment link generation error:', error)
+    } else {
+      console.log('ℹ️ [MIGRATED-BOOKING-INVOICE-API] Skipping payment link generation for non-pending booking status:', bookingStatus)
     }
 
     // Prepare template variables for booking invoice
@@ -140,52 +145,60 @@ export async function POST(request: NextRequest) {
         return `${day}/${month}/${year}`
       })(),
       
-      // Payment information - Invoice requires payment
-      payment_required: 'true', // Show payment section for invoice
-      payment_link: paymentLink || '', // Payment link for customer to pay
-      payment_status: booking.status === 'paid' ? 'PAID' : 'PENDING PAYMENT', // Actual payment status
+      // Payment information - Conditional based on booking status
+      payment_required: isPending ? 'true' : 'false', // Show payment section only for pending bookings
+      payment_link: isPending ? (paymentLink || '') : '', // Payment link only for pending bookings
+      payment_status: isPending ? 'PENDING PAYMENT' : 'PAID', // Status based on booking status
       
       // Localization
       language,
       team_location: booking.team_location || 'japan',
       
-      // Greeting message - Invoice specific (payment required)
-      greeting_text: language === 'ja' 
-        ? '予約の請求書をお送りいたします。下記のリンクからお支払いをお願いいたします。'
-        : 'Please find your booking invoice below. You can complete your payment using the link provided.'
+      // Greeting message - Conditional based on booking status
+      greeting_text: isPending 
+        ? (language === 'ja' 
+            ? '予約の請求書をお送りいたします。下記のリンクからお支払いをお願いいたします。'
+            : 'Please find your booking invoice below. You can complete your payment using the link provided.')
+        : (language === 'ja' 
+            ? '予約の請求書をお送りいたします。お支払いが完了済みです。'
+            : 'Please find your booking invoice below. Payment has been completed.')
     }
 
     console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Using direct template service')
     
-    // Generate booking invoice PDF directly using the PDF generator
-    console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Generating booking invoice PDF directly')
+    // Generate booking invoice PDF using the proper PDF generation API
+    console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Generating booking invoice PDF using proper API')
     let pdfAttachment = null
     try {
-      // Import the PDF generator function directly
-      const { generateOptimizedPdfFromHtml } = await import('@/lib/optimized-html-pdf-generator')
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'http://localhost:3000'
       
-      // Generate proper booking invoice HTML using the existing template system
-      const invoiceHtml = await generateBookingInvoiceHtml(
-        booking,
-        language as 'en' | 'ja'
-      )
-      
-      // Generate PDF
-      const pdfBuffer = await generateOptimizedPdfFromHtml(invoiceHtml, {
-        format: 'A4',
-        margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' }
+      const pdfResponse = await fetch(`${baseUrl}/api/bookings/generate-invoice-pdf`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          booking_id: bookingId,
+          language: language
+        })
       })
       
-      console.log('📄 [MIGRATED-BOOKING-INVOICE-API] PDF generated directly, size:', pdfBuffer.length, 'bytes')
-      
-      pdfAttachment = {
-        filename: `INV-BOOK-JPDR-${(booking.wp_id || booking.id.slice(-6)).toString().padStart(6, '0')}.pdf`,
-        content: pdfBuffer,
-        contentType: 'application/pdf'
+      if (pdfResponse.ok) {
+        const pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer())
+        console.log('📄 [MIGRATED-BOOKING-INVOICE-API] PDF generated successfully, size:', pdfBuffer.length, 'bytes')
+        
+        pdfAttachment = {
+          filename: `Invoice-${booking.wp_id || booking.id}.pdf`,
+          content: pdfBuffer.toString('base64'),
+          contentType: 'application/pdf'
+        }
+        
+        console.log('✅ [MIGRATED-BOOKING-INVOICE-API] PDF attachment prepared successfully')
+      } else {
+        const errorText = await pdfResponse.text()
+        console.error('❌ [MIGRATED-BOOKING-INVOICE-API] PDF generation failed:', pdfResponse.status, errorText)
       }
-      console.log('✅ [MIGRATED-BOOKING-INVOICE-API] Booking invoice PDF generated:', pdfAttachment.filename, 'Size:', pdfAttachment.content.length, 'bytes')
-    } catch (error) {
-      console.warn('⚠️ [MIGRATED-BOOKING-INVOICE-API] Could not generate booking invoice PDF:', error)
+    } catch (pdfError) {
+      console.error('❌ [MIGRATED-BOOKING-INVOICE-API] PDF generation error:', pdfError)
+      // Continue without PDF attachment
     }
 
     // Prepare email data (will be used later)
@@ -206,7 +219,10 @@ export async function POST(request: NextRequest) {
     console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Sending email with template service')
     console.log('🔍 [MIGRATED-BOOKING-INVOICE-API] Template variables:', JSON.stringify(templateVariables, null, 2))
     
-    // Render the template using emailTemplateService directly (same as quotation routes)
+    // Render the template using the existing Booking Invoice template
+    // The template will conditionally show payment link based on payment_link variable
+    console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Using Booking Invoice template with conditional payment link')
+    
     const rendered = await emailTemplateService.renderTemplate(
       'Booking Invoice',
       templateVariables,

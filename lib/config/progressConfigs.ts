@@ -94,6 +94,17 @@ export const progressConfigs: Record<string, ProgressConfig> = {
     ],
     totalDuration: 1200,
     stepDelays: [150, 350, 250]
+  },
+  
+  invoice: {
+    steps: [
+      { label: 'Preparing invoice data', value: 15 },
+      { label: 'Generating PDF', value: 45 },
+      { label: 'Sending email', value: 75 },
+      { label: 'Finalizing', value: 90 }
+    ],
+    totalDuration: 4000, // Longer duration for PDF generation
+    stepDelays: [200, 1200, 800, 400] // More time for PDF generation step
   }
 } as const;
 

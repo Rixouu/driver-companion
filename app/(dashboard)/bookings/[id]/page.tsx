@@ -88,10 +88,6 @@ export default function BookingDetailsPage() {
   const [invoiceBccEmails, setInvoiceBccEmails] = useState<string>("booking@japandriver.com");
   const [isSendingInvoice, setIsSendingInvoice] = useState(false);
   
-  // Payment link state
-  const [isPaymentLinkModalOpen, setIsPaymentLinkModalOpen] = useState(false);
-  const [paymentLinkBccEmails, setPaymentLinkBccEmails] = useState<string>("booking@japandriver.com");
-  const [isRegeneratingPaymentLink, setIsRegeneratingPaymentLink] = useState(false);
   
   // Reschedule state
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
@@ -510,71 +506,6 @@ export default function BookingDetailsPage() {
   };
 
 
-  // Regenerate payment link
-  const handleRegeneratePaymentLink = async () => {
-    if (!paymentLinkBccEmails.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter at least one BCC email address",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsRegeneratingPaymentLink(true);
-    setProgressOpen(true);
-    setProgressVariant('invoice');
-    setProgressTitle('Regenerating Payment Link');
-    
-    try {
-      const bccEmailList = paymentLinkBccEmails.split(',').map(email => email.trim()).filter(email => email);
-      
-      // Start progress simulation and API call in parallel
-      const progressPromise = startProgress(progressConfigs.sendPaymentLink);
-      
-      const response = await fetch('/api/bookings/regenerate-payment-link', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          bookingId: booking?.id || id,
-          bccEmails: bccEmailList,
-          customer_email: booking?.customer_email
-        }),
-      });
-
-      // Wait for both to complete
-      await Promise.all([progressPromise, response]);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to regenerate payment link');
-      }
-
-      toast({
-        title: "Success",
-        description: "Payment link regenerated and sent to customer!",
-      });
-
-      setTimeout(() => {
-        setProgressOpen(false);
-        setIsPaymentLinkModalOpen(false);
-        setPaymentLinkBccEmails("booking@japandriver.com");
-      }, 500);
-      
-    } catch (error) {
-      console.error('Error regenerating payment link:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to regenerate payment link",
-        variant: "destructive",
-      });
-      setTimeout(() => setProgressOpen(false), 1000);
-    } finally {
-      setIsRegeneratingPaymentLink(false);
-    }
-  };
 
   // Reschedule booking
   const handleRescheduleBooking = async () => {
@@ -740,14 +671,6 @@ export default function BookingDetailsPage() {
                 >
                   <FileText className="h-4 w-4" />
                   Send Booking Invoice PDF
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full sm:w-auto gap-2"
-                  onClick={() => setIsPaymentLinkModalOpen(true)}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Regenerate Payment Link
                 </Button>
               </div>
             </div>
@@ -1453,86 +1376,6 @@ export default function BookingDetailsPage() {
         </Dialog>
 
 
-        {/* Regenerate Payment Link Modal */}
-        <Dialog open={isPaymentLinkModalOpen} onOpenChange={setIsPaymentLinkModalOpen}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <RefreshCw className="h-5 w-5" />
-                Regenerate Payment Link
-              </DialogTitle>
-              <DialogDescription>
-                Generate a new payment link and send it to the customer.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="payment-customer-email">Customer Email</Label>
-                <Input
-                  id="payment-customer-email"
-                  type="email"
-                  value={booking?.customer_email || ''}
-                  disabled
-                  className="bg-muted"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Email will be sent to the customer's registered email address
-                </p>
-              </div>
-              
-              <div>
-                <Label htmlFor="payment-bcc-emails">BCC Emails</Label>
-                <Input
-                  id="payment-bcc-emails"
-                  value={paymentLinkBccEmails}
-                  onChange={(e) => setPaymentLinkBccEmails(e.target.value)}
-                  placeholder="Enter email addresses separated by commas"
-                  className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Default: booking@japandriver.com. Add more emails separated by commas.
-                </p>
-              </div>
-              
-              <div className="bg-orange-50 dark:bg-orange-950/20 p-3 rounded-md">
-                <h4 className="font-medium text-sm text-orange-900 dark:text-orange-100 mb-2">
-                  🔗 What's included in the payment link:
-                </h4>
-                <ul className="text-xs text-orange-800 dark:text-orange-200 space-y-1">
-                  <li>• Secure payment processing via Omise</li>
-                  <li>• Multiple payment methods (credit card, etc.)</li>
-                  <li>• Real-time payment status updates</li>
-                  <li>• Automatic booking confirmation upon payment</li>
-                  <li>• Email notifications for payment status</li>
-                </ul>
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsPaymentLinkModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleRegeneratePaymentLink} 
-                disabled={isRegeneratingPaymentLink}
-                className="bg-orange-600 hover:bg-orange-700 text-white"
-              >
-                {isRegeneratingPaymentLink ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Regenerating...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Regenerate Link
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {/* Send Booking Invoice PDF Modal */}
         <Dialog open={isInvoiceModalOpen} onOpenChange={setIsInvoiceModalOpen}>
@@ -1540,10 +1383,20 @@ export default function BookingDetailsPage() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Send Booking Invoice PDF
+                {(() => {
+                  const bookingStatus = booking?.status || 'pending';
+                  const isPending = bookingStatus === 'pending';
+                  return isPending ? 'Send Invoice with Payment Link' : 'Send Paid Invoice';
+                })()}
               </DialogTitle>
               <DialogDescription>
-                Send an invoice PDF with payment status to the customer.
+                {(() => {
+                  const bookingStatus = booking?.status || 'pending';
+                  const isPending = bookingStatus === 'pending';
+                  return isPending 
+                    ? 'Send an invoice PDF with payment link for pending payment.'
+                    : 'Send a paid invoice PDF for completed payment.';
+                })()}
               </DialogDescription>
             </DialogHeader>
             
@@ -1576,18 +1429,43 @@ export default function BookingDetailsPage() {
                 </p>
               </div>
               
-              <div className="bg-purple-50 dark:bg-purple-950/20 p-3 rounded-md">
-                <h4 className="font-medium text-sm text-purple-900 dark:text-purple-100 mb-2">
-                  📄 What's included in the invoice PDF:
-                </h4>
-                <ul className="text-xs text-purple-800 dark:text-purple-200 space-y-1">
-                  <li>• Complete service details and pricing breakdown</li>
-                  <li>• Payment status (PENDING PAYMENT or PAID)</li>
-                  <li>• Coupon discounts and tax calculations</li>
-                  <li>• Professional invoice PDF attachment</li>
-                  <li>• No payment buttons - clean invoice format</li>
-                </ul>
-              </div>
+              {/* Conditional content based on booking status */}
+              {(() => {
+                const bookingStatus = booking?.status || 'pending';
+                const isPending = bookingStatus === 'pending';
+                
+                if (isPending) {
+                  return (
+                    <div className="bg-orange-50 dark:bg-orange-950/20 p-3 rounded-md">
+                      <h4 className="font-medium text-sm text-orange-900 dark:text-orange-100 mb-2">
+                        💳 Invoice with Payment Link (Pending Payment):
+                      </h4>
+                      <ul className="text-xs text-orange-800 dark:text-orange-200 space-y-1">
+                        <li>• Complete service details and pricing breakdown</li>
+                        <li>• Payment status: PENDING PAYMENT</li>
+                        <li>• Secure payment link for online payment</li>
+                        <li>• Multiple payment methods (credit card, etc.)</li>
+                        <li>• Professional invoice PDF attachment</li>
+                      </ul>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div className="bg-purple-50 dark:bg-purple-950/20 p-3 rounded-md">
+                      <h4 className="font-medium text-sm text-purple-900 dark:text-purple-100 mb-2">
+                        ✅ Paid Invoice (No Payment Required):
+                      </h4>
+                      <ul className="text-xs text-purple-800 dark:text-purple-200 space-y-1">
+                        <li>• Complete service details and pricing breakdown</li>
+                        <li>• Payment status: PAID</li>
+                        <li>• Coupon discounts and tax calculations</li>
+                        <li>• Professional invoice PDF attachment</li>
+                        <li>• Clean invoice format for records</li>
+                      </ul>
+                    </div>
+                  );
+                }
+              })()}
             </div>
             
             <DialogFooter>
@@ -1607,7 +1485,11 @@ export default function BookingDetailsPage() {
                 ) : (
                   <>
                     <FileText className="h-4 w-4 mr-2" />
-                    Send Invoice
+                    {(() => {
+                      const bookingStatus = booking?.status || 'pending';
+                      const isPending = bookingStatus === 'pending';
+                      return isPending ? 'Send Invoice with Payment Link' : 'Send Paid Invoice';
+                    })()}
                   </>
                 )}
               </Button>

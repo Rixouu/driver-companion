@@ -16,6 +16,7 @@ import type { NextWebVitalsMetric } from 'next/app';
 import { QueryProvider } from "@/components/providers/query-provider"
 import { SupabaseProvider } from "@/components/providers/supabase-provider"
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { PrefetchManager } from "@/components/prefetch-manager"
 
 
 const notoSansThai = Noto_Sans_Thai({
@@ -84,6 +85,7 @@ export default async function RootLayout({
             </I18nProvider>
           </QueryProvider>
         </SupabaseProvider>
+        <PrefetchManager />
         <SpeedInsights />
 
       </body>

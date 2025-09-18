@@ -1,6 +1,6 @@
 import { Metadata } from "next"
 import { getDictionary } from "@/lib/i18n/server"
-import { DashboardContent } from "@/components/dashboard/dashboard-content"
+import { DashboardContentOptimized } from "@/components/dashboard/dashboard-content-optimized"
 import { getDashboardData } from "@/app/actions/dashboard"
 
 export const dynamic = "force-dynamic"
@@ -29,7 +29,7 @@ export default async function DashboardPage() {
   } = await getDashboardData()
 
   return (
-    <DashboardContent
+    <DashboardContentOptimized
       stats={stats}
       recentInspections={recentInspections}
       upcomingInspections={upcomingInspections}

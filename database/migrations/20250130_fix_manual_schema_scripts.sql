@@ -14,10 +14,11 @@ ALTER TABLE bookings ADD COLUMN IF NOT EXISTS wp_vehicle_id TEXT;
 
 -- Fix vehicle_id format validation
 -- This ensures vehicle_id follows UUID format or is NULL
+-- Convert to text first, then validate with regex
 UPDATE bookings 
 SET vehicle_id = NULL 
 WHERE vehicle_id IS NOT NULL 
-  AND NOT (vehicle_id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');
+  AND NOT (vehicle_id::text ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');
 
 -- Add comments for documentation
 COMMENT ON COLUMN bookings.vehicle_make IS 'Vehicle make/manufacturer';

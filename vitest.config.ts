@@ -7,22 +7,41 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: './tests/setup.ts', // Will create this next
+    setupFiles: './tests/setup.ts',
     coverage: {
+      provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: [
         'node_modules/',
-        'tests/', // Exclude test files themselves from coverage
+        'tests/',
         '**/*.d.ts',
-        '**/*.config.*', // Exclude config files
-        '**/mockData.ts', // Exclude mock data
-        // Add other files/patterns to exclude if needed
+        '**/*.config.*',
+        '**/coverage/**',
+        '**/.next/**',
+        '**/public/**',
+        '**/docs/**',
+        '**/scripts/**',
+        '**/database/**',
+        '**/supabase/**',
+        '**/mockData.ts'
       ],
+      thresholds: {
+        global: {
+          branches: 70,
+          functions: 70,
+          lines: 70,
+          statements: 70
+        }
+      }
     },
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './'),
+      '@/components': path.resolve(__dirname, './components'),
+      '@/lib': path.resolve(__dirname, './lib'),
+      '@/types': path.resolve(__dirname, './types'),
+      '@/app': path.resolve(__dirname, './app')
     },
   },
 }) 

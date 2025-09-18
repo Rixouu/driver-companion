@@ -101,6 +101,26 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Find a matching vehicle for the quotation
+    let assignedVehicleId = null;
+    const vehicleType = quotation.vehicle_type || quotationItems[0]?.vehicle_type;
+    if (vehicleType) {
+      // Try to find a vehicle that matches the quotation's vehicle type
+      const { data: matchingVehicles, error: vehicleError } = await supabase
+        .from('vehicles')
+        .select('id, brand, model, plate_number, status')
+        .eq('status', 'active')
+        .or(`brand.ilike.%${vehicleType.split(' ')[0]}%,model.ilike.%${vehicleType}%`);
+      
+      if (!vehicleError && matchingVehicles && matchingVehicles.length > 0) {
+        // Use the first matching vehicle
+        assignedVehicleId = matchingVehicles[0].id;
+        console.log(`Found matching vehicle: ${matchingVehicles[0].brand} ${matchingVehicles[0].model} (${matchingVehicles[0].plate_number})`);
+      } else {
+        console.log(`No matching vehicle found for type: ${vehicleType}`);
+      }
+    }
+
     const createdBookings = [];
     const baseQuotationNumber = quotation.quote_number || Math.floor(Math.random() * 1000000);
 
@@ -148,10 +168,10 @@ export async function POST(request: NextRequest) {
           service_name: serviceType,
           service_id: item.service_type_id || quotation.service_type_id,
           service_type: serviceType,
+          vehicle_id: assignedVehicleId, // Assign the matching vehicle if found
           vehicle_make: vehicleMake,
           vehicle_model: vehicleModel,
           vehicle_capacity: 4, // Default capacity, should be fetched from vehicle data
-          vehicle_category: vehicleCategoryId,
           date: item.pickup_date || quotation.pickup_date || new Date().toISOString().split('T')[0],
           time: item.pickup_time || quotation.pickup_time || '09:00:00',
           status: 'confirmed',
@@ -188,7 +208,9 @@ export async function POST(request: NextRequest) {
             time_based_adjustment: item.time_based_adjustment,
             quotation_items: [item], // Store only this item
             conversion_date: new Date().toISOString(),
-            is_multi_service_booking: quotationItems.length > 1
+            is_multi_service_booking: quotationItems.length > 1,
+            assigned_vehicle_id: assignedVehicleId,
+            auto_assigned_vehicle: !!assignedVehicleId
           }
         })
         .select()

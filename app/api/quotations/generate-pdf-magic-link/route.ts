@@ -19,30 +19,59 @@ export async function POST(request: NextRequest) {
     // Create service client (bypasses authentication)
     const supabase = createServiceClient()
     
-    // Validate magic link token instead of user authentication
-    const { data: magicLinkData, error: magicLinkError } = await supabase
-      .from('quotation_magic_links')
-      .select('*')
-      .eq('token', token)
-      .eq('quotation_id', quotation_id)
-      .single()
+    let actualQuotationId = quotation_id;
     
-    if (magicLinkError || !magicLinkData) {
-      return NextResponse.json({ error: 'Invalid or expired magic link' }, { status: 401 })
+    // Check if token is a quote number (QUO-JPDR-XXXXXX) or UUID
+    if (token.startsWith('QUO-JPDR-')) {
+      const quoteNumber = parseInt(token.replace('QUO-JPDR-', ''));
+      if (isNaN(quoteNumber)) {
+        return NextResponse.json(
+          { error: 'Invalid quote number format' },
+          { status: 400 }
+        );
+      }
+      
+      // Find quotation by quote number
+      const { data: quotationData, error: quotationError } = await supabase
+        .from('quotations')
+        .select('id')
+        .eq('quote_number', quoteNumber)
+        .single();
+      
+      if (quotationError || !quotationData) {
+        return NextResponse.json(
+          { error: 'Quotation not found' },
+          { status: 404 }
+        );
+      }
+      
+      actualQuotationId = quotationData.id;
+    } else {
+      // Token is a UUID, validate magic link
+      const { data: magicLinkData, error: magicLinkError } = await supabase
+        .from('quotation_magic_links')
+        .select('*')
+        .eq('token', token)
+        .eq('quotation_id', quotation_id)
+        .single()
+      
+      if (magicLinkError || !magicLinkData) {
+        return NextResponse.json({ error: 'Invalid or expired magic link' }, { status: 401 })
+      }
+      
+      // Check if magic link is expired
+      const now = new Date()
+      const expiryDate = new Date(magicLinkData.expires_at)
+      if (now > expiryDate) {
+        return NextResponse.json({ error: 'Magic link has expired' }, { status: 410 })
+      }
     }
     
-    // Check if magic link is expired
-    const now = new Date()
-    const expiryDate = new Date(magicLinkData.expires_at)
-    if (now > expiryDate) {
-      return NextResponse.json({ error: 'Magic link has expired' }, { status: 410 })
-    }
-    
-    // Fetch quotation data
+    // Fetch quotation data using the actual quotation ID
     const { data: quotation, error } = await supabase
       .from('quotations')
       .select('*, customers (*), quotation_items (*)')
-      .eq('id', quotation_id)
+      .eq('id', actualQuotationId)
       .single()
     
     if (error || !quotation) {

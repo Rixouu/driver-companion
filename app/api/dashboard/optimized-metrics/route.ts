@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { getCache, setCache, invalidateCache } from '@/lib/cache/redis-cache-optimized'
 
@@ -7,7 +7,7 @@ const CACHE_TTL = 300 // 5 minutes
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await getSupabaseServerClient()
     
     // Check cache first
     const cached = await getCache(CACHE_KEY)

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { getCache, setCache } from '@/lib/cache/redis-cache-optimized'
 
@@ -6,7 +6,7 @@ const CACHE_TTL = 60 // 1 minute for search results
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await getSupabaseServerClient()
     
     // Get query parameters
     const { searchParams } = new URL(request.url)

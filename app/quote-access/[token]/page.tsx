@@ -734,111 +734,38 @@ export default function QuoteAccessPage() {
               </div>
             </div>
           
-          <div className="text-center space-y-4">
-            <div className="p-3 bg-primary/10 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
-              <FileText className="h-8 w-8 text-primary" />
-            </div>
-            <h1 className="text-3xl font-bold">{quotation.title || 'Quotation'}</h1>
-            <p className="text-xl text-muted-foreground">
-              Quote #{quotation.quote_number} • {quotation.customer_name}
-            </p>
-            <div className="flex items-center justify-center gap-2">
-              {getStatusBadge(quotation.status)}
-              <span className="text-sm text-muted-foreground">
-                Created {formatDate(quotation.created_at)}
-              </span>
+          {/* Quotation Header - Matching Admin Layout */}
+          <div className="space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-3xl font-bold mb-2 break-words">
+                  {quotation.title || 'Untitled Quotation'}
+                </h1>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <p className="text-muted-foreground">
+                    Quote #{quotation.quote_number?.toString().padStart(6, '0')} • {quotation.customer_name}
+                  </p>
+                  {getStatusBadge(quotation.status)}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Created {formatDate(quotation.created_at)}
+                </p>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button 
+                  onClick={handleDownloadQuotation}
+                  disabled={isDownloadingQuotation}
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download Quotation
+                </Button>
+              </div>
             </div>
           </div>
           
           {/* Next Step Indicator */}
-
-          
-          {/* Action Buttons Row */}
-          <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-4 border-t mt-4 justify-center items-center">
-                        {/* Download buttons */}
-            {quotation.status === 'approved' ? (
-              // When approved, show only Download Invoice button
-              <Button 
-                onClick={handleDownloadInvoice} 
-                variant="default" 
-                className="w-full sm:w-auto gap-2 bg-green-600 hover:bg-green-700 text-white border-green-600"
-                disabled={isDownloadingInvoice}
-              >
-                {isDownloadingInvoice ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    Downloading...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="h-4 w-4" />
-                    Download Invoice (Approved)
-                  </>
-                )}
-              </Button>
-            ) : ['paid', 'converted'].includes(quotation.status) ? (
-              // When paid or converted, show only Download Invoice button
-              <Button 
-                onClick={handleDownloadInvoice} 
-                variant="default" 
-                className="w-full sm:w-auto gap-2 bg-green-600 hover:bg-green-700 text-white border-green-600"
-                disabled={isDownloadingInvoice}
-              >
-                {isDownloadingInvoice ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    Downloading...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="h-4 w-4" />
-                    Download Invoice (Paid)
-                  </>
-                )}
-              </Button>
-            ) : (
-              // For other statuses (draft, sent, rejected), show Download Quotation button
-              <Button 
-                onClick={handleDownloadQuotation} 
-                variant="outline" 
-                className="w-full sm:w-auto gap-2"
-                disabled={isDownloadingQuotation}
-              >
-                {isDownloadingQuotation ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    Downloading...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4" />
-                    Download Quotation
-                  </>
-                )}
-              </Button>
-            )}
-            
-            {quotation.receipt_url && (
-              <Button 
-                onClick={handleDownloadReceipt} 
-                variant="outline" 
-                className="w-full sm:w-auto gap-2"
-                disabled={isDownloadingReceipt}
-              >
-                {isDownloadingReceipt ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    Downloading...
-                  </>
-                ) : (
-                  <>
-                    <Receipt className="h-4 w-4" />
-                    Download Receipt
-                  </>
-                )}
-              </Button>
-            )}
-          </div>
         </div>
       </div>
 

@@ -81,8 +81,19 @@ export async function POST(request: NextRequest) {
       )
     }
     
+    // Fetch promotion data if promotion is selected
+    let selectedPromotion = null;
+    if (quotation.selected_promotion_code) {
+      const { data: promotionData } = await supabase
+        .from('promotions')
+        .select('*')
+        .eq('code', quotation.selected_promotion_code)
+        .single();
+      selectedPromotion = promotionData;
+    }
+    
     // Generate HTML content using the same logic as regular PDF generation
-    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', null, null, true)
+    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', null, selectedPromotion, true)
     
     // Convert to PDF using the same generator as regular PDF generation
     const pdfBuffer = await generateOptimizedPdfFromHtml(htmlContent, {

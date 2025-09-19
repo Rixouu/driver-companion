@@ -20,7 +20,8 @@ function safeEncodeText(text: string | null | undefined): string {
 
 function generateInvoiceHtml(
   quotation: any, 
-  language: 'en' | 'ja' = 'en'
+  language: 'en' | 'ja' = 'en',
+  selectedPromotion: any = null
 ): string {
   const isJapanese = language === 'ja';
   const localeCode = language === 'ja' ? 'ja-JP' : 'en-US';
@@ -71,7 +72,10 @@ function generateInvoiceHtml(
     const discountPercentage = quotation.discount_percentage || 0;
     const taxPercentage = quotation.tax_percentage || 0;
     
-    const promotionDiscount = 0; // No promotion for magic link version
+    const promotionDiscount = selectedPromotion ? 
+      (selectedPromotion.discount_type === 'percentage' ? 
+        baseTotal * (selectedPromotion.discount_value / 100) : 
+        selectedPromotion.discount_value) : 0;
     
     const regularDiscount = baseTotal * (discountPercentage / 100);
     const totalDiscount = promotionDiscount + regularDiscount;
@@ -427,6 +431,17 @@ export async function POST(request: NextRequest) {
       )
     }
     
+    // Fetch promotion data if promotion is selected
+    let selectedPromotion = null;
+    if (quotation.selected_promotion_code) {
+      const { data: promotionData } = await supabase
+        .from('promotions')
+        .select('*')
+        .eq('code', quotation.selected_promotion_code)
+        .single();
+      selectedPromotion = promotionData;
+    }
+    
     // Only allow invoice generation for approved, paid, or converted quotations
     if (!['approved', 'paid', 'converted'].includes(quotation.status)) {
       return NextResponse.json(
@@ -436,7 +451,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Generate HTML content for invoice
-    const htmlContent = generateInvoiceHtml(quotation, language as 'en' | 'ja')
+    const htmlContent = generateInvoiceHtml(quotation, language as 'en' | 'ja', selectedPromotion)
     
     // Convert to PDF using optimized generator
     const pdfBuffer = await generateOptimizedPdfFromHtml(htmlContent, {

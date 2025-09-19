@@ -178,6 +178,11 @@ export async function POST(request: NextRequest) {
       vehicle_type: quotation.vehicle_type || 'Standard Vehicle',
       duration_hours: quotation.duration_hours || 1,
       
+      // Charter Services specific fields
+      service_days: quotation.service_days || 1,
+      hours_per_day: quotation.hours_per_day || 8,
+      service_type_charter: quotation.service_type?.toLowerCase().includes('charter') || false,
+      
       // Location and timing
       pickup_location: quotation.pickup_location || quotation.customer_notes || 'Pick up location',
       dropoff_location: quotation.dropoff_location || quotation.merchant_notes || 'Drop off location', 

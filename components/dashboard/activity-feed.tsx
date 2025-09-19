@@ -10,6 +10,7 @@ import { Bell, History, Calendar, ArrowRight, ClipboardCheck, Wrench, FileText, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { DbVehicle, DbInspection, DbMaintenanceTask } from "@/types"
 import { Booking } from "@/types/bookings"
+import { getQuotationUrl } from '@/lib/utils/quotation-url'
 
 interface ActivityFeedProps {
   recentInspections: DbInspection[]
@@ -276,7 +277,7 @@ function BookingCard({ booking }: { booking: Booking }) {
 function QuotationCard({ quotation }: { quotation: any }) {
   const { t } = useI18n()
   return (
-    <Link href={`/quotations/${quotation.id}`} className="block">
+    <Link href={getQuotationUrl(quotation)} className="block">
       <div className="p-3 sm:p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
         <div className="flex items-start gap-3">
           <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">

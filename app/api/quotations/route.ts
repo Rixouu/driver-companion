@@ -134,6 +134,32 @@ export async function POST(request: NextRequest) {
       requestData.service_type = requestData.service_type || 'General Service';
     }
     
+    // Calculate total_amount if quotation_items are provided
+    if (requestData.quotation_items && Array.isArray(requestData.quotation_items) && requestData.quotation_items.length > 0) {
+      const { calculateQuotationTotals } = await import('@/lib/utils/quotation-calculations');
+      
+      const totals = calculateQuotationTotals(
+        requestData.quotation_items,
+        requestData.packages || [],
+        requestData.discount_percentage || 0,
+        requestData.tax_percentage || 0,
+        requestData.promotion_discount || 0,
+        requestData.service_type
+      );
+      
+      // Update the request data with calculated amounts
+      requestData.total_amount = totals.finalTotal;
+      requestData.amount = requestData.amount || totals.serviceBaseTotal;
+      
+      console.log('Calculated totals for new quotation:', {
+        service_type: requestData.service_type,
+        service_days: requestData.service_days,
+        amount: requestData.amount,
+        total_amount: requestData.total_amount,
+        promotion_discount: requestData.promotion_discount
+      });
+    }
+    
     // Insert the quotation
     const { data: quotation, error } = await supabase
       .from('quotations')

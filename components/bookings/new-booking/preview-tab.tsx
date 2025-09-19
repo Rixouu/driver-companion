@@ -124,6 +124,18 @@ export function PreviewTab({
                   <p className="text-sm">{formData.number_of_bags}</p>
                 </div>
               )}
+              {formData.service_days && formData.service_name === 'Charter Services' && (
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Service Days</Label>
+                  <p className="text-sm">{formData.service_days} day(s)</p>
+                </div>
+              )}
+              {formData.hours_per_day && formData.service_name === 'Charter Services' && (
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Hours per Day</Label>
+                  <p className="text-sm">{formData.hours_per_day} hour(s)</p>
+                </div>
+              )}
             </div>
           </div>
 

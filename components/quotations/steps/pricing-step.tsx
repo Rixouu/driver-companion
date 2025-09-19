@@ -125,6 +125,12 @@ export function PricingStep({
     if (serviceItems.length === 0) return 0;
     
     return serviceItems.reduce((total, item) => {
+      // For Charter Services, calculate as unit_price × service_days
+      if (item.service_type_name?.toLowerCase().includes('charter')) {
+        const itemTotal = item.unit_price * (item.service_days || 1);
+        return total + itemTotal;
+      }
+      // For other services, use existing logic
       const itemTotal = item.total_price || (item.unit_price * (item.quantity || 1) * (item.service_days || 1));
       return total + itemTotal;
     }, 0);

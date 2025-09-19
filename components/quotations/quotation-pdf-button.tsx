@@ -351,7 +351,7 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
       formData.append('language', emailLanguage);
       formData.append('bcc_emails', bccEmails);
       
-      const apiPromise = fetch('/api/quotations/send-email-optimized', {
+      const apiPromise = fetch('/api/quotations/send-email-unified', {
         method: 'POST',
         body: formData,
       });

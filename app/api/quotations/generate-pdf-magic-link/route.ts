@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service-client'
-import { generateOptimizedPdfFromHtml, generateQuotationHtml } from '@/lib/optimized-html-pdf-generator'
+import { generateOptimizedPdfFromHtml } from '@/lib/optimized-html-pdf-generator'
+import { generateQuotationHtml } from '@/lib/html-pdf-generator'
 import { getTeamAddressHtml, getTeamFooterHtml } from '@/lib/team-addresses'
 import { safeEncodeText } from '@/lib/utils/character-encoding'
 
@@ -51,10 +52,10 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Generate HTML content
+    // Generate HTML content using the same logic as regular PDF generation
     const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', null, null, true)
     
-    // Convert to PDF using optimized generator
+    // Convert to PDF using the same generator as regular PDF generation
     const pdfBuffer = await generateOptimizedPdfFromHtml(htmlContent, {
       format: 'A4',
       margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },

@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, parseISO, addDays, isAfter } from 'date-fns';
 import { formatDateDDMMYYYY } from '@/lib/utils/formatting';
 import { Quotation, QuotationStatus } from '@/types/quotations';
+import { getQuotationUrl, getQuotationEditUrl, getQuotationDuplicateUrl } from '@/lib/utils/quotation-url';
 import { 
   CalendarIcon, 
   ChevronDownIcon, 
@@ -393,20 +394,20 @@ export default function QuotationList({
   };
 
   // Handle clicking on a row
-  const handleRowClick = (id: string) => {
-    router.push(`/quotations/${id}`);
+  const handleRowClick = (quotation: Quotation) => {
+    router.push(getQuotationUrl(quotation));
   };
 
   // Handle edit click
-  const handleEditClick = (e: React.MouseEvent, id: string) => {
+  const handleEditClick = (e: React.MouseEvent, quotation: Quotation) => {
     e.stopPropagation();
-    router.push(`/quotations/${id}/edit`);
+    router.push(getQuotationEditUrl(quotation));
   };
 
   // Handle view click
-  const handleViewClick = (e: React.MouseEvent, id: string) => {
+  const handleViewClick = (e: React.MouseEvent, quotation: Quotation) => {
     e.stopPropagation();
-    router.push(`/quotations/${id}`);
+    router.push(getQuotationUrl(quotation));
   };
 
   // Handle delete click
@@ -426,9 +427,9 @@ export default function QuotationList({
   };
 
   // Handle duplicate click
-  const handleDuplicateClick = (e: React.MouseEvent, id: string) => {
+  const handleDuplicateClick = (e: React.MouseEvent, quotation: Quotation) => {
     e.stopPropagation();
-    router.push(`/quotations/create?duplicate=${id}`);
+    router.push(getQuotationDuplicateUrl(quotation));
   };
 
   // Handle reminder click
@@ -746,7 +747,7 @@ export default function QuotationList({
 
           {/* Desktop Quotation Rows */}
           {filteredQuotations.map((quotation) => (
-            <Card key={quotation.id} className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden bg-card/95 backdrop-blur">
+            <Card key={quotation.id} className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden bg-card/95 backdrop-blur" onClick={() => handleRowClick(quotation)}>
               <div className="grid grid-cols-12 items-center gap-4 p-4">
                 {/* Selection Checkbox */}
                 <div className="col-span-1 flex items-center">
@@ -838,7 +839,7 @@ export default function QuotationList({
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleViewClick(e, quotation.id); }}
+                    onClick={(e) => { e.stopPropagation(); handleViewClick(e, quotation); }}
                     className="flex items-center gap-2"
                   >
                     <EyeIcon className="h-4 w-4" />
@@ -848,7 +849,7 @@ export default function QuotationList({
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation.id); }}
+                    onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation); }}
                     className="flex items-center gap-2"
                   >
                     <CopyIcon className="h-4 w-4" />
@@ -863,7 +864,7 @@ export default function QuotationList({
         {/* Mobile Card View */}
         <div className="sm:hidden space-y-4">
           {filteredQuotations.map((quotation) => (
-            <Card key={quotation.id} className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden bg-card/95 backdrop-blur">
+            <Card key={quotation.id} className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden bg-card/95 backdrop-blur" onClick={() => handleRowClick(quotation)}>
               <div className="p-4">
                 {/* Header with Selection and Status */}
                 <div className="flex items-start justify-between mb-3">
@@ -935,7 +936,7 @@ export default function QuotationList({
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleViewClick(e, quotation.id); }}
+                    onClick={(e) => { e.stopPropagation(); handleViewClick(e, quotation); }}
                     className="flex items-center gap-2 w-full justify-center"
                   >
                     <EyeIcon className="h-4 w-4" />
@@ -945,7 +946,7 @@ export default function QuotationList({
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation.id); }}
+                    onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation); }}
                     className="flex items-center gap-2 w-full justify-center"
                   >
                     <CopyIcon className="h-4 w-4" />

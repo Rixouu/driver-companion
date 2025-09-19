@@ -63,6 +63,30 @@ export default async function QuotationDetailsPage({ params: awaitedParams }: Pr
   
   const isOrganizationMember = user?.email?.endsWith(`@${ORGANIZATION_DOMAIN}`);
   
+  // Determine if the ID is a quote number (QUO-JPDR-XXXXXX) or UUID
+  const isQuoteNumber = id.startsWith('QUO-JPDR-');
+  let actualQuotationId = id;
+  
+  // If it's a quote number, extract the number and find the corresponding UUID
+  if (isQuoteNumber) {
+    const quoteNumber = parseInt(id.replace('QUO-JPDR-', ''));
+    if (!isNaN(quoteNumber)) {
+      const { data: quotationData } = await supabase
+        .from('quotations')
+        .select('id')
+        .eq('quote_number', quoteNumber)
+        .single();
+      
+      if (quotationData) {
+        actualQuotationId = quotationData.id;
+      } else {
+        notFound();
+      }
+    } else {
+      notFound();
+    }
+  }
+  
   // Get the quotation with expanded selection to include billing details
   let queryBuilder = supabase
     .from('quotations')
@@ -88,7 +112,7 @@ export default async function QuotationDetailsPage({ params: awaitedParams }: Pr
       ),
       customers:customer_id (*)
     `)
-    .eq('id', id);
+    .eq('id', actualQuotationId);
     
   // If user is not an organization member, only allow access to their own quotations
   if (!isOrganizationMember) {

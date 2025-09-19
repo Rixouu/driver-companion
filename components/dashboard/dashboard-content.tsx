@@ -42,6 +42,7 @@ import { fadeIn, withDelay } from "@/lib/utils/animations"
 import { getBookings } from "@/app/actions/bookings"
 import { Booking } from "@/types/bookings"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
+import { getQuotationUrl } from '@/lib/utils/quotation-url'
 
 
 interface DashboardContentProps {
@@ -455,7 +456,7 @@ export function DashboardContent({
           <CardContent>
             <div className="space-y-3">
               {expiringQuotations.map((quotation) => (
-                <Link key={quotation.id} href={`/quotations/${quotation.id}`}>
+                <Link key={quotation.id} href={getQuotationUrl(quotation)}>
                   <div className="flex items-center justify-between p-3 bg-background rounded-lg border hover:bg-accent transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
@@ -1053,7 +1054,7 @@ function BookingCard({ booking }: { booking: Booking }) {
 function QuotationCard({ quotation }: { quotation: any }) {
   const { t } = useI18n()
   return (
-    <Link href={`/quotations/${quotation.id}`} className="block">
+    <Link href={getQuotationUrl(quotation)} className="block">
       <div className="p-3 sm:p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
         <div className="flex items-start gap-3">
           <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">

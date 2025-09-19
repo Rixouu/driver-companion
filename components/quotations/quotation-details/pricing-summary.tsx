@@ -46,7 +46,13 @@ export function PricingSummary({
     
     if (quotationItems.length > 0) {
       quotationItems.forEach((item: QuotationItem) => {
-        const itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+        // For Charter Services, calculate as unit_price × service_days
+        let itemBasePrice;
+        if (item.service_type_name?.toLowerCase().includes('charter')) {
+          itemBasePrice = item.unit_price * (item.service_days || 1);
+        } else {
+          itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+        }
         serviceBaseTotal += itemBasePrice;
         
         if ((item as any).time_based_adjustment) {

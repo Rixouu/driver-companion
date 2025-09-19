@@ -35,7 +35,14 @@ export function PreviewStep({
   };
 
   const calculateTotals = () => {
-    const serviceTotal = serviceItems.reduce((total, item) => total + (item.total_price || item.unit_price), 0);
+    const serviceTotal = serviceItems.reduce((total, item) => {
+      // For Charter Services, calculate as unit_price × service_days
+      if (item.service_type_name?.toLowerCase().includes('charter')) {
+        return total + (item.unit_price * (item.service_days || 1));
+      }
+      // For other services, use existing logic
+      return total + (item.total_price || item.unit_price);
+    }, 0);
     const packageTotal = selectedPackage ? selectedPackage.base_price : 0;
     const baseTotal = serviceTotal + packageTotal;
     

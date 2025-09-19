@@ -20,42 +20,78 @@ export async function POST(req: NextRequest) {
     const supabase = createServiceClient();
     console.log('🔍 [Validate Magic Link API] Service client created');
     
-    // Find the magic link and check if it's valid
-    console.log('🔍 [Validate Magic Link API] Querying magic link...');
-    const { data: magicLink, error: magicLinkError } = await supabase
-      .from('quotation_magic_links')
-      .select('*')
-      .eq('token', token)
-      .single();
+    let quotationId: string;
+    
+    // Check if token is a quote number (QUO-JPDR-XXXXXX) or UUID
+    if (token.startsWith('QUO-JPDR-')) {
+      console.log('🔍 [Validate Magic Link API] Token is a quote number, extracting number...');
+      const quoteNumber = parseInt(token.replace('QUO-JPDR-', ''));
+      if (isNaN(quoteNumber)) {
+        console.log('❌ [Validate Magic Link API] Invalid quote number format');
+        return NextResponse.json(
+          { error: "Invalid quote number format" },
+          { status: 400 }
+        );
+      }
+      
+      // Find quotation by quote number
+      const { data: quotationData, error: quotationError } = await supabase
+        .from('quotations')
+        .select('id')
+        .eq('quote_number', quoteNumber)
+        .single();
+      
+      if (quotationError || !quotationData) {
+        console.log('❌ [Validate Magic Link API] Quotation not found for quote number:', quoteNumber);
+        return NextResponse.json(
+          { error: "Quotation not found" },
+          { status: 404 }
+        );
+      }
+      
+      quotationId = quotationData.id;
+      console.log('🔍 [Validate Magic Link API] Found quotation ID for quote number:', quotationId);
+    } else {
+      // Token is a UUID, find the magic link
+      console.log('🔍 [Validate Magic Link API] Token is UUID, querying magic link...');
+      const { data: magicLink, error: magicLinkError } = await supabase
+        .from('quotation_magic_links')
+        .select('*')
+        .eq('token', token)
+        .single();
 
-    console.log('🔍 [Validate Magic Link API] Magic link query result:', { magicLink, magicLinkError });
+      console.log('🔍 [Validate Magic Link API] Magic link query result:', { magicLink, magicLinkError });
 
-    if (magicLinkError || !magicLink) {
-      console.log('❌ [Validate Magic Link API] Magic link not found or error:', magicLinkError);
-      return NextResponse.json(
-        { error: "Invalid magic link" },
-        { status: 404 }
-      );
+      if (magicLinkError || !magicLink) {
+        console.log('❌ [Validate Magic Link API] Magic link not found or error:', magicLinkError);
+        return NextResponse.json(
+          { error: "Invalid magic link" },
+          { status: 404 }
+        );
+      }
+
+      // Check if the magic link has expired
+      if (new Date(magicLink.expires_at) < new Date()) {
+        return NextResponse.json(
+          { error: "Magic link has expired" },
+          { status: 410 }
+        );
+      }
+
+      // Check if the magic link has already been used (commented out for testing)
+      // if (magicLink.is_used) {
+      //   return NextResponse.json(
+      //     { error: "Magic link has already been used" },
+      //     { status: 410 }
+      //   );
+      // }
+
+      quotationId = magicLink.quotation_id;
+      console.log('🔍 [Validate Magic Link API] Found quotation ID from magic link:', quotationId);
     }
-
-    // Check if the magic link has expired
-    if (new Date(magicLink.expires_at) < new Date()) {
-      return NextResponse.json(
-        { error: "Magic link has expired" },
-        { status: 410 }
-      );
-    }
-
-    // Check if the magic link has already been used (commented out for testing)
-    // if (magicLink.is_used) {
-    //   return NextResponse.json(
-    //     { error: "Magic link has already been used" },
-    //     { status: 410 }
-    //   );
-    // }
 
     // Get the quotation with all necessary details
-    console.log('🔍 [Validate Magic Link API] Magic link found, now querying quotation:', magicLink.quotation_id);
+    console.log('🔍 [Validate Magic Link API] Querying quotation:', quotationId);
     const { data: quotation, error: quotationError } = await supabase
       .from('quotations')
       .select(`
@@ -79,7 +115,7 @@ export async function POST(req: NextRequest) {
           time_based_rule_name
         )
       `)
-      .eq('id', magicLink.quotation_id)
+      .eq('id', quotationId)
       .single();
 
     console.log('🔍 [Validate Magic Link API] Quotation query result:', { quotation, quotationError });

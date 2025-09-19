@@ -486,7 +486,13 @@ export function generateQuotationHtml(
     
     if (quotation.quotation_items && quotation.quotation_items.length > 0) {
       quotation.quotation_items.forEach((item: QuotationItem) => {
-        const itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+        // For Charter Services, calculate as unit_price × service_days
+        let itemBasePrice;
+        if (item.service_type_name?.toLowerCase().includes('charter')) {
+          itemBasePrice = item.unit_price * (item.service_days || 1);
+        } else {
+          itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+        }
         serviceBaseTotal += itemBasePrice;
         
         if ((item as any).time_based_adjustment) {
@@ -720,24 +726,31 @@ export function generateQuotationHtml(
             quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0 ?
               // If we have items, display each one
               quotation.quotation_items.map((item: QuotationItem, index: number) => {
-                const itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+                // For Charter Services, calculate as unit_price × service_days
+                const itemBasePrice = item.service_type_name?.toLowerCase().includes('charter') 
+                  ? item.unit_price * (item.service_days || 1)
+                  : item.unit_price * (item.quantity || 1) * (item.service_days || 1);
                 const timeAdjustment = (item as any).time_based_adjustment ? 
                   itemBasePrice * ((item as any).time_based_adjustment / 100) : 0;
                 const isPackage = item.service_type_name?.toLowerCase().includes('package');
 
                 return `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; padding: 5px 0; ${index < quotation.quotation_items.length - 1 ? 'border-bottom: 1px solid #edf2f7;' : ''}">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; padding: 8px 0; ${index < quotation.quotation_items.length - 1 ? 'border-bottom: 1px solid #edf2f7;' : ''}">
                   <div style="flex: 3;">
-                    <div style="font-weight: 500; margin-bottom: 3px; font-size: 13px;">
+                    <div style="font-weight: 500; margin-bottom: 4px; font-size: 13px;">
                       ${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Standard Vehicle'}`}
                     </div>
                     ${!isPackage ? `
-                      <div style="font-size: 12px; color: #666;">
+                      <div style="font-size: 12px; color: #666; margin-bottom: 2px;">
                         ${item.service_type_name?.toLowerCase().includes('charter') ?
-                          `${item.service_days || 1} day(s) × ${item.hours_per_day || 8}h` :
+                          `Hourly Rate (${item.hours_per_day || 8} hours / day): ${formatCurrency(item.unit_price)}` :
                           `${item.duration_hours || 1} hour(s)`
                         }
                       </div>
+                      ${item.service_type_name?.toLowerCase().includes('charter') ? `
+                      <div style="font-size: 12px; color: #666; margin-bottom: 2px;">
+                        Number of Days: × ${item.service_days || 1}
+                      </div>` : ''}
                       ${item.pickup_date ? `
                       <div style="font-size: 12px; color: #666;">
                         ${quotationT.pickupDate} ${formatDateDDMMYYYY(item.pickup_date)}${item.pickup_time ? `, ${quotationT.pickupTime} ${item.pickup_time}` : ''}
@@ -765,40 +778,38 @@ export function generateQuotationHtml(
                     `: ''}
                   </div>
                   <div style="flex: 1; font-size: 13px; text-align: right; font-weight: 500;">
-                    ${formatCurrency(item.total_price || itemBasePrice + timeAdjustment)}
+                    ${formatCurrency((() => {
+                      // For Charter Services, always recalculate based on service_days
+                      if (item.service_type_name?.toLowerCase().includes('charter')) {
+                        return item.unit_price * (item.service_days || 1) + timeAdjustment;
+                      }
+                      // For other services, use total_price if available, otherwise calculate
+                      return item.total_price || itemBasePrice + timeAdjustment;
+                    })())}
                   </div>
                 </div>
               `}).join('')
               :
               // Fallback to a single service display if no items
-              `<div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding: 5px 0;">
-                <div style="font-size: 13px;">
-                  ${quotation?.vehicle_type || 'Toyota Alphard Executive Lounge'}
+              `<div style="display: flex; justify-content: space-between; margin-bottom: 8px; padding: 8px 0;">
+                <div style="flex: 3;">
+                  <div style="font-weight: 500; margin-bottom: 4px; font-size: 13px;">
+                    ${quotation?.vehicle_type || 'Toyota Alphard Executive Lounge'}
+                  </div>
+                  <div style="font-size: 12px; color: #666; margin-bottom: 2px;">
+                    ${language === 'ja' ? `時間料金 (${quotation?.hours_per_day || 8} 時間 / 日)` : 
+                                         `Hourly Rate (${quotation?.hours_per_day || 8} hours / day)`}: ${formatCurrency(quotation?.hourly_rate || quotation?.daily_rate || (totals.baseTotal / (quotation?.service_days || 1)))}
+                  </div>
+                  ${(quotation?.service_days || 1) > 1 ? `
+                  <div style="font-size: 12px; color: #666;">
+                    ${language === 'ja' ? '日数' : 'Number of Days'}: × ${quotation?.service_days || 1}
+                  </div>
+                  ` : ''}
                 </div>
-                <div style="font-size: 13px;">
+                <div style="flex: 1; font-size: 13px; text-align: right; font-weight: 500;">
+                  ${formatCurrency(totals.baseTotal)}
                 </div>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding: 5px 0;">
-                <div style="font-size: 13px;">
-                  ${language === 'ja' ? `時間料金 (${quotation?.hours_per_day || 8} 時間 / 日)` : 
-                                       `Hourly Rate (${quotation?.hours_per_day || 8} hours / day)`}
-                </div>
-                <div style="font-size: 13px; font-weight: medium;">
-                  ${formatCurrency(quotation?.hourly_rate || quotation?.daily_rate || (totals.baseTotal / (quotation?.service_days || 1)))}
-                </div>
-              </div>
-              
-              ${(quotation?.service_days || 1) > 1 ? `
-              <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding: 5px 0;">
-                <div style="font-size: 13px; color: #666;">
-                  ${language === 'ja' ? '日数' : 'Number of Days'}
-                </div>
-                <div style="font-size: 13px;">
-                  × ${quotation?.service_days || 1}
-                </div>
-              </div>
-              ` : ''}`
+              </div>`
           }
           
           <!-- Totals Section -->

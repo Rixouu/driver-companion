@@ -37,7 +37,13 @@ export function generateInvoiceHtml(
     
     if (quotation.quotation_items && quotation.quotation_items.length > 0) {
       quotation.quotation_items.forEach((item: any) => {
-        const itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+        // For Charter Services, calculate as unit_price × service_days
+        let itemBasePrice;
+        if (item.service_type_name?.toLowerCase().includes('charter')) {
+          itemBasePrice = item.unit_price * (item.service_days || 1);
+        } else {
+          itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+        }
         serviceBaseTotal += itemBasePrice;
         
         if (item.time_based_adjustment) {
@@ -216,14 +222,21 @@ export function generateInvoiceHtml(
             }]).map((item: any) => `
               <tr>
                 <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #111827;">
-                  <div>
+                  <div style="font-weight: 500; margin-bottom: 4px;">
                     ${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Vehicle'}`}
-                    ${item.service_days && item.service_days > 1 ? `
-                      <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">
-                        ${item.service_days} day(s) × ${item.hours_per_day || 1}h per day
-                      </div>
-                    ` : ''}
                   </div>
+                  ${item.service_type_name?.toLowerCase().includes('charter') ? `
+                    <div style="font-size: 12px; color: #666; margin-bottom: 2px;">
+                      Hourly Rate (${item.hours_per_day || 8} hours / day): ${formatCurrency(item.unit_price)}
+                    </div>
+                    <div style="font-size: 12px; color: #666;">
+                      Number of Days: × ${item.service_days || 1}
+                    </div>
+                  ` : item.service_days && item.service_days > 1 ? `
+                    <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">
+                      ${item.service_days} day(s) × ${item.hours_per_day || 1}h per day
+                    </div>
+                  ` : ''}
                 </td>
                 <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #111827;">
                   ${item.pickup_date || quotation.pickup_date || 'N/A'}

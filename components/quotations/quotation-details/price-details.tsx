@@ -71,7 +71,13 @@ export function PriceDetails({
     // Calculate service total with individual time-based adjustments
     if (quotation_items.length > 0) {
       serviceTotal = quotation_items.reduce((total, item) => {
-        const itemBasePrice = item.total_price || item.unit_price || 0;
+        // For Charter Services, calculate as unit_price × service_days
+        let itemBasePrice;
+        if (item.service_type_name?.toLowerCase().includes('charter')) {
+          itemBasePrice = (item.unit_price || 0) * (item.service_days || 1);
+        } else {
+          itemBasePrice = item.total_price || item.unit_price || 0;
+        }
         
         // Apply time-based adjustment to this specific service item
         let itemTimeAdjustment = 0;
@@ -236,7 +242,13 @@ export function PriceDetails({
           <CardContent className="space-y-4">
             {quotation_items.map((item, index) => {
               // Calculate time-based adjustment for this specific item
-              const baseItemPrice = (item.unit_price || 0) * (item.service_days || 1);
+              // For Charter Services, calculate as unit_price × service_days
+              let baseItemPrice;
+              if (item.service_type_name?.toLowerCase().includes('charter')) {
+                baseItemPrice = (item.unit_price || 0) * (item.service_days || 1);
+              } else {
+                baseItemPrice = (item.unit_price || 0) * (item.quantity || 1) * (item.service_days || 1);
+              }
               
               // Check if this item has time-based adjustments
               let itemTimeAdjustment = 0;

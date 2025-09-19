@@ -26,11 +26,35 @@ export async function GET(
     const ORGANIZATION_DOMAIN = 'japandriver.com';
     const isOrganizationMember = user.email?.endsWith(`@${ORGANIZATION_DOMAIN}`);
 
+    // Determine if the ID is a quote number (QUO-JPDR-XXXXXX) or UUID
+    const isQuoteNumber = id.startsWith('QUO-JPDR-');
+    let actualQuotationId = id;
+    
+    // If it's a quote number, extract the number and find the corresponding UUID
+    if (isQuoteNumber) {
+      const quoteNumber = parseInt(id.replace('QUO-JPDR-', ''));
+      if (!isNaN(quoteNumber)) {
+        const { data: quotationData } = await supabase
+          .from('quotations')
+          .select('id')
+          .eq('quote_number', quoteNumber)
+          .single();
+        
+        if (quotationData) {
+          actualQuotationId = quotationData.id;
+        } else {
+          return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
+        }
+      } else {
+        return NextResponse.json({ error: 'Invalid quotation ID format' }, { status: 400 });
+      }
+    }
+
     // Build query; restrict non-organization users to their own quotations
     let query = supabase
       .from('quotations')
       .select('*, quotation_items (*)')
-      .eq('id', id);
+      .eq('id', actualQuotationId);
 
     if (!isOrganizationMember && user.email) {
       query = query.eq('customer_email', user.email);
@@ -95,6 +119,32 @@ export async function PATCH(
     
     console.log('Updating quotation:', id);
     console.log('Sanitized update data:', sanitizedData);
+
+    // Recalculate total_amount if quotation_items or pricing fields are being updated
+    if (sanitizedData.quotation_items && Array.isArray(sanitizedData.quotation_items) && sanitizedData.quotation_items.length > 0) {
+      const { calculateQuotationTotals } = await import('@/lib/utils/quotation-calculations');
+      
+      const totals = calculateQuotationTotals(
+        sanitizedData.quotation_items,
+        sanitizedData.packages || [],
+        sanitizedData.discount_percentage || 0,
+        sanitizedData.tax_percentage || 0,
+        sanitizedData.promotion_discount || 0,
+        sanitizedData.service_type
+      );
+      
+      // Update the sanitized data with calculated amounts
+      sanitizedData.total_amount = totals.finalTotal;
+      sanitizedData.amount = sanitizedData.amount || totals.serviceBaseTotal;
+      
+      console.log('Recalculated totals for quotation update:', {
+        service_type: sanitizedData.service_type,
+        service_days: sanitizedData.service_days,
+        amount: sanitizedData.amount,
+        total_amount: sanitizedData.total_amount,
+        promotion_discount: sanitizedData.promotion_discount
+      });
+    }
 
     // Update the quotation with sanitized data
     const { data, error } = await supabase

@@ -90,7 +90,19 @@ export class EmailTemplateService {
 
       // Enhanced template variable replacement with Handlebars-like processing
       const replaceVariables = (content: string): string => {
-        return content.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
+        // First, handle Handlebars block helpers like {{#if}}
+        let processedContent = content.replace(/\{\{#if\s+([^}]+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, condition, blockContent) => {
+          try {
+            const conditionResult = evalCondition(condition.trim(), allVariables)
+            return conditionResult ? blockContent : ''
+          } catch (error) {
+            console.warn('Handlebars block condition error:', error, 'for condition:', condition)
+            return ''
+          }
+        })
+
+        // Then handle simple variable replacement
+        return processedContent.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
           try {
             const expr = expression.trim()
             
@@ -139,6 +151,19 @@ export class EmailTemplateService {
             const [, varName, value] = eqMatch
             return vars[varName] === value
           }
+          
+          // Handle truthy checks like: service_days
+          if (condition.match(/^\w+$/)) {
+            const varName = condition.trim()
+            return Boolean(vars[varName])
+          }
+          
+          // Handle complex conditions like: service_days && service_type_charter
+          if (condition.includes('&&')) {
+            const parts = condition.split('&&').map(p => p.trim())
+            return parts.every(part => evalCondition(part, vars))
+          }
+          
           return false
         } catch {
           return false

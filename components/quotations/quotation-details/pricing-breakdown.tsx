@@ -55,7 +55,13 @@ export function PricingBreakdown({
     }> = [];
     
     quotationItems.forEach((item, index) => {
-      const itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+      // For Charter Services, calculate as unit_price × service_days
+      let itemBasePrice;
+      if (item.service_type_name?.toLowerCase().includes('charter')) {
+        itemBasePrice = item.unit_price * (item.service_days || 1);
+      } else {
+        itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+      }
       serviceBaseTotal += itemBasePrice;
       
       // Track time-based adjustments
@@ -126,7 +132,13 @@ export function PricingBreakdown({
           </CardHeader>
           <CardContent className="space-y-4">
             {quotationItems.map((item, index) => {
-              const itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+              // For Charter Services, calculate as unit_price × service_days
+              let itemBasePrice;
+              if (item.service_type_name?.toLowerCase().includes('charter')) {
+                itemBasePrice = item.unit_price * (item.service_days || 1);
+              } else {
+                itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+              }
               const timeAdjustment = totals.serviceTimeAdjustments.find(adj => adj.itemIndex === index);
               const finalPrice = itemBasePrice + (timeAdjustment?.adjustmentAmount || 0);
               

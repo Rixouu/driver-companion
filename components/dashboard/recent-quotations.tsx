@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/context"
 import { History, ArrowRight, FileText } from "lucide-react"
+import { getQuotationUrl } from '@/lib/utils/quotation-url'
 
 interface RecentQuotationsProps {
   recentQuotations: any[]
@@ -80,7 +81,7 @@ function EmptyState({ icon: Icon, message }: { icon: any; message: string }) {
 function QuotationCard({ quotation }: { quotation: any }) {
   const { t } = useI18n()
   return (
-    <Link href={`/quotations/${quotation.id}`} className="block">
+    <Link href={getQuotationUrl(quotation)} className="block">
       <div className="p-3 sm:p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
         <div className="flex items-start gap-3">
           <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">

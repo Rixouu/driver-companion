@@ -24,12 +24,20 @@ export async function GET(request: NextRequest) {
       origin = process.env.NEXT_PUBLIC_SITE_URL;
       console.log(`[Auth Callback] Using NEXT_PUBLIC_SITE_URL: ${origin}`);
     }
-    // Then try VERCEL_URL if in production
+    // Then try VERCEL_URL if in production, but prefer custom domain
     else if (process.env.NODE_ENV === 'production' && process.env.VERCEL_URL) {
-      origin = process.env.VERCEL_URL.startsWith('http') 
-                 ? process.env.VERCEL_URL 
-                 : `https://${process.env.VERCEL_URL}`;
-      console.log(`[Auth Callback] Using VERCEL_URL: ${origin}`);
+      const vercelUrl = process.env.VERCEL_URL.startsWith('http') 
+                         ? process.env.VERCEL_URL 
+                         : `https://${process.env.VERCEL_URL}`;
+      
+      // If Vercel URL is the default domain, redirect to custom domain
+      if (vercelUrl.includes('driver-companion.vercel.app')) {
+        origin = 'https://my.japandriver.com';
+        console.log(`[Auth Callback] Redirecting from Vercel domain to custom domain: ${origin}`);
+      } else {
+        origin = vercelUrl;
+        console.log(`[Auth Callback] Using VERCEL_URL: ${origin}`);
+      }
     }
     // Fallback to request origin as the last resort
     else {

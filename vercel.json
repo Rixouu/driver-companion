@@ -32,5 +32,18 @@
       "path": "/api/notifications/scheduled",
       "schedule": "0 0 * * *"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "destination": "https://my.japandriver.com/$1",
+      "permanent": false,
+      "has": [
+        {
+          "type": "host",
+          "value": "driver-companion.vercel.app"
+        }
+      ]
+    }
   ]
 } 

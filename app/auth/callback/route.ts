@@ -19,8 +19,13 @@ export async function GET(request: NextRequest) {
   
   // Fallback chain for determining origin
   if (!origin) {
-    // Use the most reliable source first
-    if (typeof process.env.NEXT_PUBLIC_SITE_URL === 'string' && process.env.NEXT_PUBLIC_SITE_URL.startsWith('http')) {
+    // Use NEXTAUTH_URL first (most reliable for auth redirects)
+    if (typeof process.env.NEXTAUTH_URL === 'string' && process.env.NEXTAUTH_URL.startsWith('http')) {
+      origin = process.env.NEXTAUTH_URL;
+      console.log(`[Auth Callback] Using NEXTAUTH_URL: ${origin}`);
+    }
+    // Then try NEXT_PUBLIC_SITE_URL if it exists
+    else if (typeof process.env.NEXT_PUBLIC_SITE_URL === 'string' && process.env.NEXT_PUBLIC_SITE_URL.startsWith('http')) {
       origin = process.env.NEXT_PUBLIC_SITE_URL;
       console.log(`[Auth Callback] Using NEXT_PUBLIC_SITE_URL: ${origin}`);
     }

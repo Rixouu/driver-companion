@@ -227,8 +227,11 @@ export default function QuotationList({
 
   // Calculate final amount after tax and discount for display - EXACTLY matching PDF/quotation-details logic
   const calculateFinalAmount = (quotation: Quotation) => {
-    // ALWAYS prioritize total_amount if it exists - this is the final calculated amount
-    if (quotation.total_amount && quotation.total_amount > 0) {
+    // For Charter Services, always recalculate to ensure correct amount
+    if (quotation.service_type?.toLowerCase().includes('charter')) {
+      // Skip the total_amount check for Charter Services and recalculate
+    } else if (quotation.total_amount && quotation.total_amount > 0) {
+      // For other services, use total_amount if it exists
       return quotation.total_amount;
     }
 
@@ -239,7 +242,13 @@ export default function QuotationList({
     
     if ((quotation as any).quotation_items && Array.isArray((quotation as any).quotation_items)) {
       (quotation as any).quotation_items.forEach((item: any) => {
-        const itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+        // For Charter Services, calculate as unit_price × service_days
+        let itemBasePrice;
+        if (quotation.service_type?.toLowerCase().includes('charter')) {
+          itemBasePrice = item.unit_price * (item.service_days || 1);
+        } else {
+          itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+        }
         serviceBaseTotal += itemBasePrice;
         
         if (item.time_based_adjustment) {
@@ -248,7 +257,12 @@ export default function QuotationList({
         }
       });
     } else {
-      serviceBaseTotal = quotation.amount || 0;
+      // For Charter Services without items, calculate from main quotation fields
+      if (quotation.service_type?.toLowerCase().includes('charter')) {
+        serviceBaseTotal = (quotation.amount || 0) * (quotation.service_days || 1);
+      } else {
+        serviceBaseTotal = quotation.amount || 0;
+      }
     }
     
     const serviceTotal = serviceBaseTotal + serviceTimeAdjustment;

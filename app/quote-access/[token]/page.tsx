@@ -1223,7 +1223,14 @@ export default function QuoteAccessPage() {
                               {item.service_days && item.service_days > 1 ? (
                                 <span className="flex items-center gap-1">
                                   <Calendar className="h-3 w-3" />
-                                  {item.service_days} day(s) × {formatCurrency(item.unit_price, selectedCurrency)} = {formatCurrency(item.total_price, selectedCurrency)}
+                                  {item.service_days} day(s) × {formatCurrency(item.unit_price, selectedCurrency)} = {(() => {
+                                    // For Charter Services, calculate total based on duration (unit_price × service_days)
+                                    if (item.service_type_name?.toLowerCase().includes('charter')) {
+                                      return formatCurrency(item.unit_price * (item.service_days || 1), selectedCurrency);
+                                    }
+                                    // For other services, use existing logic
+                                    return formatCurrency(item.total_price, selectedCurrency);
+                                  })()}
                                 </span>
                                                               ) : (
                                   <span className="flex items-center gap-1">

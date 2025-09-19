@@ -108,13 +108,36 @@ function QuotationCard({ quotation }: { quotation: any }) {
             </p>
             
             {/* Amount */}
-            {quotation.total_amount && (
-              <div className="flex items-center gap-1">
-                <span className="text-xs font-medium text-muted-foreground">
-                  {quotation.currency || 'JPY'} {Number(quotation.total_amount).toLocaleString()}
-                </span>
-              </div>
-            )}
+            {(() => {
+              // Calculate final amount for Charter Services
+              let displayAmount = quotation.total_amount;
+              
+              if (quotation.service_type?.toLowerCase().includes('charter')) {
+                // For Charter Services, recalculate the amount
+                const baseAmount = quotation.amount || 0;
+                const serviceDays = quotation.service_days || 1;
+                const calculatedBase = baseAmount * serviceDays;
+                
+                // Apply discount and tax
+                const discountPercentage = quotation.discount_percentage || 0;
+                const taxPercentage = quotation.tax_percentage || 0;
+                const promotionDiscount = quotation.promotion_discount || 0;
+                
+                const regularDiscount = calculatedBase * (discountPercentage / 100);
+                const totalDiscount = promotionDiscount + regularDiscount;
+                const subtotal = Math.max(0, calculatedBase - totalDiscount);
+                const taxAmount = subtotal * (taxPercentage / 100);
+                displayAmount = subtotal + taxAmount;
+              }
+              
+              return displayAmount ? (
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {quotation.currency || 'JPY'} {Number(displayAmount).toLocaleString()}
+                  </span>
+                </div>
+              ) : null;
+            })()}
           </div>
         </div>
       </div>

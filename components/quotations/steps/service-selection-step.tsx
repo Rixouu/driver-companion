@@ -742,7 +742,15 @@ export function ServiceSelectionStep({
         
         <div className="pt-2 pb-3 sm:pb-4 flex justify-between items-center font-medium text-sm">
           <span>{t('quotations.form.services.totalAmountBeforeDiscountTax')}</span>
-          <span>{formatCurrency(serviceItems.reduce((total, item) => total + (item.total_price || item.unit_price), 0))}</span>
+          <span>{formatCurrency(serviceItems.reduce((total, item) => {
+            // For Charter Services, calculate total based on duration (unit_price × service_days)
+            if (item.service_type_name?.toLowerCase().includes('charter')) {
+              const calculatedTotal = item.unit_price * (item.service_days || 1);
+              return total + calculatedTotal;
+            }
+            // For other services, use existing logic
+            return total + (item.total_price || item.unit_price);
+          }, 0))}</span>
         </div>
       </div>
     );

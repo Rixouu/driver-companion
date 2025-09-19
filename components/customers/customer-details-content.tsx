@@ -26,6 +26,7 @@ import { formatCurrency } from '@/lib/utils/formatting'
 import { formatDistanceToNow, format } from 'date-fns'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { ActivityCard } from './activity-card'
 
 interface CustomerDetailsContentProps {
   customer: CustomerDetails
@@ -342,36 +343,19 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
                 </CardHeader>
                 <CardContent>
                   {customer.recent_quotations && customer.recent_quotations.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {customer.recent_quotations.slice(0, 5).map((quotation) => (
-                        <div key={quotation.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div>
-                            <div className="font-medium">Quote #{quotation.quote_number}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {quotation.service_type} • {quotation.created_at && !isNaN(new Date(quotation.created_at).getTime()) 
-  ? format(new Date(quotation.created_at), 'MMM dd, yyyy')
-  : 'Unknown date'
-}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-medium">{formatCurrency(quotation.amount, quotation.currency)}</div>
-                            <Badge 
-                              variant="outline"
-                              className={cn(
-                                quotation.status === 'paid' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
-                                quotation.status === 'approved' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-                                quotation.status === 'rejected' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400',
-                                quotation.status === 'draft' && 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
-                                quotation.status === 'sent' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-                                quotation.status === 'expired' && 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400',
-                                quotation.status === 'converted' && 'border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
-                              )}
-                            >
-                              {quotation.status}
-                            </Badge>
-                          </div>
-                        </div>
+                        <ActivityCard
+                          key={quotation.id}
+                          id={quotation.id}
+                          type="quotation"
+                          number={quotation.quote_number?.toString() || ''}
+                          serviceName={quotation.service_type || ''}
+                          date={quotation.created_at || ''}
+                          amount={(quotation as any).total_amount || quotation.amount}
+                          currency={quotation.currency}
+                          status={quotation.status}
+                        />
                       ))}
                       {customer.recent_quotations.length > 5 && (
                         <Button variant="outline" className="w-full" asChild>
@@ -397,31 +381,19 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
                 </CardHeader>
                 <CardContent>
                   {customer.recent_bookings && customer.recent_bookings.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {customer.recent_bookings.slice(0, 5).map((booking) => (
-                        <div key={booking.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div>
-                            <div className="font-medium">{booking.service_name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {booking.date && !isNaN(new Date(booking.date).getTime()) 
-  ? format(new Date(booking.date), 'MMM dd, yyyy')
-  : 'Unknown date'
-}
-                            </div>
-                          </div>
-                          <Badge 
-                            variant="outline"
-                            className={cn(
-                              booking.status === 'completed' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
-                              booking.status === 'confirmed' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-                              booking.status === 'pending' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-                              booking.status === 'cancelled' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400',
-                              booking.status === 'in_progress' && 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
-                            )}
-                          >
-                            {booking.status}
-                          </Badge>
-                        </div>
+                        <ActivityCard
+                          key={booking.id}
+                          id={booking.id}
+                          type="booking"
+                          number={(booking as any).wp_id || booking.id.slice(-6)}
+                          serviceName={booking.service_name || ''}
+                          date={booking.date || booking.created_at || ''}
+                          amount={(booking as any).price_amount}
+                          currency={(booking as any).price_currency || 'JPY'}
+                          status={booking.status}
+                        />
                       ))}
                       {customer.recent_bookings.length > 5 && (
                         <Button variant="outline" className="w-full" asChild>
@@ -497,34 +469,18 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
                           }
                         })
                         .map((quotation) => (
-                          <div key={quotation.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                            <div className="flex-1">
-                              <div className="font-medium">Quote #{quotation.quote_number}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {quotation.service_type} • {quotation.created_at && !isNaN(new Date(quotation.created_at).getTime()) 
-  ? format(new Date(quotation.created_at), 'MMM dd, yyyy')
-  : 'Unknown date'
-}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-medium text-lg">{formatCurrency(quotation.amount, quotation.currency)}</div>
-                                                           <Badge 
-                               variant="outline"
-                               className={cn(
-                                 quotation.status === 'paid' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
-                                 quotation.status === 'approved' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-                                 quotation.status === 'rejected' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400',
-                                 quotation.status === 'draft' && 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
-                                 quotation.status === 'sent' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-                                 quotation.status === 'expired' && 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400',
-                                 quotation.status === 'converted' && 'border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
-                               )}
-                             >
-                                {quotation.status}
-                              </Badge>
-                            </div>
-                          </div>
+                          <ActivityCard
+                            key={quotation.id}
+                            id={quotation.id}
+                            type="quotation"
+                            number={quotation.quote_number?.toString() || ''}
+                            serviceName={quotation.service_type || ''}
+                            date={quotation.created_at || ''}
+                            amount={(quotation as any).total_amount || quotation.amount}
+                            currency={quotation.currency}
+                            status={quotation.status}
+                            className="hover:bg-muted/50 transition-colors"
+                          />
                         ))}
                     </div>
                   ) : (
@@ -549,31 +505,18 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
                   {customer.recent_bookings && customer.recent_bookings.length > 0 ? (
                     <div className="space-y-3">
                       {customer.recent_bookings.map((booking) => (
-                        <div key={booking.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                          <div className="flex-1">
-                            <div className="font-medium">{booking.service_name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {booking.date && !isNaN(new Date(booking.date).getTime()) 
-  ? format(new Date(booking.date), 'MMM dd, yyyy')
-  : 'Unknown date'
-}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <Badge 
-                              variant="outline"
-                              className={cn(
-                                booking.status === 'completed' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
-                                booking.status === 'confirmed' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-                                booking.status === 'pending' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-                                booking.status === 'cancelled' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400',
-                                booking.status === 'in_progress' && 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
-                              )}
-                            >
-                              {booking.status}
-                            </Badge>
-                          </div>
-                        </div>
+                        <ActivityCard
+                          key={booking.id}
+                          id={booking.id}
+                          type="booking"
+                          number={(booking as any).wp_id || booking.id.slice(-6)}
+                          serviceName={booking.service_name || ''}
+                          date={booking.date || booking.created_at || ''}
+                          amount={(booking as any).price_amount}
+                          currency={(booking as any).price_currency || 'JPY'}
+                          status={booking.status}
+                          className="hover:bg-muted/50 transition-colors"
+                        />
                       ))}
                     </div>
                   ) : (

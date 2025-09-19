@@ -124,7 +124,14 @@ export function ServiceCard({
                 {/* Price and total - always visible */}
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">Total:</span>
-                  <span className="font-semibold text-base">{formatCurrency(item.total_price || item.unit_price)}</span>
+                  <span className="font-semibold text-base">{(() => {
+                    // For Charter Services, calculate total based on duration (unit_price × service_days)
+                    if (isCharter) {
+                      return formatCurrency(item.unit_price * (item.service_days || 1));
+                    }
+                    // For other services, use existing logic
+                    return formatCurrency(item.total_price || item.unit_price);
+                  })()}</span>
                 </div>
               </div>
             </div>

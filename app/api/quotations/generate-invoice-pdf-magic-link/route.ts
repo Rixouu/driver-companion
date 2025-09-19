@@ -213,7 +213,14 @@ function generateInvoiceHtml(
             }]).map((item: any) => `
               <tr>
                 <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #111827;">
-                  ${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Vehicle'}`}
+                  <div>
+                    ${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Vehicle'}`}
+                    ${item.service_days && item.service_days > 1 ? `
+                      <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">
+                        ${item.service_days} day(s) × ${item.hours_per_day || 1}h per day
+                      </div>
+                    ` : ''}
+                  </div>
                 </td>
                 <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #111827;">
                   ${item.pickup_date || quotation.pickup_date || 'N/A'}
@@ -222,7 +229,14 @@ function generateInvoiceHtml(
                   ${item.quantity || 1}
                 </td>
                 <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #111827;">
-                  ${formatCurrency(item.total_price || item.unit_price || 0)}
+                  ${(() => {
+                    // For Charter Services, calculate total based on duration (unit_price × service_days)
+                    if (item.service_type_name?.toLowerCase().includes('charter')) {
+                      return formatCurrency(item.unit_price * (item.service_days || 1));
+                    }
+                    // For other services, use existing logic
+                    return formatCurrency(item.total_price || item.unit_price || 0);
+                  })()}
                 </td>
               </tr>
             `).join('')}

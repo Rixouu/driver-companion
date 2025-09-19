@@ -59,13 +59,37 @@ export async function getCustomers(params: CustomerServiceParams = {}): Promise<
   const total_pages = Math.ceil(total_count / limit)
 
   // Map the customer_analytics view columns to the expected frontend format
-  const mappedCustomers = (data || []).map(customer => ({
-    ...customer,
-    total_spent: customer.total_revenue || 0,
-    booking_count: customer.total_bookings || 0,
-    quotation_count: customer.total_quotations || 0,
-    total_quotation_amount: customer.total_quotation_value || 0,
-    last_activity_date: customer.last_booking_date || customer.last_quotation_date || customer.created_at
+  // Use correct amounts from database
+  const mappedCustomers = await Promise.all((data || []).map(async customer => {
+    // Get recent quotations for this customer to calculate correct amounts
+    const { data: recentQuotations } = await supabase
+      .from('quotations')
+      .select('id, total_amount, amount')
+      .eq('customer_id', customer.id!)
+      .limit(10)
+
+    // Calculate correct amounts using database values
+    let correctedTotalSpent = (customer as any).total_revenue || 0; // From bookings
+    let correctedQuotationAmount = 0;
+    
+    if (recentQuotations && recentQuotations.length > 0) {
+      // Sum up the correct total_amount from database
+      recentQuotations.forEach(q => {
+        correctedQuotationAmount += q.total_amount || q.amount || 0;
+      });
+    } else {
+      // Fallback to customer_analytics view if no recent quotations
+      correctedQuotationAmount = (customer as any).total_quotation_value || 0;
+    }
+
+    return {
+      ...customer,
+      total_spent: correctedTotalSpent,
+      booking_count: (customer as any).total_bookings || 0,
+      quotation_count: (customer as any).total_quotations || 0,
+      total_quotation_amount: correctedQuotationAmount,
+      last_activity_date: (customer as any).last_booking_date || (customer as any).last_quotation_date || customer.created_at
+    }
   }))
 
   return {
@@ -98,33 +122,74 @@ export async function getCustomerById(id: string): Promise<CustomerDetails | nul
   // Get recent quotations
   const { data: recentQuotations } = await supabase
     .from('quotations')
-    .select('id, quote_number, status, amount, currency, created_at, service_type')
+    .select('id, quote_number, status, amount, total_amount, currency, created_at, service_type, service_days, discount_percentage, tax_percentage, promotion_discount')
     .eq('customer_id', id)
     .order('created_at', { ascending: false })
     .limit(10)
 
   // Get recent bookings
+  // Only include active bookings (exclude any that might be soft-deleted)
   const { data: recentBookings } = await supabase
     .from('bookings')
-    .select('id, service_name, status, date, created_at')
+    .select('id, wp_id, service_name, status, date, created_at, price_amount, price_currency')
     .eq('customer_id', id)
+    .not('status', 'eq', 'deleted') // Exclude deleted bookings if they exist
     .order('created_at', { ascending: false })
     .limit(10)
 
-  // Calculate detailed spending
+  // Calculate correct amounts using the database values
+  let correctedTotalSpent = (customer as any).total_revenue || 0; // This should be from bookings
+  let correctedQuotationAmount = 0;
+  
+  // Always calculate quotation amount from recent quotations to get correct values
+  if (recentQuotations && recentQuotations.length > 0) {
+    recentQuotations.forEach(q => {
+      // Use the correct total_amount from database (already calculated correctly)
+      correctedQuotationAmount += q.total_amount || q.amount || 0;
+    });
+  } else {
+    // Fallback to customer_analytics view if no recent quotations
+    correctedQuotationAmount = (customer as any).total_quotation_value || 0;
+  }
+
+  // For Quick Stats, we need to calculate the correct total quotation value
+  // This should be the sum of all quotations' total_amount, not just recent ones
+  // Only include active quotations (exclude any that might be soft-deleted)
+  const { data: allQuotations } = await supabase
+    .from('quotations')
+    .select('total_amount, amount, status')
+    .eq('customer_id', id)
+    .not('status', 'eq', 'deleted') // Exclude deleted quotations if they exist
+
+  let totalQuotationValue = 0;
+  if (allQuotations && allQuotations.length > 0) {
+    allQuotations.forEach(q => {
+      totalQuotationValue += q.total_amount || q.amount || 0;
+    });
+  }
+
+  // Calculate detailed spending with corrected amounts
   const spending = await getCustomerSpending(id)
+  
+  // Update spending object with corrected amounts
+  const correctedSpending = {
+    ...spending,
+    total_lifetime_value: correctedTotalSpent, // This should be from bookings
+    average_order_value: correctedTotalSpent / ((customer as any).total_bookings || 1), // Use bookings count for average
+    total_quotation_value: totalQuotationValue // Use the correct calculated quotation value
+  }
 
   // Map the customer_analytics view columns to the expected frontend format
   const mappedCustomer = {
     ...customer,
-    total_spent: customer.total_revenue || 0,
-    booking_count: customer.total_bookings || 0,
-    quotation_count: customer.total_quotations || 0,
-    total_quotation_amount: customer.total_quotation_value || 0,
-    last_activity_date: customer.last_booking_date || customer.last_quotation_date || customer.created_at,
+    total_spent: correctedTotalSpent, // Use corrected total spent from bookings
+    booking_count: (customer as any).total_bookings || 0,
+    quotation_count: (customer as any).total_quotations || 0,
+    total_quotation_amount: totalQuotationValue, // Use the correct calculated quotation value
+    last_activity_date: (customer as any).last_booking_date || (customer as any).last_quotation_date || customer.created_at,
     recent_quotations: recentQuotations || [],
     recent_bookings: recentBookings || [],
-    spending
+    spending: correctedSpending
   }
 
   return mappedCustomer as CustomerDetails
@@ -137,16 +202,20 @@ export async function getCustomerSpending(customerId: string): Promise<CustomerS
   const supabase = await getSupabaseServerClient()
 
   // Get quotation spending breakdown
+  // Only include active quotations (exclude any that might be soft-deleted)
   const { data: quotations } = await supabase
     .from('quotations')
-    .select('status, amount, payment_amount, created_at')
+    .select('status, amount, total_amount, payment_amount, created_at, service_type, service_days, discount_percentage, tax_percentage, promotion_discount')
     .eq('customer_id', customerId)
+    .not('status', 'eq', 'deleted') // Exclude deleted quotations if they exist
 
   // Get booking counts by status
+  // Only include active bookings (exclude any that might be soft-deleted)
   const { data: bookings } = await supabase
     .from('bookings')
     .select('status, created_at')
     .eq('customer_id', customerId)
+    .not('status', 'eq', 'deleted') // Exclude deleted bookings if they exist
 
   // Process quotations data
   const quotationsByStatus = {
@@ -165,7 +234,15 @@ export async function getCustomerSpending(customerId: string): Promise<CustomerS
 
   if (quotations) {
     quotations.forEach(q => {
-      const amount = q.payment_amount || q.amount
+      // For Charter Services, use total_amount (final calculated amount)
+      // For other services, use payment_amount if available, otherwise total_amount
+      let amount;
+      if (q.service_type?.toLowerCase().includes('charter')) {
+        amount = q.total_amount || q.amount;
+      } else {
+        amount = q.payment_amount || q.total_amount || q.amount;
+      }
+      
       if (q.status in quotationsByStatus) {
         quotationsByStatus[q.status as keyof typeof quotationsByStatus] += amount
       }
@@ -190,7 +267,7 @@ export async function getCustomerSpending(customerId: string): Promise<CustomerS
   // Update last transaction date with bookings if more recent
   if (bookings) {
     bookings.forEach(b => {
-      if (!lastTransactionDate || b.created_at > lastTransactionDate) {
+      if (b.created_at && (!lastTransactionDate || b.created_at > lastTransactionDate)) {
         lastTransactionDate = b.created_at
       }
     })
@@ -235,7 +312,7 @@ export async function getCustomerSegments(): Promise<CustomerSegment[]> {
     throw new Error(`Failed to fetch customer segments: ${error.message}`)
   }
 
-  return data || []
+  return (data || []) as any[]
 }
 
 /**

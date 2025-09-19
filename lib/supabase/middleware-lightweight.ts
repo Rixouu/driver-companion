@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
+
 interface LightweightSessionResult {
   response: NextResponse;
   user: { id: string; email: string } | null;

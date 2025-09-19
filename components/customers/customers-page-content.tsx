@@ -131,7 +131,8 @@ export function CustomersPageContent({
       fromDate.setHours(0, 0, 0, 0)
       filtered = filtered.filter(customer => {
         const lastActivity = customer.last_activity_date || customer.created_at
-        return new Date(lastActivity) >= fromDate
+        const activityDate = lastActivity && !isNaN(new Date(lastActivity).getTime()) ? new Date(lastActivity) : new Date(0)
+        return activityDate >= fromDate
       })
     }
     if (filterOptions.activityTo) {
@@ -139,7 +140,8 @@ export function CustomersPageContent({
       toDate.setHours(23, 59, 59, 999)
       filtered = filtered.filter(customer => {
         const lastActivity = customer.last_activity_date || customer.created_at
-        return new Date(lastActivity) <= toDate
+        const activityDate = lastActivity && !isNaN(new Date(lastActivity).getTime()) ? new Date(lastActivity) : new Date(0)
+        return activityDate <= toDate
       })
     }
 
@@ -165,8 +167,10 @@ export function CustomersPageContent({
           bValue = b.total_spent
           break
         case 'last_activity':
-          aValue = new Date(a.last_activity_date || a.created_at)
-          bValue = new Date(b.last_activity_date || b.created_at)
+          const aDate = a.last_activity_date || a.created_at
+          const bDate = b.last_activity_date || b.created_at
+          aValue = aDate && !isNaN(new Date(aDate).getTime()) ? new Date(aDate) : new Date(0)
+          bValue = bDate && !isNaN(new Date(bDate).getTime()) ? new Date(bDate) : new Date(0)
           break
         default:
           aValue = new Date(a.created_at)
@@ -271,7 +275,9 @@ export function CustomersPageContent({
         customer.total_spent,
         customer.quotation_count,
         customer.booking_count,
-        new Date(customer.last_activity_date).toLocaleDateString()
+        customer.last_activity_date && !isNaN(new Date(customer.last_activity_date).getTime()) 
+          ? new Date(customer.last_activity_date).toLocaleDateString()
+          : 'N/A'
       ].join(','))
     ].join('\n')
 
@@ -602,7 +608,10 @@ export function CustomersPageContent({
                   {formatCurrency(customer.total_spent, 'JPY')}
                 </div>
                 <div className="text-xs text-muted-foreground text-left">
-                  {formatDistanceToNow(new Date(customer.last_activity_date), { addSuffix: true })}
+                  {customer.last_activity_date && !isNaN(new Date(customer.last_activity_date).getTime()) 
+                    ? formatDistanceToNow(new Date(customer.last_activity_date), { addSuffix: true })
+                    : 'No recent activity'
+                  }
                 </div>
               </div>
               
@@ -721,7 +730,10 @@ export function CustomersPageContent({
 
                 {/* Last Activity */}
                 <div className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(customer.last_activity_date), { addSuffix: true })}
+                  {customer.last_activity_date && !isNaN(new Date(customer.last_activity_date).getTime()) 
+                    ? formatDistanceToNow(new Date(customer.last_activity_date), { addSuffix: true })
+                    : 'No recent activity'
+                  }
                 </div>
 
                 {/* Action Buttons */}

@@ -1,41 +1,50 @@
+import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getCache, setCache } from '@/lib/cache/redis-cache-optimized'
 
-/**
- * Optimized Quotations Search API
- * Uses database function with full-text search for better performance
- */
+const CACHE_TTL = 60 // 1 minute for search results
+
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await getSupabaseServerClient()
+    const supabase = createClient()
     
-    // Check authentication
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Get query parameters
+    const { searchParams } = new URL(request.url)
+    const searchTerm = searchParams.get('q')
+    const status = searchParams.get('status')
+    const paymentStatus = searchParams.get('payment_status')
+    const startDate = searchParams.get('start_date')
+    const endDate = searchParams.get('end_date')
+    const limit = parseInt(searchParams.get('limit') || '50')
+    const offset = parseInt(searchParams.get('offset') || '0')
+
+    // Create cache key based on search parameters
+    const cacheKey = `quotation_search:${JSON.stringify({
+      searchTerm,
+      status,
+      paymentStatus,
+      startDate,
+      endDate,
+      limit,
+      offset
+    })}`
+
+    // Check cache first
+    const cached = await getCache(cacheKey)
+    if (cached) {
+      return NextResponse.json(cached)
     }
 
-    const searchParams = request.nextUrl.searchParams
-    const search = searchParams.get('search') || ''
-    const status = searchParams.get('status') || 'all'
-    const limit = parseInt(searchParams.get('limit') || '50', 10)
-    const offset = parseInt(searchParams.get('offset') || '0', 10)
-    
-    // Determine organization membership
-    const ORGANIZATION_DOMAIN = 'japandriver.com'
-    const userEmail = session.user?.email || ''
-    const isOrganizationMember = userEmail.endsWith(`@${ORGANIZATION_DOMAIN}`)
-
-    // Use optimized search function
-    const { data: quotations, error } = await supabase
-      .rpc('search_quotations', {
-        search_term: search,
-        status_filter: status,
-        user_email: userEmail,
-        is_organization_member: isOrganizationMember,
-        limit_count: limit,
-        offset_count: offset
-      })
+    // Call the optimized database function
+    const { data, error } = await supabase.rpc('search_quotations', {
+      search_term: searchTerm,
+      status_filter: status,
+      payment_status_filter: paymentStatus,
+      start_date: startDate,
+      end_date: endDate,
+      limit_count: limit,
+      offset_count: offset
+    })
 
     if (error) {
       console.error('Error searching quotations:', error)
@@ -45,45 +54,22 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Extract total count from first result
-    const totalCount = quotations?.[0]?.total_count || 0
-    const quotationsData = quotations?.map(q => ({
-      id: q.id,
-      title: q.title,
-      customer_name: q.customer_name,
-      customer_email: q.customer_email,
-      status: q.status,
-      total_amount: q.total_amount,
-      created_at: q.created_at,
-      pickup_date: q.pickup_date,
-      quotation_items: q.quotation_items
-    })) || []
-
-    return NextResponse.json({
-      quotations: quotationsData,
-      totalCount,
-      hasMore: offset + limit < totalCount,
+    const result = {
+      quotations: data || [],
       pagination: {
-        page: Math.floor(offset / limit) + 1,
         limit,
-        total: totalCount,
-        pages: Math.ceil(totalCount / limit)
-      },
-      search: {
-        query: search,
-        status,
-        results: quotationsData.length
-      },
-      generated_at: new Date().toISOString()
-    }, {
-      headers: {
-        'Cache-Control': 'public, max-age=60, stale-while-revalidate=120',
-        'Content-Type': 'application/json'
+        offset,
+        total: data?.length || 0,
+        hasMore: data?.length === limit
       }
-    })
+    }
 
+    // Cache the result
+    await setCache(cacheKey, result, CACHE_TTL)
+
+    return NextResponse.json(result)
   } catch (error) {
-    console.error('Quotations search error:', error)
+    console.error('Quotation search API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

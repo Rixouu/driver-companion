@@ -40,13 +40,42 @@ const mockInspection: ExtendedInspection = {
   inspection_items: [{ id: 'item-1' } as any], // Basic item to pass the guard
 };
 
+// Create a proper mock that chains methods correctly
+const createMockQuery = () => {
+  const queryMethods = {
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    single: vi.fn(),
+    eq: vi.fn().mockReturnThis(),
+    neq: vi.fn().mockReturnThis(),
+    gt: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    lt: vi.fn().mockReturnThis(),
+    lte: vi.fn().mockReturnThis(),
+    like: vi.fn().mockReturnThis(),
+    ilike: vi.fn().mockReturnThis(),
+    is: vi.fn().mockReturnThis(),
+    in: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+  };
+  
+  // Make update() return a query object that has eq() method
+  queryMethods.update.mockReturnValue(queryMethods);
+  
+  return queryMethods;
+};
+
+// Mock the entire Supabase client at module level
+vi.mock('@/lib/supabase/client', () => ({
+  createBrowserClient: () => ({
+    from: vi.fn(() => createMockQuery()),
+  })
+}));
+
 const mockSupabase = {
-  from: vi.fn().mockReturnThis(),
-  insert: vi.fn().mockReturnThis(),
-  update: vi.fn().mockReturnThis(),
-  select: vi.fn().mockReturnThis(),
-  single: vi.fn(),
-  eq: vi.fn().mockReturnThis(),
+  from: vi.fn(() => createMockQuery()),
 } as unknown as SupabaseClient;
 
 const mockT = (key: string) => key;
@@ -55,12 +84,7 @@ describe('useInspectionStatus', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset supabase mock states for each test
-    vi.mocked(mockSupabase.from).mockClear().mockReturnThis();
-    vi.mocked(mockSupabase.insert).mockClear().mockReturnThis();
-    vi.mocked(mockSupabase.update).mockClear().mockReturnThis();
-    vi.mocked(mockSupabase.select).mockClear().mockReturnThis();
-    vi.mocked(mockSupabase.single).mockClear();
-    vi.mocked(mockSupabase.eq).mockClear().mockReturnThis();
+    vi.mocked(mockSupabase.from).mockClear();
   });
 
   const setupHook = (props: Partial<Parameters<typeof useInspectionStatus>[0]> = {}) => {
@@ -95,10 +119,13 @@ describe('useInspectionStatus', () => {
     });
 
     it('should successfully start an inspection', async () => {
-      vi.mocked(mockSupabase.single).mockResolvedValueOnce({ data: { id: 'status-id' }, error: null }); // For insert
-      vi.mocked(mockSupabase.update).mockResolvedValueOnce({ error: null } as any); // For update (eq().update() structure)
-
       const { result } = setupHook();
+      
+      // Mock the query chain responses
+      const mockQuery = createMockQuery();
+      vi.mocked(mockSupabase.from).mockReturnValue(mockQuery);
+      vi.mocked(mockQuery.single).mockResolvedValueOnce({ data: { id: 'status-id' }, error: null }); // For insert
+      vi.mocked(mockQuery.update).mockResolvedValueOnce({ error: null } as any); // For update
       
       await act(async () => {
         await result.current.handleStartInspection();
@@ -106,17 +133,17 @@ describe('useInspectionStatus', () => {
 
       expect(result.current.isUpdating).toBe(false);
       expect(mockSupabase.from).toHaveBeenCalledWith('inspection_statuses');
-      expect(mockSupabase.insert).toHaveBeenCalledWith(expect.objectContaining({
+      expect(mockQuery.insert).toHaveBeenCalledWith(expect.objectContaining({
         inspection_id: mockInspection.id,
         status: 'in_progress',
         inspector_id: mockUser.id,
       }));
       expect(mockSupabase.from).toHaveBeenCalledWith('inspections');
-      expect(mockSupabase.update).toHaveBeenCalledWith(expect.objectContaining({
+      expect(mockQuery.update).toHaveBeenCalledWith(expect.objectContaining({
         inspector_id: mockUser.id,
         status: 'in_progress',
       }));
-      expect(mockSupabase.eq).toHaveBeenCalledWith('id', mockInspection.id);
+      expect(mockQuery.eq).toHaveBeenCalledWith('id', mockInspection.id);
       expect(toast).toHaveBeenCalledWith({ title: 'inspections.messages.updateSuccess' });
       expect(mockRouter.push).toHaveBeenCalledWith(`/inspections/${mockInspection.id}/perform`);
       expect(mockRouter.refresh).toHaveBeenCalledTimes(1);
@@ -124,9 +151,13 @@ describe('useInspectionStatus', () => {
 
     it('should handle error during inspection_statuses insert', async () => {
       const insertError = new Error('Insert failed');
-      vi.mocked(mockSupabase.single).mockResolvedValueOnce({ data: null, error: insertError });
-
       const { result } = setupHook();
+      
+      // Mock the query chain responses
+      const mockQuery = createMockQuery();
+      vi.mocked(mockSupabase.from).mockReturnValue(mockQuery);
+      vi.mocked(mockQuery.single).mockResolvedValueOnce({ data: null, error: insertError });
+      
       await act(async () => {
         await result.current.handleStartInspection();
       });
@@ -138,37 +169,14 @@ describe('useInspectionStatus', () => {
 
     it('should handle error during inspections update', async () => {
       const updateError = new Error('Update failed');
-      vi.mocked(mockSupabase.single).mockResolvedValueOnce({ data: { id: 'status-id' }, error: null }); // Insert success
-      // Mocking supabase.from('inspections').update().eq() to return an error
-      const mockUpdateChain = {
-        eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(), // Not strictly needed for update but good to have for from() chain
-        single: vi.fn().mockReturnThis(), // Not strictly needed for update
-         // This part of the chain actually returns the error for .update()
-        then: (callback: any) => Promise.resolve(callback({ error: updateError, data: null })) 
-      };
-      const mockFromChain = {
-        insert: vi.fn().mockReturnThis(), 
-        update: vi.fn(() => mockUpdateChain),
-        select: vi.fn().mockReturnThis(), 
-        single: vi.fn().mockReturnThis(), 
-        eq: vi.fn().mockReturnThis(),
-      };
-      vi.mocked(mockSupabase.from).mockImplementation((table: string) => {
-        if (table === 'inspection_statuses') {
-          return {
-            insert: vi.fn().mockReturnThis(),
-            select: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValueOnce({ data: { id: 'status-id' }, error: null }),
-          } as any;
-        }
-        if (table === 'inspections') {
-          return mockFromChain as any;
-        }
-        return mockSupabase.from(table) as any; // Default fallback
-      });
-
       const { result } = setupHook();
+      
+      // Mock the query chain responses
+      const mockQuery = createMockQuery();
+      vi.mocked(mockSupabase.from).mockReturnValue(mockQuery);
+      vi.mocked(mockQuery.single).mockResolvedValueOnce({ data: { id: 'status-id' }, error: null }); // Insert success
+      vi.mocked(mockQuery.update).mockResolvedValueOnce({ error: updateError } as any); // Update error
+      
       await act(async () => {
         await result.current.handleStartInspection();
       });
@@ -179,10 +187,14 @@ describe('useInspectionStatus', () => {
     });
 
     it('should set isUpdating to true during operation and false after completion or error', async () => {
-      vi.mocked(mockSupabase.single).mockResolvedValueOnce({ data: { id: 'status-id' }, error: null });
-      vi.mocked(mockSupabase.update).mockResolvedValueOnce({ error: null } as any);
-      
       const { result } = setupHook();
+      
+      // Mock the query chain responses
+      const mockQuery = createMockQuery();
+      vi.mocked(mockSupabase.from).mockReturnValue(mockQuery);
+      vi.mocked(mockQuery.single).mockResolvedValueOnce({ data: { id: 'status-id' }, error: null });
+      vi.mocked(mockQuery.update).mockResolvedValueOnce({ error: null } as any);
+      
       let wasUpdatingDuringCall = false;
 
       const promise = act(async () => {

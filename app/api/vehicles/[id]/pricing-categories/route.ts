@@ -14,7 +14,7 @@ export async function GET(
       .from('pricing_category_vehicles')
       .select(`
         category_id,
-        pricing_categories!inner(
+        pricing_categories(
           id,
           name,
           description

@@ -96,23 +96,23 @@ describe('InspectionDetailsHeader', () => {
       inspection: { ...baseMockInspection, status: 'pending', created_by: mockUser.id },
       isUpdating: true 
     });
-    expect(screen.getByText('inspections.startInspection').closest('button')).toBeDisabled();
+    expect(screen.getByText('inspections.actions.start').closest('button')).toBeDisabled();
   });
   
   it('shows "Continue Editing" button if status is draft and user is creator', () => {
     renderComponent({ inspection: { ...baseMockInspection, status: 'draft', created_by: mockUser.id } });
-    expect(screen.getByText('inspections.continueEditing')).toBeInTheDocument();
+    expect(screen.getByText('inspections.actions.continue')).toBeInTheDocument();
   });
 
   it('hides "Start/Continue" button if user is not creator', () => {
     renderComponent({ inspection: { ...baseMockInspection, status: 'pending', created_by: 'other-user' } });
-    expect(screen.queryByText('inspections.startInspection')).not.toBeInTheDocument();
-    expect(screen.queryByText('inspections.continueEditing')).not.toBeInTheDocument();
+    expect(screen.queryByText('inspections.actions.start')).not.toBeInTheDocument();
+    expect(screen.queryByText('inspections.actions.continue')).not.toBeInTheDocument();
   });
   
   it('calls onStartInspection when "Start Inspection" button is clicked', () => {
     renderComponent({ inspection: { ...baseMockInspection, status: 'pending', created_by: mockUser.id } });
-    fireEvent.click(screen.getByText('inspections.startInspection'));
+    fireEvent.click(screen.getByText('inspections.actions.start'));
     expect(mockOnStartInspection).toHaveBeenCalledTimes(1);
   });
 

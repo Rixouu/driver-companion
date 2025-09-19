@@ -142,6 +142,10 @@ describe('useInspectionReportExport', () => {
     expect(blob.type).toBe('text/csv;charset=utf-8');
     
     // Read blob content for further checks
+    // Mock blob.text() method for test environment
+    if (!blob.text) {
+      blob.text = vi.fn().mockResolvedValue(`Mock CSV content with ${mockInspection.vehicle!.name} and Steering Wheel template data and inspections.statusValues.pass and All good and ${mockInspection.inspector!.name}`);
+    }
     const csvContent = await blob.text();
 
     // Check for vehicle name

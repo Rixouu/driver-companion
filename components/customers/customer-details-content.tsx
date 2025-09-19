@@ -46,9 +46,9 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
       
       switch (field) {
         case 'created_at':
-          return isDesc 
-            ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          const aTime = a.created_at && !isNaN(new Date(a.created_at).getTime()) ? new Date(a.created_at).getTime() : 0
+          const bTime = b.created_at && !isNaN(new Date(b.created_at).getTime()) ? new Date(b.created_at).getTime() : 0
+          return isDesc ? bTime - aTime : aTime - bTime
         case 'amount':
           return isDesc ? b.amount - a.amount : a.amount - b.amount
         case 'quote_number':
@@ -135,12 +135,22 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground min-w-[100px]">Customer Since:</span>
-                    <span>{format(new Date(customer.created_at), 'MMM dd, yyyy')}</span>
+                    <span>
+                      {customer.created_at && !isNaN(new Date(customer.created_at).getTime()) 
+                        ? format(new Date(customer.created_at), 'MMM dd, yyyy')
+                        : 'Unknown'
+                      }
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Activity className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground min-w-[100px]">Last Activity:</span>
-                    <span>{formatDistanceToNow(new Date(customer.last_activity_date), { addSuffix: true })}</span>
+                    <span>
+                      {customer.last_activity_date && !isNaN(new Date(customer.last_activity_date).getTime()) 
+                        ? formatDistanceToNow(new Date(customer.last_activity_date), { addSuffix: true })
+                        : 'No recent activity'
+                      }
+                    </span>
                   </div>
                 </div>
               </div>
@@ -338,7 +348,10 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
                           <div>
                             <div className="font-medium">Quote #{quotation.quote_number}</div>
                             <div className="text-sm text-muted-foreground">
-                              {quotation.service_type} • {format(new Date(quotation.created_at), 'MMM dd, yyyy')}
+                              {quotation.service_type} • {quotation.created_at && !isNaN(new Date(quotation.created_at).getTime()) 
+  ? format(new Date(quotation.created_at), 'MMM dd, yyyy')
+  : 'Unknown date'
+}
                             </div>
                           </div>
                           <div className="text-right">
@@ -390,7 +403,10 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
                           <div>
                             <div className="font-medium">{booking.service_name}</div>
                             <div className="text-sm text-muted-foreground">
-                              {format(new Date(booking.date), 'MMM dd, yyyy')}
+                              {booking.date && !isNaN(new Date(booking.date).getTime()) 
+  ? format(new Date(booking.date), 'MMM dd, yyyy')
+  : 'Unknown date'
+}
                             </div>
                           </div>
                           <Badge 
@@ -461,9 +477,13 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
                         .sort((a, b) => {
                           switch (quotationSort) {
                             case 'created_at-desc':
-                              return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                              const bTime = b.created_at && !isNaN(new Date(b.created_at).getTime()) ? new Date(b.created_at).getTime() : 0
+                              const aTime = a.created_at && !isNaN(new Date(a.created_at).getTime()) ? new Date(a.created_at).getTime() : 0
+                              return bTime - aTime;
                             case 'created_at-asc':
-                              return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                              const aTimeAsc = a.created_at && !isNaN(new Date(a.created_at).getTime()) ? new Date(a.created_at).getTime() : 0
+                              const bTimeAsc = b.created_at && !isNaN(new Date(b.created_at).getTime()) ? new Date(b.created_at).getTime() : 0
+                              return aTimeAsc - bTimeAsc;
                             case 'amount-desc':
                               return b.amount - a.amount;
                             case 'amount-asc':
@@ -481,7 +501,10 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
                             <div className="flex-1">
                               <div className="font-medium">Quote #{quotation.quote_number}</div>
                               <div className="text-sm text-muted-foreground">
-                                {quotation.service_type} • {format(new Date(quotation.created_at), 'MMM dd, yyyy')}
+                                {quotation.service_type} • {quotation.created_at && !isNaN(new Date(quotation.created_at).getTime()) 
+  ? format(new Date(quotation.created_at), 'MMM dd, yyyy')
+  : 'Unknown date'
+}
                               </div>
                             </div>
                             <div className="text-right">
@@ -530,7 +553,10 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
                           <div className="flex-1">
                             <div className="font-medium">{booking.service_name}</div>
                             <div className="text-sm text-muted-foreground">
-                              {format(new Date(booking.date), 'MMM dd, yyyy')}
+                              {booking.date && !isNaN(new Date(booking.date).getTime()) 
+  ? format(new Date(booking.date), 'MMM dd, yyyy')
+  : 'Unknown date'
+}
                             </div>
                           </div>
                           <div className="text-right">
@@ -636,7 +662,10 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
                           <div>
                             <div className="text-sm font-medium">Last Transaction</div>
                             <div className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(customer.spending.last_transaction_date), { addSuffix: true })}
+                              {customer.spending.last_transaction_date && !isNaN(new Date(customer.spending.last_transaction_date).getTime()) 
+                                ? formatDistanceToNow(new Date(customer.spending.last_transaction_date), { addSuffix: true })
+                                : 'No recent transaction'
+                              }
                             </div>
                           </div>
                           <div className="text-right">

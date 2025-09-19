@@ -58,8 +58,18 @@ export async function getCustomers(params: CustomerServiceParams = {}): Promise<
   const total_count = count || 0
   const total_pages = Math.ceil(total_count / limit)
 
+  // Map the customer_analytics view columns to the expected frontend format
+  const mappedCustomers = (data || []).map(customer => ({
+    ...customer,
+    total_spent: customer.total_revenue || 0,
+    booking_count: customer.total_bookings || 0,
+    quotation_count: customer.total_quotations || 0,
+    total_quotation_amount: customer.total_quotation_value || 0,
+    last_activity_date: customer.last_booking_date || customer.last_quotation_date || customer.created_at
+  }))
+
   return {
-    customers: (data || []) as CustomerWithAnalytics[],
+    customers: mappedCustomers as CustomerWithAnalytics[],
     total_count,
     page,
     limit,
@@ -104,12 +114,20 @@ export async function getCustomerById(id: string): Promise<CustomerDetails | nul
   // Calculate detailed spending
   const spending = await getCustomerSpending(id)
 
-  return {
+  // Map the customer_analytics view columns to the expected frontend format
+  const mappedCustomer = {
     ...customer,
+    total_spent: customer.total_revenue || 0,
+    booking_count: customer.total_bookings || 0,
+    quotation_count: customer.total_quotations || 0,
+    total_quotation_amount: customer.total_quotation_value || 0,
+    last_activity_date: customer.last_booking_date || customer.last_quotation_date || customer.created_at,
     recent_quotations: recentQuotations || [],
     recent_bookings: recentBookings || [],
     spending
-  } as CustomerDetails
+  }
+
+  return mappedCustomer as CustomerDetails
 }
 
 /**

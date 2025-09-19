@@ -23,6 +23,7 @@ try {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingRoot: process.cwd(),
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -77,11 +78,11 @@ const nextConfig = {
       },
     ],
   },
+  typedRoutes: true,
   experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
-    typedRoutes: true,
     serverActions: {
       allowedOrigins: ['localhost:3000', '*.vercel.app'],
     },

@@ -2640,6 +2640,7 @@ export type Database = {
           hours_per_day: number | null
           id: string
           invoice_generated_at: string | null
+          last_sent_at: string | null
           magic_link_expires_at: string | null
           magic_link_generated_at: string | null
           merchant_id: string | null

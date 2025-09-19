@@ -182,7 +182,7 @@ class EmailQueueManager {
       console.log(`📧 Processing quotation email for ${emailJob.quotationId}`);
       
       // Call the optimized send-email API
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/quotations/send-email-optimized`, {
+      const response = await fetch(`${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL}/api/quotations/send-email-optimized`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -214,7 +214,7 @@ class EmailQueueManager {
     try {
       console.log(`📧 Processing approval email for ${emailJob.quotationId}`);
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/quotations/approve`, {
+      const response = await fetch(`${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL}/api/quotations/approve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -246,7 +246,7 @@ class EmailQueueManager {
     try {
       console.log(`📧 Processing rejection email for ${emailJob.quotationId}`);
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/quotations/reject`, {
+      const response = await fetch(`${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL}/api/quotations/reject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -278,7 +278,7 @@ class EmailQueueManager {
     try {
       console.log(`📧 Processing reminder email for ${emailJob.quotationId}`);
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/quotations/send-reminder`, {
+      const response = await fetch(`${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL}/api/quotations/send-reminder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

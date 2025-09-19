@@ -105,7 +105,7 @@ export class OmiseClient {
             currency: data.currency.toUpperCase(),
             amount: amountInSmallestUnit.toString(),
             multiple_usage: data.multiple ? 'true' : 'false',
-            returnUrl: data.returnUrl || process.env.OMISE_RETURN_URL || `${process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app'}/payment-status`
+            returnUrl: data.returnUrl || process.env.OMISE_RETURN_URL || `${process.env.NEXT_PUBLIC_APP_URL || 'https://my.japandriver.com'}/payment-status`
           };
 
           console.log('[Omise] Creating Payment Links+ link with data:', requestData);

@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     if (isPending) {
       console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Generating payment link for pending booking invoice')
       try {
-        const paymentLinkResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/bookings/generate-payment-link`, {
+        const paymentLinkResponse = await fetch(`${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL}/api/bookings/generate-payment-link`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 

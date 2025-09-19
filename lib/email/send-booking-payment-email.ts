@@ -139,7 +139,7 @@ export async function sendBookingPaymentEmail(data: BookingPaymentEmailData) {
     `;
     
     // HTML version - EXACT COPY from quotation system
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://my.japandriver.com';
     const logoUrl = `${appUrl}/img/driver-invoice-logo.png`;
     const html = `
     <!DOCTYPE html>

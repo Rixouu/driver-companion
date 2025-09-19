@@ -40,15 +40,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate the magic link URL
-    let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+    let baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
     if (!baseUrl) {
       // Fallback based on environment
       if (process.env.NODE_ENV === 'production') {
-        baseUrl = 'https://driver-companion.vercel.app';
+        baseUrl = 'https://my.japandriver.com';
       } else if (process.env.NODE_ENV === 'development') {
         baseUrl = 'http://localhost:3000';
       } else {
-        baseUrl = 'https://driver-companion.vercel.app'; // Default to production
+        baseUrl = 'https://my.japandriver.com'; // Default to production
       }
     }
     const magicLinkUrl = `${baseUrl}/quote-access/${token}`;

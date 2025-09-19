@@ -207,7 +207,7 @@ export async function POST(request: Request) {
     const emailDomain = process.env.NEXT_PUBLIC_EMAIL_DOMAIN || 'japandriver.com'
     
     // Get the public URL for the Driver logo
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://my.japandriver.com'
     const logoUrl = `https://japandriver.com/img/driver-invoice-logo.png`
     
     // Format price with currency

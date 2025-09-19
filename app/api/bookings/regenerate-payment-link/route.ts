@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
       customerEmail: customerEmail,
       customerName: customerName,
       expiryHours: 48, // 48 hours expiry
-      returnUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app'}/bookings/${bookingData.id}`
+      returnUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://my.japandriver.com'}/bookings/${bookingData.id}`
     };
 
     console.log('💳 [REGENERATE-PAYMENT-LINK] Payment link data:', paymentLinkData);

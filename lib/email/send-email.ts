@@ -223,7 +223,7 @@ export async function sendInvoiceEmail(params: InvoiceEmailParams) {
   `;
   
   // HTML version
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://my.japandriver.com';
   const logoUrl = `${appUrl}/img/driver-invoice-logo.png`;
   const html = `
   <!DOCTYPE html>

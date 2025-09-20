@@ -678,8 +678,10 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
   // Check if reminder should be sent (1 day before expiry)
   const shouldSendReminder = daysUntilExpiry !== null && daysUntilExpiry <= 1 && daysUntilExpiry > 0 && !quotation.reminder_sent_at && quotation.status === 'sent';
 
-  // Check if reminder step should be shown
-  const shouldShowReminder = quotation.status !== 'draft' && (shouldSendReminder || quotation.reminder_sent_at);
+  // Check if reminder step should be shown - don't show if quotation is approved
+  const shouldShowReminder = quotation.status !== 'draft' && 
+                            quotation.status !== 'approved' && 
+                            (shouldSendReminder || quotation.reminder_sent_at);
 
   // Define workflow steps based on quotation status and data
   const getWorkflowSteps = (): WorkflowStep[] => {

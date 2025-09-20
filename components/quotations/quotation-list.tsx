@@ -301,8 +301,8 @@ export default function QuotationList({
 
   // Check if quotation needs reminder
   const needsReminder = (quotation: Quotation) => {
-    // Only show reminders for 'sent' and 'approved' statuses (not converted, paid, rejected, expired)
-    if (!['sent', 'approved'].includes(quotation.status)) return false;
+    // Only show reminders for 'sent' status (not approved, converted, paid, rejected, expired)
+    if (quotation.status !== 'sent') return false;
     
     // If already expired, no reminder needed
     if (isExpired(quotation)) return false;

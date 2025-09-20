@@ -42,6 +42,8 @@ export function QuotationDetailsApprovalPanel({
   const [hoveredButton, setHoveredButton] = useState<'approve' | 'reject' | null>(null);
   const [approveSignature, setApproveSignature] = useState<string | null>(null);
   const [rejectSignature, setRejectSignature] = useState<string | null>(null);
+  const [approveSignatureName, setApproveSignatureName] = useState('');
+  const [rejectSignatureName, setRejectSignatureName] = useState('');
   const approvePadRef = useRef<SignaturePadHandle>(null);
   const rejectPadRef = useRef<SignaturePadHandle>(null);
   
@@ -49,6 +51,7 @@ export function QuotationDetailsApprovalPanel({
     await onApprove(notes, approveSignature || undefined, approveBccEmails);
     setShowApproveDialog(false);
     setApproveSignature(null);
+    setApproveSignatureName('');
     setNotes('');
   };
   
@@ -57,6 +60,7 @@ export function QuotationDetailsApprovalPanel({
     await onReject(rejectionReason, rejectSignature || undefined, rejectBccEmails);
     setShowRejectDialog(false);
     setRejectSignature(null);
+    setRejectSignatureName('');
     setRejectionReason('');
   };
   
@@ -163,6 +167,19 @@ export function QuotationDetailsApprovalPanel({
           
           <div className="space-y-4">
             <div>
+              <Label className="text-sm font-medium mb-2 block">Your Name</Label>
+              <Input
+                value={approveSignatureName}
+                onChange={(e) => setApproveSignatureName(e.target.value)}
+                placeholder="Enter your name for the signature"
+                className="w-full text-sm"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                This will be used for signature presets and identification.
+              </p>
+            </div>
+            
+            <div>
               <Label className="text-sm font-medium mb-2 block">Notes (Optional)</Label>
               <Textarea
                 value={notes}
@@ -213,6 +230,7 @@ export function QuotationDetailsApprovalPanel({
                 required={true}
                 className="w-full bg-white rounded border"
                 customerName={customerName}
+                signatureName={approveSignatureName}
                 showHeader={false}
                 showActions={false}
                 canvasHeight={180}
@@ -271,6 +289,19 @@ export function QuotationDetailsApprovalPanel({
           </div>
           
           <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Your Name</Label>
+              <Input
+                value={rejectSignatureName}
+                onChange={(e) => setRejectSignatureName(e.target.value)}
+                placeholder="Enter your name for the signature"
+                className="w-full text-sm"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                This will be used for signature presets and identification.
+              </p>
+            </div>
+            
             <div>
               <div className="flex items-center gap-1 mb-2">
                 <span className="text-red-500">*</span>
@@ -331,6 +362,7 @@ export function QuotationDetailsApprovalPanel({
                 required={true}
                 className="w-full bg-white rounded border"
                 customerName={customerName}
+                signatureName={rejectSignatureName}
                 showHeader={false}
                 showActions={false}
                 canvasHeight={180}

@@ -13,6 +13,7 @@ interface SignaturePadProps {
   required?: boolean;
   disabled?: boolean;
   customerName?: string;
+  signatureName?: string; // Dynamic name for signature presets
   showHeader?: boolean;
   showActions?: boolean;
   canvasHeight?: number;
@@ -26,6 +27,7 @@ function SignaturePadInner({
   required = false,
   disabled = false,
   customerName,
+  signatureName,
   showHeader = true,
   showActions = true,
   canvasHeight = 200,
@@ -161,9 +163,10 @@ function SignaturePadInner({
     link.click();
   };
 
-  // Generate preset signatures based on customer name
+  // Generate preset signatures based on signature name
   const generatePresetSignature = (style: 'cursive' | 'elegant' | 'simple') => {
-    if (!customerName || !canvasRef.current) return;
+    const nameToUse = signatureName || customerName;
+    if (!nameToUse || !canvasRef.current) return;
     
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -184,15 +187,15 @@ function SignaturePadInner({
     switch (style) {
       case 'cursive':
         ctx.font = '32px "Dancing Script", cursive';
-        ctx.fillText(customerName, centerX, centerY);
+        ctx.fillText(nameToUse, centerX, centerY);
         break;
       case 'elegant':
         ctx.font = '28px "Great Vibes", cursive';
-        ctx.fillText(customerName, centerX, centerY);
+        ctx.fillText(nameToUse, centerX, centerY);
         break;
       case 'simple':
         ctx.font = '24px "Brush Script MT", cursive';
-        ctx.fillText(customerName, centerX, centerY);
+        ctx.fillText(nameToUse, centerX, centerY);
         break;
     }
     
@@ -206,9 +209,9 @@ function SignaturePadInner({
   };
 
   const presetStyles = [
-    { key: 'cursive', label: 'Cursive', preview: customerName || 'Sample' },
-    { key: 'elegant', label: 'Elegant', preview: customerName || 'Sample' },
-    { key: 'simple', label: 'Simple', preview: customerName || 'Sample' }
+    { key: 'cursive', label: 'Cursive', preview: signatureName || customerName || 'Sample' },
+    { key: 'elegant', label: 'Elegant', preview: signatureName || customerName || 'Sample' },
+    { key: 'simple', label: 'Simple', preview: signatureName || customerName || 'Sample' }
   ];
 
   return (
@@ -277,7 +280,7 @@ function SignaturePadInner({
                 </Button>
               </div>
               
-              {customerName && (
+              {(signatureName || customerName) && (
                 <Button
                   type="button"
                   variant="ghost"
@@ -295,7 +298,7 @@ function SignaturePadInner({
         )}
 
         {/* Preset Signatures - Collapsible (also available when actions are hidden) */}
-        {customerName && showPresets && (
+        {(signatureName || customerName) && showPresets && (
           <div className="space-y-2">
             <div className="grid grid-cols-3 gap-2">
               {presetStyles.map((style) => (

@@ -1140,7 +1140,7 @@ export default function QuoteAccessPage() {
           </div>
 
           {/* Quotation Approval - Full Width */}
-            {['draft', 'sent'].includes(quotation.status) && (
+            {['draft', 'sent'].includes(quotation.status) && !['approved', 'paid', 'rejected', 'converted'].includes(quotation.status) && !(quotation as any).approved_at && !(quotation as any).payment_completed_at && !(quotation as any).rejected_at && (
               <Card>
                 <CardHeader>
                 <div className="flex items-center gap-3">

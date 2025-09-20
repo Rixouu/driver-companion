@@ -62,7 +62,7 @@ interface ServiceSelectionStepProps {
     hoursPerDay?: number,
     dateTime?: Date | string,
     vehicleCategory?: string
-  ) => Promise<{ baseAmount: number; totalAmount: number; currency: string }>;
+  ) => Promise<{ baseAmount: number; dailyRate: number; totalAmount: number; currency: string }>;
 }
 
 export function ServiceSelectionStep({
@@ -304,8 +304,8 @@ export function ServiceSelectionStep({
       const effectiveVehicleType = selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}` : "Standard Vehicle";
       
       const isCharter = selectedServiceTypeObject?.name?.toLowerCase().includes('charter') || false;
-      // For Charter services, use total duration (days × hours per day), otherwise use 1 hour
-      const effectiveDuration = isCharter ? (serviceDays || 1) * (hoursPerDay || 1) : 1;
+      // For Charter services, use hours per day (e.g., 6), otherwise use 1 hour
+      const effectiveDuration = isCharter ? (hoursPerDay || 1) : 1;
       
       console.log('🔍 [PRICING] Calling calculateQuotationAmount with:', {
         serviceTypeId: effectiveServiceType,
@@ -341,11 +341,15 @@ export function ServiceSelectionStep({
       
       // For Charter services, the baseAmount already includes the total duration, so don't multiply by serviceDays again
       const baseServicePrice = isCharter ? pricingResult.baseAmount : pricingResult.baseAmount * (serviceDays || 1);
-      const adjustedPrice = baseServicePrice * (1 + timeBasedAdjustment / 100);
+      // For Charter services, don't apply time-based adjustments to the total amount
+      const adjustedPrice = isCharter ? baseServicePrice : baseServicePrice * (1 + timeBasedAdjustment / 100);
 
       // Get vehicle display information
       const vehicleDisplayName = selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}` : effectiveVehicleType;
       const vehiclePlateNumber = selectedVehicle?.name || '';
+
+      // For Charter services, unit_price should be the daily rate, not the total amount
+      const unitPrice = isCharter ? (pricingResult.dailyRate || pricingResult.baseAmount) : pricingResult.baseAmount;
 
       const newItem: ServiceItemInput = {
         service_type_id: effectiveServiceType,
@@ -353,7 +357,7 @@ export function ServiceSelectionStep({
         vehicle_type: vehicleDisplayName,
         vehicle_category: effectiveVehicleCategory,
         duration_hours: effectiveDuration,
-        unit_price: pricingResult.baseAmount,
+        unit_price: unitPrice,
         quantity: 1,
         total_price: adjustedPrice,
         service_days: serviceDays || 1,
@@ -410,8 +414,8 @@ export function ServiceSelectionStep({
         : existingItem.vehicle_type || "Standard Vehicle";
       
       const isCharter = selectedServiceTypeObject?.name?.toLowerCase().includes('charter') || false;
-      // For Charter services, use total duration (days × hours per day), otherwise use 1 hour
-      const effectiveDuration = isCharter ? (serviceDays || 1) * (hoursPerDay || 1) : 1;
+      // For Charter services, use hours per day (e.g., 6), otherwise use 1 hour
+      const effectiveDuration = isCharter ? (hoursPerDay || 1) : 1;
       
       console.log('🔍 [PRICING] Calling calculateQuotationAmount with:', {
         serviceTypeId: effectiveServiceType,

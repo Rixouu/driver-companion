@@ -63,11 +63,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get quotation data
+    // Get quotation data with quotation_items
     const supabase = createServiceClient()
     const { data: quotation, error: quotationError } = await supabase
       .from('quotations')
-      .select('*')
+      .select('*, quotation_items (*)')
       .eq('id', quotationId)
       .single()
 

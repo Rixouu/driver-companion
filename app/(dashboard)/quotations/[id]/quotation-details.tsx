@@ -997,7 +997,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
 
               
               {/* Conditional Approval Panel placement - under price details when scrolled */}
-              {shouldMoveToMainContent && ['draft', 'sent'].includes(quotation.status) && (
+              {shouldMoveToMainContent && ['draft', 'sent'].includes(quotation.status) && !['approved', 'paid', 'rejected', 'converted'].includes(quotation.status) && !(quotation as any).approved_at && !(quotation as any).payment_completed_at && !(quotation as any).rejected_at && (
                 <div className="mt-6">
                   <QuotationDetailsApprovalPanel 
                     isProcessing={isLoading}
@@ -1362,7 +1362,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
           )}
 
           {/* Default Approval Panel placement - in sidebar above activity feed */}
-          {!shouldMoveToMainContent && ['draft', 'sent'].includes(quotation.status) && (
+          {!shouldMoveToMainContent && ['draft', 'sent'].includes(quotation.status) && !['approved', 'paid', 'rejected', 'converted'].includes(quotation.status) && !(quotation as any).approved_at && !(quotation as any).payment_completed_at && !(quotation as any).rejected_at && (
             <div className="mt-4 xl:mt-6">
               <QuotationDetailsApprovalPanel 
                 isProcessing={isLoading}

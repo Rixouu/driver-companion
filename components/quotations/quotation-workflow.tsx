@@ -746,12 +746,13 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         : <CheckCircle className="h-4 w-4" />,
       status: (quotation.status === 'approved' || quotation.approved_at) ? 'completed' :
               (quotation.status === 'rejected' || quotation.rejected_at) ? 'completed' :
+              (quotation.status === 'paid' || quotation.payment_completed_at) ? 'completed' :
               ['sent'].includes(quotation.status) ? 'current' : 'pending',
       date: quotation.approved_at || quotation.rejected_at
     });
 
-    // Add post-approval steps only if quotation is approved
-    if (quotation.status === 'approved' || quotation.approved_at || quotation.invoice_generated_at || quotation.payment_completed_at || quotation.booking_created_at) {
+    // Add post-approval steps only if quotation is approved or paid
+    if (quotation.status === 'approved' || quotation.status === 'paid' || quotation.approved_at || quotation.invoice_generated_at || quotation.payment_completed_at || quotation.booking_created_at) {
       steps.push(
         {
           id: 'payment_link_sent',
@@ -760,9 +761,10 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
           icon: <Mail className="h-4 w-4" />,
           status: quotation.payment_completed_at ? 'completed' : 
                   quotation.payment_link_sent_at ? 'completed' : 
+                  (quotation.status === 'paid' || quotation.payment_completed_at) ? 'completed' :
                   (quotation.status === 'approved' || quotation.approved_at) ? 'current' : 'pending',
           date: quotation.payment_link_sent_at,
-          ...((quotation.status === 'approved' || quotation.approved_at) && !quotation.payment_link_sent_at && !quotation.payment_completed_at && isOrganizationMember ? {
+          ...((quotation.status === 'approved' || quotation.status === 'paid' || quotation.approved_at) && !quotation.payment_link_sent_at && !quotation.payment_completed_at && isOrganizationMember ? {
             action: {
               label: 'Send Payment Link',
               onClick: () => setIsPaymentLinkDialogOpen(true),
@@ -777,7 +779,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
           icon: <CheckCircle className="h-4 w-4" />,
           status: (quotation.status === 'paid' || quotation.payment_completed_at) ? 'completed' : 'pending',
           date: quotation.payment_completed_at,
-          ...(quotation.payment_link_sent_at && quotation.status !== 'paid' && !quotation.payment_completed_at && isOrganizationMember ? {
+          ...((quotation.payment_link_sent_at || quotation.status === 'sent') && quotation.status !== 'paid' && !quotation.payment_completed_at && isOrganizationMember ? {
             action: {
               label: 'Mark As Paid',
               onClick: () => setIsMarkAsPaidDialogOpen(true),
@@ -791,9 +793,9 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
           description: 'Convert approved quotation to a booking',
           icon: <Calendar className="h-4 w-4" />,
           status: quotation.booking_created_at ? 'completed' :
-                  (quotation.status === 'paid' || quotation.payment_completed_at) ? 'current' : 'pending',
+                  (quotation.status === 'paid' || quotation.status === 'sent' || quotation.payment_completed_at) ? 'current' : 'pending',
           date: quotation.booking_created_at,
-          ...((quotation.status === 'paid' || quotation.payment_completed_at) && !quotation.booking_created_at && isOrganizationMember ? {
+          ...((quotation.status === 'paid' || quotation.status === 'sent' || quotation.payment_completed_at) && !quotation.booking_created_at && isOrganizationMember ? {
             action: {
               label: isConvertingToBooking ? 'Converting...' : 'Convert to Booking',
               onClick: async () => {

@@ -380,6 +380,60 @@ export default function QuotationFormRefactored({
         }
       }
 
+      // Calculate totals for database storage
+      const calculateFormTotals = () => {
+        let serviceBaseTotal = 0;
+        let serviceTimeAdjustment = 0;
+        
+        if (serviceItems.length > 0) {
+          serviceItems.forEach((item) => {
+            // For Charter Services, calculate as unit_price × service_days
+            let itemBasePrice;
+            if (item.service_type_name?.toLowerCase().includes('charter')) {
+              itemBasePrice = item.unit_price * (item.service_days || 1);
+            } else {
+              itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+            }
+            serviceBaseTotal += itemBasePrice;
+            
+            if ((item as any).time_based_adjustment) {
+              const timeAdjustment = itemBasePrice * ((item as any).time_based_adjustment / 100);
+              serviceTimeAdjustment += timeAdjustment;
+            }
+          });
+        }
+        
+        const serviceTotal = serviceBaseTotal + serviceTimeAdjustment;
+        const packageTotal = selectedPackage ? selectedPackage.base_price : 0;
+        const baseTotal = serviceTotal + packageTotal;
+        
+        const discountPercentage = formData.discount_percentage || 0;
+        const taxPercentage = formData.tax_percentage || 0;
+        
+        const promotionDiscount = selectedPromotion ? 
+          (selectedPromotion.discount_type === 'percentage' ? 
+            baseTotal * (selectedPromotion.discount_value / 100) : 
+            selectedPromotion.discount_value) : 0;
+        
+        const regularDiscount = baseTotal * (discountPercentage / 100);
+        const totalDiscount = promotionDiscount + regularDiscount;
+        
+        const subtotal = Math.max(0, baseTotal - totalDiscount);
+        const taxAmount = subtotal * (taxPercentage / 100);
+        const finalTotal = subtotal + taxAmount;
+        
+        return {
+          baseAmount: baseTotal,
+          totalAmount: finalTotal
+        };
+      };
+
+      const computedTotals = calculateFormTotals();
+      
+      console.log('🔍 [FORM] Calculated totals:', computedTotals);
+      console.log('🔍 [FORM] Service items:', serviceItems);
+      console.log('🔍 [FORM] Selected promotion:', selectedPromotion);
+
       const input: CreateQuotationInput = {
         title: formData.title || '',
         customer_name: formData.customer_name || undefined,
@@ -429,6 +483,8 @@ export default function QuotationFormRefactored({
         promotion_discount: promotionDiscountAmount || undefined,
         // Team tracking fields
         team_location: currentTeam,
+        // Add computed totals for database storage
+        __computedTotals: computedTotals,
       };
 
       let result: Quotation | null = null;
@@ -634,7 +690,11 @@ export default function QuotationFormRefactored({
       if (result && onSuccess) {
         onSuccess(result);
       } else if (result) {
-        router.push(`/quotations/${result.id}` as any);
+        // Use beautiful URL format instead of UUID
+        const beautifulUrl = result.quote_number 
+          ? `/quotations/QUO-JPDR-${result.quote_number.toString().padStart(6, '0')}`
+          : `/quotations/${result.id}`;
+        router.push(beautifulUrl as any);
       }
       
       // Wait for progress animation to complete for draft saving

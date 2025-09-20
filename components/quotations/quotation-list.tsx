@@ -771,6 +771,12 @@ export default function QuotationList({
                       e.stopPropagation();
                       handleSelectQuotation(quotation.id);
                     }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                    }}
                     className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                     aria-label={`Select quotation ${quotation.quote_number}`}
                   />
@@ -888,6 +894,12 @@ export default function QuotationList({
                       onChange={(e) => {
                         e.stopPropagation();
                         handleSelectQuotation(quotation.id);
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
                       }}
                       className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                       aria-label={`Select quotation ${quotation.quote_number}`}

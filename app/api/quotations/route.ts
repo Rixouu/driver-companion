@@ -134,8 +134,18 @@ export async function POST(request: NextRequest) {
       requestData.service_type = requestData.service_type || 'General Service';
     }
     
-    // Calculate total_amount if quotation_items are provided
-    if (requestData.quotation_items && Array.isArray(requestData.quotation_items) && requestData.quotation_items.length > 0) {
+    // Use computed totals if provided, otherwise calculate from quotation_items
+    if (requestData.__computedTotals) {
+      // Use the computed totals from the form
+      requestData.amount = requestData.__computedTotals.baseAmount;
+      requestData.total_amount = requestData.__computedTotals.totalAmount;
+      
+      console.log('Using computed totals from form:', {
+        baseAmount: requestData.amount,
+        totalAmount: requestData.total_amount
+      });
+    } else if (requestData.quotation_items && Array.isArray(requestData.quotation_items) && requestData.quotation_items.length > 0) {
+      // Fallback to calculation if no computed totals
       const { calculateQuotationTotals } = await import('@/lib/utils/quotation-calculations');
       
       const totals = calculateQuotationTotals(
@@ -160,10 +170,15 @@ export async function POST(request: NextRequest) {
       });
     }
     
+    // Filter out internal fields that shouldn't be saved to database
+    const sanitizedData = Object.fromEntries(
+      Object.entries(requestData).filter(([key]) => !key.startsWith('__'))
+    );
+    
     // Insert the quotation
     const { data: quotation, error } = await supabase
       .from('quotations')
-      .insert(requestData)
+      .insert(sanitizedData as any)
       .select()
       .single();
 

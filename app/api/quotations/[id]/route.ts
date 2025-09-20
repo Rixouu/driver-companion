@@ -107,6 +107,11 @@ export async function PATCH(
     
     // Process each field, converting empty strings to null for UUID fields
     Object.entries(body).forEach(([key, value]) => {
+      // Skip internal fields that shouldn't be saved to database
+      if (key.startsWith('__')) {
+        return;
+      }
+      
       // UUID fields that need to be null instead of empty string
       const uuidFields = ['customer_id', 'service_type_id', 'merchant_id'];
       
@@ -118,10 +123,26 @@ export async function PATCH(
     });
     
     console.log('Updating quotation:', id);
+    console.log('Raw request body:', body);
     console.log('Sanitized update data:', sanitizedData);
+    console.log('__computedTotals from body:', body.__computedTotals);
 
-    // Recalculate total_amount if quotation_items or pricing fields are being updated
+    // Use computed totals if provided, otherwise calculate from quotation_items
+    if (body.__computedTotals) {
+      // Use the computed totals from the form
+      sanitizedData.amount = body.__computedTotals.baseAmount;
+      sanitizedData.total_amount = body.__computedTotals.totalAmount;
+      
+      console.log('✅ [API] Using computed totals from form:', {
+        baseAmount: sanitizedData.amount,
+        totalAmount: sanitizedData.total_amount
+      });
+    } else {
+      console.log('❌ [API] No __computedTotals found in request body');
+    }
+    
     if (sanitizedData.quotation_items && Array.isArray(sanitizedData.quotation_items) && sanitizedData.quotation_items.length > 0) {
+      // Fallback to calculation if no computed totals
       const { calculateQuotationTotals } = await import('@/lib/utils/quotation-calculations');
       
       const totals = calculateQuotationTotals(
@@ -147,6 +168,12 @@ export async function PATCH(
     }
 
     // Update the quotation with sanitized data
+    console.log('🔍 [API] Final sanitizedData being sent to database:', {
+      amount: sanitizedData.amount,
+      total_amount: sanitizedData.total_amount,
+      promotion_discount: sanitizedData.promotion_discount
+    });
+    
     const { data, error } = await supabase
       .from('quotations')
       .update(sanitizedData)
@@ -161,6 +188,7 @@ export async function PATCH(
         { status: 500 }
       );
     }
+    
     
     // Log activity
     try {

@@ -174,6 +174,7 @@ export const useQuotationService = () => {
     vehicleCategory?: string // Add vehicle category parameter
   ): Promise<{
     baseAmount: number;
+    dailyRate: number;
     discountAmount: number;
     taxAmount: number;
     totalAmount: number;
@@ -230,43 +231,57 @@ export const useQuotationService = () => {
       
       if (pricingItems && pricingItems.length > 0) {
         // Found an exact pricing match in the database
-        baseAmount = Number(pricingItems[0].price);
+        const dailyRate = Number(pricingItems[0].price);
         priceSource = 'database_exact_match';
         console.log(`✅ [PRICING] Found exact match: vehicle_id ${pricingItems[0].vehicle_id} - ¥${pricingItems[0].price} for ${durationHours}h`);
-      } else {
-        console.log(`⚠️ [PRICING] No exact match found for vehicle_id ${selectedVehicle?.id} - ${durationHours}h, trying hourly rate...`);
-        // No exact match, try to get hourly rate from database
-        let hourlyQuery = supabase
-          .from('pricing_items')
-          .select('*')
-          .eq('service_type_id', serviceTypeId)
-          .eq('vehicle_id', selectedVehicle?.id || '') // Use vehicle_id instead of vehicle_type
-          .eq('duration_hours', 1) // Get the hourly rate
-          .eq('is_active', true);
         
-        // If vehicle category is provided, filter by it
-        if (vehicleCategory) {
-          hourlyQuery = hourlyQuery.eq('category_id', vehicleCategory);
+        // Different calculation logic based on service type
+        if (serviceType.toLowerCase().includes('charter')) {
+          // For charter, the dailyRate is already the rate for the full duration per day
+          // So we just multiply by service days
+          baseAmount = dailyRate * serviceDays;
+        } else {
+          // For other services, use the rate as is
+          baseAmount = dailyRate;
         }
-        
-        const { data: hourlyRates, error: hourlyError } = await hourlyQuery;
+        } else {
+          console.log(`⚠️ [PRICING] No exact match found for vehicle_id ${selectedVehicle?.id} - ${durationHours}h, trying duration-specific rate...`);
+          // No exact match, try to get rate for the specific duration
+          // For Charter Services, look for the specific duration (e.g., 6 hours)
+          // For other services, look for hourly rate (1 hour)
+          const targetDuration = serviceType.toLowerCase().includes('charter') ? 
+            (hoursPerDay || durationHours) : 1;
           
-        if (hourlyRates && hourlyRates.length > 0) {
-          // Use hourly rate from database
-          const hourlyRate = Number(hourlyRates[0].price);
-          priceSource = 'database_hourly_rate';
-          console.log(`✅ [PRICING] Found hourly rate: ${hourlyRates[0].vehicle_id || 'N/A'} - ¥${hourlyRates[0].price}/h`);
+          let durationQuery = supabase
+            .from('pricing_items')
+            .select('*')
+            .eq('service_type_id', serviceTypeId)
+            .eq('vehicle_id', selectedVehicle?.id || '') // Use vehicle_id instead of vehicle_type
+            .eq('duration_hours', targetDuration) // Get the rate for the target duration
+            .eq('is_active', true);
           
-          // Different calculation logic based on service type
-          if (serviceType.toLowerCase().includes('charter')) {
-            // For charter, calculate based on days and hours per day
-            const effectiveHoursPerDay = hoursPerDay || durationHours;
-            const dailyRate = hourlyRate * effectiveHoursPerDay;
-            baseAmount = dailyRate * serviceDays;
-          } else {
-            // For other services, simple hourly rate * duration
-            baseAmount = hourlyRate * durationHours;
+          // If vehicle category is provided, filter by it
+          if (vehicleCategory) {
+            durationQuery = durationQuery.eq('category_id', vehicleCategory);
           }
+          
+          const { data: durationRates, error: durationError } = await durationQuery;
+            
+          if (durationRates && durationRates.length > 0) {
+            // Use rate from database for the specific duration
+            const durationRate = Number(durationRates[0].price);
+            priceSource = 'database_duration_rate';
+            console.log(`✅ [PRICING] Found ${targetDuration}h rate: ${durationRates[0].vehicle_id || 'N/A'} - ¥${durationRates[0].price}/${targetDuration}h`);
+            
+            // Different calculation logic based on service type
+            if (serviceType.toLowerCase().includes('charter')) {
+              // For charter, the durationRate is already the rate for the full duration per day
+              // So we just multiply by service days
+              baseAmount = durationRate * serviceDays;
+            } else {
+              // For other services, simple duration rate * total duration
+              baseAmount = durationRate * durationHours;
+            }
         } else {
           // Fallback to querying any pricing for this vehicle
           let fallbackQuery = supabase
@@ -295,7 +310,7 @@ export const useQuotationService = () => {
               .from('pricing_items')
               .select('*')
               .eq('service_type_id', serviceTypeId)
-              .eq('category_id', vehicleCategory)
+              .eq('category_id', vehicleCategory || '')
               .eq('duration_hours', durationHours)
               .eq('is_active', true)
               .limit(1);
@@ -313,7 +328,7 @@ export const useQuotationService = () => {
                 .from('pricing_items')
                 .select('*')
                 .eq('service_type_id', serviceTypeId)
-                .eq('category_id', vehicleCategory)
+                .eq('category_id', vehicleCategory || '')
                 .eq('duration_hours', 1)
                 .eq('is_active', true)
                 .limit(1);
@@ -376,8 +391,13 @@ export const useQuotationService = () => {
       
       console.log(`💰 [PRICING] Final result: ¥${baseAmount} (source: ${priceSource})`);
       
+      // For Charter Services, also return the daily rate for unit price calculation
+      const dailyRate = serviceType.toLowerCase().includes('charter') ? 
+        (baseAmount / serviceDays) : baseAmount;
+      
       return {
         baseAmount,
+        dailyRate,
         discountAmount,
         taxAmount,
         totalAmount,
@@ -397,6 +417,7 @@ export const useQuotationService = () => {
       
       return {
         baseAmount,
+        dailyRate: baseAmount, // For non-charter services, dailyRate equals baseAmount
         discountAmount,
         taxAmount,
         totalAmount,
@@ -779,6 +800,12 @@ export const useQuotationService = () => {
         }
 
         const result = await response.json();
+        
+        // Skip recalculation if __computedTotals were provided (form already calculated correctly)
+        if (data && data.__computedTotals) {
+          console.log('UPDATE DEBUG - Skipping recalculation because __computedTotals were provided');
+          return result;
+        }
         
         // If we have promotion or package discounts, recalculate totals
         if (result.promotion_discount > 0 || result.package_discount > 0) {

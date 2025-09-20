@@ -242,6 +242,12 @@ export interface CreateQuotationInput {
   
   // Team tracking fields
   team_location?: 'japan' | 'thailand';
+  
+  // Internal computed totals (not stored in DB)
+  __computedTotals?: {
+    baseAmount: number;
+    totalAmount: number;
+  };
 }
 
 export interface UpdateQuotationInput {

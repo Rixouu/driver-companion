@@ -694,47 +694,45 @@ export default function QuoteAccessPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      {/* Header - Matching Admin Design */}
       <div className="border-b bg-card">
         <div className="container mx-auto px-6 py-8">
-          {/* Top bar with logo and theme toggle */}
-                      <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <img 
-                  src="/img/driver-header-logo.png" 
-                  alt="DRIVER Logo" 
-                  className="h-8 w-auto"
-                />
-               
-              </div>
-              <div className="flex items-center gap-2">
-                {/* Theme toggle removed for customer side to prevent hydration issues */}
-                <DropdownMenu open={isShareOpen} onOpenChange={setIsShareOpen}>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Share2 className="h-4 w-4" />
-                      Share
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={handleWhatsAppShare} className="gap-2">
-                      <MessageCircle className="h-4 w-4 text-green-600" />
-                      WhatsApp
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleLineShare} className="gap-2">
-                      <Phone className="h-4 w-4 text-green-500" />
-                      LINE
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleCopyLink} className="gap-2">
-                      <Share2 className="h-4 w-4" />
-                      Copy Link
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+          {/* Top bar with logo and actions */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <img 
+                src="/img/driver-header-logo.png" 
+                alt="DRIVER Logo" 
+                className="h-8 w-auto"
+              />
             </div>
+            <div className="flex items-center gap-2">
+              <DropdownMenu open={isShareOpen} onOpenChange={setIsShareOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Share2 className="h-4 w-4" />
+                    Share
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={handleWhatsAppShare} className="gap-2">
+                    <MessageCircle className="h-4 w-4 text-green-600" />
+                    WhatsApp
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLineShare} className="gap-2">
+                    <Phone className="h-4 w-4 text-green-500" />
+                    LINE
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleCopyLink} className="gap-2">
+                    <Share2 className="h-4 w-4" />
+                    Copy Link
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
           
-          {/* Quotation Header - Matching Admin Layout */}
+          {/* Quotation Header - Enhanced to match admin */}
           <div className="space-y-4">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
               <div className="flex-1 min-w-0">
@@ -763,17 +761,44 @@ export default function QuoteAccessPage() {
                 </Button>
               </div>
             </div>
+            
+            {/* Next Step Indicator - Matching Admin Style */}
+            {(() => {
+              let nextStepText = '';
+              if (quotation.status === 'draft') {
+                nextStepText = 'Send to customer';
+              } else if (quotation.status === 'sent') {
+                nextStepText = 'Waiting for customer approval';
+              } else if (quotation.status === 'approved' && !quotation.payment_link_sent_at && !quotation.payment_completed_at) {
+                nextStepText = 'Select payment method';
+              } else if (quotation.payment_link_sent_at && !quotation.payment_completed_at) {
+                nextStepText = 'Wait for payment';
+              } else if (quotation.payment_completed_at && quotation.status !== 'converted') {
+                nextStepText = 'Convert to booking';
+              }
+              
+              if (nextStepText) {
+                return (
+                  <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                    <div className="text-sm text-blue-700 dark:text-blue-300">
+                      <span className="font-medium">Next step:</span> {nextStepText}
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
-          
-          {/* Next Step Indicator */}
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main Content - Matching Admin Layout */}
       <div className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 xl:gap-8">
-          {/* Main Content - 2 columns on XL screens, full width on smaller */}
-          <div className="xl:col-span-2 space-y-6">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 xl:gap-8">
+            {/* Main Content - 2 columns on XL screens, full width on smaller */}
+            <div className="xl:col-span-2 space-y-6">
             {/* Customer Information - Clean Design */}
             <Card>
               <CardHeader>

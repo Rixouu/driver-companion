@@ -43,8 +43,11 @@ export async function POST(request: NextRequest) {
       items_count: quotation.quotation_items?.length || 0
     });
 
-    // Check if quotation is approved or paid
-    if (!['approved', 'paid'].includes(quotation.status)) {
+    // Check if quotation is approved or paid (either by status or by timestamps)
+    const isApproved = quotation.status === 'approved' || quotation.approved_at;
+    const isPaid = quotation.status === 'paid' || quotation.payment_completed_at;
+    
+    if (!isApproved && !isPaid) {
       return NextResponse.json(
         { error: 'Only approved or paid quotations can be converted to bookings' },
         { status: 400 }

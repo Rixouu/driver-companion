@@ -265,30 +265,9 @@ export async function POST(request: NextRequest) {
 
     console.log('🔄 [UNIFIED-EMAIL-API] Using direct template service')
     
-    // Generate PDF attachment
+    // Skip PDF generation for now to improve performance
+    console.log('🔄 [MIGRATED-INVOICE-API] Skipping PDF generation for performance')
     let pdfAttachment = null
-    try {
-      console.log('🔄 [MIGRATED-INVOICE-API] Generating PDF attachment...')
-      const pdfResponse = await fetch(`${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/quotations/generate-pdf-magic-link`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: magicLink })
-      })
-      
-      if (pdfResponse.ok) {
-        const pdfBuffer = await pdfResponse.arrayBuffer()
-        pdfAttachment = {
-          filename: `quotation-${quotation.quote_number || quotation.id}.pdf`,
-          content: Buffer.from(pdfBuffer),
-          contentType: 'application/pdf'
-        }
-        console.log('✅ [MIGRATED-INVOICE-API] PDF attachment generated successfully')
-      } else {
-        console.warn('⚠️ [MIGRATED-INVOICE-API] PDF generation failed:', await pdfResponse.text())
-      }
-    } catch (error) {
-      console.warn('⚠️ [MIGRATED-INVOICE-API] PDF generation error:', error)
-    }
     
     // Render the template using emailTemplateService directly - Use Invoice Email template
     const rendered = await emailTemplateService.renderTemplate(

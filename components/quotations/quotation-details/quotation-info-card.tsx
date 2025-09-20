@@ -27,6 +27,9 @@ interface QuotationInfoCardProps {
     last_sent_at?: string;
     reminder_sent_at?: string;
     booking_created_at?: string | null;
+    approved_at?: string | null;
+    rejected_at?: string | null;
+    payment_completed_at?: string | null;
   };
   onRefresh?: () => void;
 }
@@ -45,7 +48,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
   
   // Get status configuration
   const getStatusConfig = () => {
-    if (isExpired && (quotation.status === 'draft' || quotation.status === 'sent')) {
+    if (isExpired && (quotation.status === 'draft' || quotation.status === 'sent') && !quotation.approved_at) {
       return {
         variant: 'outline' as const,
         label: 'Expired',
@@ -55,7 +58,51 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
       };
     }
 
-    switch (quotation.status) {
+    // Check if quotation is converted to booking (status is converted)
+    if (quotation.status === 'converted') {
+      return {
+        variant: 'outline' as const,
+        label: 'Converted to Booking',
+        icon: CheckCircle,
+        color: 'text-purple-600',
+        className: 'text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20'
+      };
+    }
+
+    // Check if quotation is paid (payment completed takes priority)
+    if (quotation.status === 'paid' || quotation.payment_completed_at) {
+      return {
+        variant: 'outline' as const,
+        label: 'Paid',
+        icon: CheckCircle,
+        color: 'text-gray-600',
+        className: 'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
+      };
+    }
+
+    // Check if quotation is approved (either by status or timestamp)
+    if (quotation.status === 'approved' || quotation.approved_at) {
+      return {
+        variant: 'outline' as const,
+        label: 'Approved',
+        icon: CheckCircle,
+        color: 'text-green-600',
+        className: 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20'
+      };
+    }
+
+    // Check if quotation is rejected (either by status or timestamp)
+    if (quotation.status === 'rejected' || quotation.rejected_at) {
+      return {
+        variant: 'outline' as const,
+        label: 'Rejected',
+        icon: XCircle,
+        color: 'text-red-600',
+        className: 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20'
+      };
+    }
+
+    switch (quotation.status as QuotationStatus) {
       case 'draft':
         return {
           variant: 'outline' as const,
@@ -144,8 +191,8 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
           </div>
         </div>
 
-        {/* Validity - Only show for draft/sent quotations */}
-        {(quotation.status === 'draft' || quotation.status === 'sent') && (
+        {/* Validity - Only show for draft/sent quotations that are not approved */}
+        {(quotation.status === 'draft' || quotation.status === 'sent') && !quotation.approved_at && !quotation.rejected_at && (
           <div className={`p-3 rounded-lg border ${
             isExpired 
               ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' 

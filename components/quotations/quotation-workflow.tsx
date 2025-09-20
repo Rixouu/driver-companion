@@ -675,13 +675,11 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
   const daysUntilExpiry = differenceInDays(properExpiryDate, now);
   const isExpired = isAfter(now, properExpiryDate);
 
-  // Check if reminder should be sent (1 day before expiry)
-  const shouldSendReminder = daysUntilExpiry !== null && daysUntilExpiry <= 1 && daysUntilExpiry > 0 && !quotation.reminder_sent_at && quotation.status === 'sent';
+  // Check if reminder should be sent (1 day before expiry) - don't send if quotation is approved
+  const shouldSendReminder = daysUntilExpiry !== null && daysUntilExpiry <= 1 && daysUntilExpiry > 0 && !quotation.reminder_sent_at && quotation.status === 'sent' && !quotation.approved_at;
 
-  // Check if reminder step should be shown - don't show if quotation is approved
-  const shouldShowReminder = quotation.status !== 'draft' && 
-                            quotation.status !== 'approved' && 
-                            (shouldSendReminder || quotation.reminder_sent_at);
+  // Check if reminder step should be shown - don't show if quotation is approved or rejected
+  const shouldShowReminder = quotation.status !== 'draft' && quotation.status !== 'approved' && quotation.status !== 'rejected' && !quotation.approved_at && !quotation.rejected_at && (shouldSendReminder || quotation.reminder_sent_at);
 
   // Define workflow steps based on quotation status and data
   const getWorkflowSteps = (): WorkflowStep[] => {
@@ -753,7 +751,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     });
 
     // Add post-approval steps only if quotation is approved
-    if (quotation.status === 'approved' || quotation.invoice_generated_at || quotation.payment_completed_at || quotation.booking_created_at) {
+    if (quotation.status === 'approved' || quotation.approved_at || quotation.invoice_generated_at || quotation.payment_completed_at || quotation.booking_created_at) {
       steps.push(
         {
           id: 'payment_link_sent',
@@ -762,9 +760,9 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
           icon: <Mail className="h-4 w-4" />,
           status: quotation.payment_completed_at ? 'completed' : 
                   quotation.payment_link_sent_at ? 'completed' : 
-                  quotation.status === 'approved' ? 'current' : 'pending',
+                  (quotation.status === 'approved' || quotation.approved_at) ? 'current' : 'pending',
           date: quotation.payment_link_sent_at,
-          ...(quotation.status === 'approved' && !quotation.payment_link_sent_at && !quotation.payment_completed_at && isOrganizationMember ? {
+          ...((quotation.status === 'approved' || quotation.approved_at) && !quotation.payment_link_sent_at && !quotation.payment_completed_at && isOrganizationMember ? {
             action: {
               label: 'Send Payment Link',
               onClick: () => setIsPaymentLinkDialogOpen(true),
@@ -793,9 +791,9 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
           description: 'Convert approved quotation to a booking',
           icon: <Calendar className="h-4 w-4" />,
           status: quotation.booking_created_at ? 'completed' :
-                  quotation.status === 'paid' ? 'current' : 'pending',
+                  (quotation.status === 'paid' || quotation.payment_completed_at) ? 'current' : 'pending',
           date: quotation.booking_created_at,
-          ...(quotation.status === 'paid' && !quotation.booking_created_at && isOrganizationMember ? {
+          ...((quotation.status === 'paid' || quotation.payment_completed_at) && !quotation.booking_created_at && isOrganizationMember ? {
             action: {
               label: isConvertingToBooking ? 'Converting...' : 'Convert to Booking',
               onClick: async () => {
@@ -1041,19 +1039,23 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Status:</span>
-              <Badge variant="outline" className={
-                quotation.status === 'approved' ? 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20' :
-                quotation.status === 'rejected' ? 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20' :
-                quotation.status === 'sent' ? 'text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20' :
-                quotation.status === 'converted' ? 'text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20' :
-                quotation.status === 'paid' ? 'text-green-700 border-green-300 bg-green-100 dark:text-green-700 dark:border-green-600 dark:bg-green-900/20' :
-                'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
-              }>
-                {t(`quotations.status.${quotation.status}`) || quotation.status}
+               <Badge variant="outline" className={
+                 quotation.status === 'converted' ? 'text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20' :
+                 (quotation.status === 'paid' || quotation.payment_completed_at) ? 'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20' :
+                 (quotation.status === 'approved' || quotation.approved_at) ? 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20' :
+                 (quotation.status === 'rejected' || quotation.rejected_at) ? 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20' :
+                 quotation.status === 'sent' ? 'text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20' :
+                 'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
+               }>
+                 {quotation.status === 'converted' ? (t('quotations.status.converted') || 'Converted to Booking') :
+                  (quotation.status === 'paid' || quotation.payment_completed_at) ? (t('quotations.status.paid') || 'Paid') :
+                  (quotation.status === 'approved' || quotation.approved_at) ? (t('quotations.status.approved') || 'Approved') :
+                  (quotation.status === 'rejected' || quotation.rejected_at) ? (t('quotations.status.rejected') || 'Rejected') :
+                  t(`quotations.status.${quotation.status}`) || quotation.status}
               </Badge>
             </div>
             
-            {quotation.created_at && !['approved', 'rejected', 'converted', 'paid'].includes(quotation.status) && (
+            {quotation.created_at && !['approved', 'rejected', 'converted', 'paid'].includes(quotation.status) && !quotation.approved_at && !quotation.rejected_at && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
                 {daysUntilExpiry > 0 ? (

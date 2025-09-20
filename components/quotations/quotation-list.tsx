@@ -301,7 +301,10 @@ export default function QuotationList({
 
   // Check if quotation needs reminder
   const needsReminder = (quotation: Quotation) => {
-    // Only show reminders for 'sent' status (not approved, converted, paid, rejected, expired)
+    // Don't show reminders for approved quotations (either by status or timestamp)
+    if (quotation.status === 'approved' || (quotation as any).approved_at) return false;
+    
+    // Only show reminders for 'sent' status (not converted, paid, rejected, expired)
     if (quotation.status !== 'sent') return false;
     
     // If already expired, no reminder needed
@@ -325,6 +328,16 @@ export default function QuotationList({
   };
 
   const getFinalStatus = (quotation: Quotation): QuotationStatus => {
+    // Only override status for 'sent' quotations that have payment completed but status wasn't updated
+    if (quotation.status === 'sent' && (quotation as any).payment_completed_at) {
+      return 'paid';
+    }
+    
+    // Check for approved status if the quotation is actually approved but status field wasn't updated
+    if (quotation.status === 'sent' && (quotation as any).approved_at) {
+      return 'approved';
+    }
+    
     if ((quotation.status === 'draft' || quotation.status === 'sent') && isExpired(quotation)) {
       return 'expired';
     }
@@ -395,19 +408,19 @@ export default function QuotationList({
 
   // Handle clicking on a row
   const handleRowClick = (quotation: Quotation) => {
-    router.push(getQuotationUrl(quotation));
+    router.push(getQuotationUrl(quotation) as any);
   };
 
   // Handle edit click
   const handleEditClick = (e: React.MouseEvent, quotation: Quotation) => {
     e.stopPropagation();
-    router.push(getQuotationEditUrl(quotation));
+    router.push(getQuotationEditUrl(quotation) as any);
   };
 
   // Handle view click
   const handleViewClick = (e: React.MouseEvent, quotation: Quotation) => {
     e.stopPropagation();
-    router.push(getQuotationUrl(quotation));
+    router.push(getQuotationUrl(quotation) as any);
   };
 
   // Handle delete click
@@ -429,7 +442,7 @@ export default function QuotationList({
   // Handle duplicate click
   const handleDuplicateClick = (e: React.MouseEvent, quotation: Quotation) => {
     e.stopPropagation();
-    router.push(getQuotationDuplicateUrl(quotation));
+    router.push(getQuotationDuplicateUrl(quotation) as any);
   };
 
   // Handle reminder click

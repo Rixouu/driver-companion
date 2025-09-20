@@ -290,8 +290,8 @@ export default function QuoteAccessPage() {
              {/* Mobile: 2x2 Grid Layout */}
              <div className="sm:hidden space-y-4">
                {/* Row 1: Logo + Title */}
-               <div className="flex items-center gap-3">
-                 <img 
+              <div className="flex items-center gap-3">
+                <img 
                    src="/img/driver-quotation-logo.png" 
                    alt="Driver Logo" 
                    className="h-10 w-10 object-contain flex-shrink-0"
@@ -308,7 +308,7 @@ export default function QuoteAccessPage() {
                    <div className="text-xs text-muted-foreground mb-1">Quote Number</div>
                    <div className="text-sm font-semibold text-foreground">
                      #{quotation.quote_number?.toString().padStart(6, '0')}
-                   </div>
+              </div>
                  </div>
                  
                  {/* Top Right: Status */}
@@ -325,15 +325,15 @@ export default function QuoteAccessPage() {
                       quotation.status === 'approved' ? 'Approved' : 
                       quotation.status === 'rejected' ? 'Rejected' : 
                       quotation.status === 'converted' ? 'Converted' : 'Draft'}
-                   </div>
-                 </div>
-                 
+              </div>
+            </div>
+          
                  {/* Bottom Left: Customer */}
                  <div className="bg-muted/20 rounded-lg p-3">
                    <div className="text-xs text-muted-foreground mb-1">Customer</div>
                    <div className="text-sm font-medium text-foreground truncate">
                      {quotation.customer_name}
-                   </div>
+            </div>
                  </div>
                  
                  {/* Bottom Right: Valid Until */}
@@ -382,13 +382,13 @@ export default function QuoteAccessPage() {
                       quotation.status === 'approved' ? 'Approved' : 
                       quotation.status === 'rejected' ? 'Rejected' : 
                       quotation.status === 'converted' ? 'Converted' : 'Draft'}
-                   </span>
+              </span>
                    <span>•</span>
                    <span>Valid until {addDays(new Date(quotation.created_at), 7).toLocaleDateString()}</span>
                  </div>
                </div>
-             </div>
-           </div>
+            </div>
+          </div>
           
           {/* Next Step Indicator */}
           {(() => {
@@ -415,7 +415,7 @@ export default function QuoteAccessPage() {
                    {/* Mobile: 50/50 buttons */}
                    <div className="sm:hidden grid grid-cols-2 gap-2">
                      <QuotationShareButtons quotation={quotation as any} />
-                     <Button 
+              <Button 
                        onClick={handleDownloadQuotation}
                        disabled={isDownloadingQuotation}
                        size="sm"
@@ -423,12 +423,12 @@ export default function QuoteAccessPage() {
                      >
                        <Download className="h-4 w-4 mr-2" />
                        {isDownloadingQuotation ? 'Downloading...' : 'Download'}
-                     </Button>
+              </Button>
                    </div>
                    {/* Desktop: Original layout */}
                    <div className="hidden sm:flex items-center gap-2 flex-wrap">
                      <QuotationShareButtons quotation={quotation as any} />
-                     <Button 
+              <Button 
                        onClick={handleDownloadQuotation}
                        disabled={isDownloadingQuotation}
                        size="sm"
@@ -436,7 +436,7 @@ export default function QuoteAccessPage() {
                      >
                        <Download className="h-4 w-4 mr-2" />
                        {isDownloadingQuotation ? 'Downloading...' : 'Download Quotation'}
-                     </Button>
+              </Button>
                    </div>
                  </div>
                </div>
@@ -543,8 +543,8 @@ export default function QuoteAccessPage() {
                      <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                    ) : (
                      <CreditCard className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                   )}
-                 </div>
+            )}
+          </div>
                  <div className="text-center">
                    <div className={`text-xs font-semibold ${
                      quotation?.payment_completed_at 
@@ -554,8 +554,8 @@ export default function QuoteAccessPage() {
                        : 'text-muted-foreground'
                    }`}>Payment</div>
                    <div className="text-xs text-muted-foreground">Tap for details</div>
-                 </div>
-               </div>
+        </div>
+      </div>
 
                <div 
                  className="flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-3 transition-colors"
@@ -571,7 +571,7 @@ export default function QuoteAccessPage() {
                    ) : (
                      <Calendar className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                    )}
-                 </div>
+                </div>
                  <div className="text-center">
                    <div className={`text-xs font-semibold ${
                      quotation?.status === 'converted' 
@@ -579,13 +579,13 @@ export default function QuoteAccessPage() {
                        : 'text-muted-foreground'
                    }`}>Confirmed</div>
                    <div className="text-xs text-muted-foreground">Tap for details</div>
-                 </div>
-               </div>
+                      </div>
+                      </div>
 
                {/* Empty cell for 3x2 grid */}
                <div></div>
-             </div>
-             
+                    </div>
+                    
              {/* Desktop: Horizontal layout */}
              <div className="hidden sm:flex items-center gap-2 lg:gap-4 overflow-x-auto pb-2 lg:pb-0">
               {/* Step 1: Created - Always completed */}
@@ -595,13 +595,13 @@ export default function QuoteAccessPage() {
               >
                 <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center border-2 border-green-400 dark:border-green-500 shadow-sm">
                   <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                </div>
+                        </div>
                 <div className="flex flex-col">
                   <span className="text-sm font-semibold text-green-600 dark:text-green-400">Created</span>
                   <div className="text-xs text-muted-foreground">Click for details</div>
                 </div>
-              </div>
-
+                      </div>
+                      
               {/* Step 2: Sent */}
               <div 
                 className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-2 transition-colors"
@@ -617,7 +617,7 @@ export default function QuoteAccessPage() {
                   ) : (
                     <Mail className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   )}
-                </div>
+                        </div>
                 <div className="flex flex-col">
                   <span className={`text-sm font-semibold ${
                     quotation?.status === 'sent' || quotation?.last_sent_at
@@ -626,8 +626,8 @@ export default function QuoteAccessPage() {
                   }`}>Sent</span>
                   <div className="text-xs text-muted-foreground">Click for details</div>
                 </div>
-              </div>
-
+                      </div>
+                      
               {/* Step 3: Approval */}
               <div 
                 className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-2 transition-colors"
@@ -647,7 +647,7 @@ export default function QuoteAccessPage() {
                   ) : (
                     <User className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   )}
-                </div>
+                          </div>
                 <div className="flex flex-col">
                   <span className={`text-sm font-semibold ${
                     quotation?.approved_at 
@@ -657,7 +657,7 @@ export default function QuoteAccessPage() {
                       : 'text-muted-foreground'
                   }`}>Approval</span>
                   <div className="text-xs text-muted-foreground">Click for details</div>
-                </div>
+                        </div>
               </div>
 
               {/* Step 4: Payment */}
@@ -689,9 +689,9 @@ export default function QuoteAccessPage() {
                       : 'text-muted-foreground'
                   }`}>Payment</span>
                   <div className="text-xs text-muted-foreground">Click for details</div>
-        </div>
-      </div>
-
+                    </div>
+                  </div>
+                  
               {/* Step 5: Confirmed */}
               <div 
                 className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-2 transition-colors"
@@ -707,7 +707,7 @@ export default function QuoteAccessPage() {
                   ) : (
                     <Calendar className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   )}
-                </div>
+                      </div>
                 <div className="flex flex-col">
                   <span className={`text-sm font-semibold ${
                     quotation?.status === 'converted' 
@@ -716,8 +716,8 @@ export default function QuoteAccessPage() {
                   }`}>Confirmed</span>
                   <div className="text-xs text-muted-foreground">Click for details</div>
                       </div>
-              </div>
-                      </div>
+                    </div>
+                          </div>
                     </div>
                     
           {/* Expanded Step Details */}
@@ -730,8 +730,8 @@ export default function QuoteAccessPage() {
                     Your quotation was created on {new Date(quotation?.created_at || '').toLocaleDateString()} at {new Date(quotation?.created_at || '').toLocaleTimeString()}
                   </p>
                         </div>
-              )}
-              
+                      )}
+                      
               {expandedStep === 'sent' && (
                 <div className="space-y-2">
                   <h4 className={`font-semibold ${quotation?.status === 'sent' || quotation?.last_sent_at ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
@@ -769,10 +769,10 @@ export default function QuoteAccessPage() {
                         The quotation is now available for customer review and approval
                       </p>
                     )}
-                      </div>
-                </div>
-              )}
-              
+                          </div>
+                        </div>
+                      )}
+                      
               {expandedStep === 'approval' && (
                 <div className="space-y-2">
                   <h4 className={`font-semibold ${
@@ -792,7 +792,7 @@ export default function QuoteAccessPage() {
                       : 'This step will be available after the quotation is sent'
                     }
                   </p>
-                        </div>
+                          </div>
               )}
               
               {expandedStep === 'payment' && (
@@ -814,7 +814,7 @@ export default function QuoteAccessPage() {
                       : 'Payment will be processed after quotation approval'
                     }
                   </p>
-                      </div>
+                            </div>
               )}
               
               {expandedStep === 'confirmed' && (
@@ -836,23 +836,23 @@ export default function QuoteAccessPage() {
               )}
                         </div>
                       )}
+                      </div>
                     </div>
-                  </div>
                   
       {/* Main Content - Full Width */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="space-y-6 sm:space-y-8">
           {/* Customer Information */}
-          <Card>
-            <CardHeader>
-                    <div className="flex items-center gap-3">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
                 <User className="h-6 w-6 text-primary" />
                       <div>
                   <CardTitle className="text-xl">Customer Information</CardTitle>
                   <CardDescription>Contact and billing details</CardDescription>
                       </div>
-                    </div>
-            </CardHeader>
+                </div>
+              </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                 {/* Contact Details */}
@@ -863,20 +863,20 @@ export default function QuoteAccessPage() {
                       <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                         <User className="h-5 w-5 text-primary" />
                           </div>
-                      <div className="flex-1">
+                        <div className="flex-1">
                         <div className="font-semibold text-lg">{quotation.customer_name}</div>
                         <div className="text-sm text-muted-foreground">Full Name</div>
-                      </div>
-                    </div>
+                        </div>
+                        </div>
                     <div className="flex items-start gap-4">
                       <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                         <Mail className="h-5 w-5 text-primary" />
-                      </div>
+                        </div>
                       <div className="flex-1">
                         <div className="font-semibold text-lg">{quotation.customer_email}</div>
                         <div className="text-sm text-muted-foreground">Email Address</div>
                       </div>
-                    </div>
+                        </div>
                     {quotation.customer_phone && (
                       <div className="flex items-start gap-4">
                         <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -885,12 +885,12 @@ export default function QuoteAccessPage() {
                         <div className="flex-1">
                           <div className="font-semibold text-lg">{quotation.customer_phone}</div>
                           <div className="text-sm text-muted-foreground">Phone Number</div>
-                        </div>
+                      </div>
                         </div>
                       )}
-                  </div>
-                </div>
-
+                        </div>
+                      </div>
+                      
                 {/* Billing Information */}
                 <div className="space-y-4 sm:space-y-6">
                   <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Billing Information</h4>
@@ -898,7 +898,7 @@ export default function QuoteAccessPage() {
                     <div className="flex items-start gap-4">
                       <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                         <Building className="h-5 w-5 text-primary" />
-                      </div>
+                        </div>
                       <div className="flex-1">
                         <div className="font-semibold text-lg">{quotation.billing_company_name || 'Individual Customer'}</div>
                         <div className="text-sm text-muted-foreground">Company Name</div>
@@ -914,11 +914,11 @@ export default function QuoteAccessPage() {
                           <div className="text-sm text-muted-foreground">Tax ID</div>
                         </div>
                           </div>
-                    )}
+                        )}
                     <div className="flex items-start gap-4">
                       <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                         <MapPin className="h-5 w-5 text-primary" />
-                            </div>
+                      </div>
                       <div className="flex-1">
                         <div className="font-semibold text-lg">{quotation.customer_address || 'Address not provided'}</div>
                         <div className="text-sm text-muted-foreground">Billing Address</div>
@@ -967,8 +967,8 @@ export default function QuoteAccessPage() {
                           <div className={`w-full h-full bg-primary/10 flex items-center justify-center ${item.vehicle_type ? 'hidden' : 'flex'}`}>
                             <Car className="h-4 w-4 text-primary" />
                         </div>
-                      </div>
-                      
+                          </div>
+                          
                         {/* Service Info - Compact */}
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-base mb-1 truncate">
@@ -979,7 +979,7 @@ export default function QuoteAccessPage() {
                           </p>
                           <div className="text-xs text-muted-foreground">
                             #{index + 1} • {item.id.slice(-8)}
-                        </div>
+                          </div>
                         </div>
                       </div>
                       

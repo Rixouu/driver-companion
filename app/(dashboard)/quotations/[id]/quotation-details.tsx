@@ -507,14 +507,18 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       )}
                     </p>
                     <Badge variant="outline" className={
-                      quotation.status === 'approved' ? "text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20" :
-                      quotation.status === 'sent' ? "text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20" :
-                      quotation.status === 'rejected' ? "text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20" :
                       quotation.status === 'converted' ? "text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20" :
-                      quotation.status === 'paid' ? "text-green-700 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20" :
+                      (quotation.status === 'paid' || (quotation as any).payment_completed_at) ? "text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20" :
+                      (quotation.status === 'approved' || (quotation as any).approved_at) ? "text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20" :
+                      quotation.status === 'sent' ? "text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20" :
+                      (quotation.status === 'rejected' || (quotation as any).rejected_at) ? "text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20" :
                       "text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20"
                     }>
-                      {t(`quotations.status.${quotation.status}`)}
+                      {quotation.status === 'converted' ? (t('quotations.status.converted') || 'Converted to Booking') :
+                       (quotation.status === 'paid' || (quotation as any).payment_completed_at) ? (t('quotations.status.paid') || 'Paid') :
+                       (quotation.status === 'approved' || (quotation as any).approved_at) ? (t('quotations.status.approved') || 'Approved') :
+                       (quotation.status === 'rejected' || (quotation as any).rejected_at) ? (t('quotations.status.rejected') || 'Rejected') :
+                       t(`quotations.status.${quotation.status}`)}
                     </Badge>
                 </div>
               </div>
@@ -538,10 +542,24 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             {/* Next Step Indicator */}
           {(() => {
             const getNextStep = () => {
+              // Check if payment is completed first
+              if ((quotation as any).payment_completed_at) {
+                if ((quotation as any).booking_created_at) {
+                  return null; // Already converted to booking
+                }
+                return 'Convert to Booking';
+              }
+              
               switch (quotation.status) {
                 case 'draft':
                   return t('quotations.workflow.steps.sendToCustomer');
                 case 'sent':
+                  if ((quotation as any).approved_at) {
+                    if ((quotation as any).invoice_generated_at) {
+                      return 'Send Payment Link';
+                    }
+                    return 'Send Invoice';
+                  }
                   return t('quotations.workflow.steps.waitingForApproval');
                 case 'approved':
                   if ((quotation as any).invoice_generated_at) {
@@ -580,23 +598,13 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     onSendPaymentLink={() => workflowRef.current?.openPaymentLinkDialog()}
                   />
                 </>
-              ) : quotation.status === 'paid' || quotation.status === 'converted' ? (
+              ) : quotation.status === 'paid' || quotation.status === 'converted' || (quotation as any).payment_completed_at ? (
                 <>
                   <QuotationInvoiceButton 
                     quotation={quotation} 
                     onSuccess={() => router.refresh()} 
                     onSendPaymentLink={() => workflowRef.current?.openPaymentLinkDialog()}
                   />
-                  {quotation.receipt_url && (
-                    <Button 
-                      variant="outline" 
-                      onClick={() => window.open(quotation.receipt_url!, '_blank')}
-                      className="w-full sm:w-auto gap-2"
-                    >
-                      <Receipt className="h-4 w-4" />
-                      Download Receipt
-                    </Button>
-                  )}
                 </>
               ) : (
                 <>
@@ -1122,7 +1130,10 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               expiry_date: quotation.expiry_date,
               last_sent_at: (quotation as any).last_sent_at,
               reminder_sent_at: (quotation as any).reminder_sent_at,
-              booking_created_at: (quotation as any).booking_created_at
+              booking_created_at: (quotation as any).booking_created_at,
+              approved_at: (quotation as any).approved_at,
+              rejected_at: (quotation as any).rejected_at,
+              payment_completed_at: (quotation as any).payment_completed_at
             }}
             onRefresh={() => router.refresh()}
           />

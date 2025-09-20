@@ -288,12 +288,12 @@ export function QuotationInvoiceButton({ quotation, onSuccess, onSendPaymentLink
       >
         <FileText className="h-4 w-4" />
         {isGenerating ? (t('invoices.actions.generating') || 'Generating...') : 
-          (quotation.status === 'paid' || quotation.status === 'converted') ? 'Download Invoice (Paid)' : 
+          (quotation.status === 'paid' || quotation.status === 'converted' || quotation.payment_completed_at) ? 'Download Invoice (Paid)' : 
           (t('invoices.actions.downloadPdf') || 'Download Invoice')}
       </Button>
       
       {/* Only show Send Payment Link for non-final statuses */}
-      {!['paid', 'converted'].includes(quotation.status) && isAdmin && (
+      {!['paid', 'converted'].includes(quotation.status) && !quotation.payment_completed_at && isAdmin && (
         <Button 
           onClick={() => onSendPaymentLink?.()} 
           disabled={isSendingPaymentLink}

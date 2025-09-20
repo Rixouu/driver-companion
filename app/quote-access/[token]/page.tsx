@@ -1,287 +1,265 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { format, parseISO, addDays } from 'date-fns';
-import { toast } from '@/components/ui/use-toast';
-// useTheme removed for customer side
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
-import LoadingModal from '@/components/ui/loading-modal';
-import { useProgressSteps } from '@/lib/hooks/useProgressSteps';
-import { progressConfigs } from '@/lib/config/progressConfigs';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
-// Import the existing approval panel component
-import { QuotationDetailsApprovalPanel } from '@/components/quotations/quotation-details/approval-panel';
+import { Textarea } from '@/components/ui/textarea';
 import { 
-  FileText, 
   User, 
   Mail, 
   Phone, 
-  Building, 
   MapPin, 
-  CreditCard,
-  Car,
-  Clock,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  ArrowLeft,
+  Building, 
   Calendar,
-  CheckCircle as CheckCircleIcon, 
-  Mail as MailIcon, 
-  MapPin as MapPinIcon, 
-  RefreshCw, 
-  X,
-  Building as BuildingIcon,
-  CreditCard as CreditCardIcon,
-  Edit,
-  Globe,
-  Check,
+  Clock, 
+  Car, 
   Package,
-  Gift,
-  Timer,
-  Percent,
-  Tag,
-  TrendingUp,
-  DollarSign,
   Calculator,
-  Eye,
-  Receipt,
   Download,
-  Eye as EyeIcon,
   Share2,
-  Printer,
-  // Sun, Moon removed for customer side
-  MessageCircle,
-  Info
+  CheckCircle, 
+  XCircle, 
+  CreditCard, 
+  Timer,
+  CheckCircle2,
+  ArrowRight,
+  ArrowLeft,
+  StickyNote
 } from 'lucide-react';
-
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { formatCurrency } from '@/lib/utils/formatting';
+import { addDays } from 'date-fns';
+import { QuotationDetailsApprovalPanel } from '@/components/quotations/quotation-details/approval-panel';
+import { QuotationShareButtons } from '@/components/quotations/quotation-share-buttons';
+import { toast } from 'sonner';
 
 interface QuotationData {
   id: string;
   title: string;
+  quote_number: number;
   customer_name: string;
   customer_email: string;
   customer_phone?: string;
+  customer_address?: string;
   billing_company_name?: string;
   billing_tax_number?: string;
-  billing_address?: string;
-  billing_street_name?: string;
-  billing_street_number?: string;
-  billing_city?: string;
-  billing_state?: string;
-  billing_postal_code?: string;
-  billing_country?: string;
-  status: string;
-  quote_number: number;
   created_at: string;
-  expiry_date: string;
+  status: string;
   amount: number;
   total_amount: number;
   currency: string;
-  notes?: string;
-  terms?: string;
-  customer_notes?: string;
-  quotation_items: QuotationItem[];
-  // Additional fields for full functionality
-  service_type?: string;
+  last_sent_at?: string;
+  approved_at?: string;
+  payment_completed_at?: string;
+  payment_link_sent_at?: string;
+  selected_promotion_name?: string;
+  promotion_discount?: number;
+  quotation_items: Array<{
+    id: string;
+    service_type_name: string;
   vehicle_type?: string;
   pickup_date?: string;
   pickup_time?: string;
   duration_hours?: number;
   service_days?: number;
-  hours_per_day?: number;
-  discount_percentage?: number;
-  tax_percentage?: number;
-  promotion_discount?: number;
-  selected_promotion_name?: string;
-  selected_promotion_description?: string;
-  selected_promotion_code?: string;
-  time_based_adjustment?: number;
-  // Payment and workflow fields
-  payment_link_sent_at?: string;
-  payment_completed_at?: string;
-  invoice_generated_at?: string;
-  approved_at?: string;
-  rejected_at?: string;
-  last_sent_at?: string;
-  reminder_sent_at?: string;
-  booking_created_at?: string;
-  receipt_url?: string;
-  updated_at?: string;
-}
-
-interface QuotationItem {
-  id: string;
-  service_type_id: string;
-  service_type_name: string;
-  description: string;
   quantity: number;
   unit_price: number;
   total_price: number;
-  vehicle_type?: string;
-  vehicle_category?: string;
-  duration_hours?: number;
-  service_days?: number;
-  hours_per_day?: number;
-  pickup_date?: string;
-  pickup_time?: string;
   time_based_adjustment?: string;
-  time_based_rule_name?: string;
+  }>;
+  customer_notes?: string;
+  merchant_notes?: string;
 }
 
 export default function QuoteAccessPage() {
   const params = useParams();
-  const token = params?.token as string;
-  
-  // Enhanced currency formatter with dynamic conversion
-  const [selectedCurrency, setSelectedCurrency] = useState<string>('JPY');
-  
-  const formatCurrency = (amount: number, currency: string = selectedCurrency) => {
-    if (amount === undefined || amount === null) return `¥0`;
-    
-    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    
-    // Exchange rates (simplified for demo)
-    const exchangeRates: Record<string, number> = {
+  const [quotation, setQuotation] = useState<QuotationData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedCurrency, setSelectedCurrency] = useState('JPY');
+  const [isDownloadingQuotation, setIsDownloadingQuotation] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [expandedStep, setExpandedStep] = useState<string | null>(null);
+
+  const formatCurrencyWithCurrency = (amount: number, currency = selectedCurrency) => {
+    // Simple currency conversion rates (in production, these should come from an API)
+    const conversionRates: { [key: string]: number } = {
       'JPY': 1,
       'USD': 0.0067,
       'EUR': 0.0062,
-      'THB': 0.22,
+      'THB': 0.24,
       'CNY': 0.048,
       'SGD': 0.0091
     };
 
-    // Convert amount from JPY to selected currency
-    const originalCurrency = quotation?.currency || 'JPY';
-    const convertedAmount = numericAmount * (exchangeRates[currency] / exchangeRates[originalCurrency]);
+    const convertedAmount = amount * (conversionRates[currency] || 1);
+    const currencySymbols: { [key: string]: string } = {
+      'JPY': '¥',
+      'USD': '$',
+      'EUR': '€',
+      'THB': '฿',
+      'CNY': '¥',
+      'SGD': '$'
+    };
     
-    // Format based on currency
-    if (currency === 'JPY' || currency === 'CNY') {
-      return currency === 'JPY' 
-        ? `¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-        : `CN¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-    } else if (currency === 'THB') {
-      return `฿${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-    } else {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency,
-        minimumFractionDigits: 2
-      }).format(convertedAmount);
-    }
+    return `${currencySymbols[currency] || '¥'}${convertedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
-  
-  const [quotation, setQuotation] = useState<QuotationData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isExpired, setIsExpired] = useState(false);
-  
-  // Progress modal state
-  const { progressValue, progressLabel, progressSteps, startProgress, resetProgress } = useProgressSteps();
-  const [progressOpen, setProgressOpen] = useState(false);
-  const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice'>('default');
-  
-  // Theme state removed for customer side
-  
-  // Loading states for actions
-  const [isDownloadingQuotation, setIsDownloadingQuotation] = useState(false);
-  const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
-  const [isDownloadingReceipt, setIsDownloadingReceipt] = useState(false);
-  const [isApproving, setIsApproving] = useState(false);
-  const [isRejecting, setIsRejecting] = useState(false);
-  
-  // Calculate expiry status when quotation is loaded
-  const daysUntilExpiry = quotation ? (() => {
-    const now = new Date();
-    const createdDate = new Date(quotation.created_at);
-    const properExpiryDate = addDays(createdDate, 2);
-    return Math.ceil((properExpiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  })() : null;
-  
-  // Share functionality state
-  const [isShareOpen, setIsShareOpen] = useState(false);
-  
 
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      draft: { variant: 'secondary' as const, label: 'Draft' },
+      sent: { variant: 'default' as const, label: 'Sent' },
+      approved: { variant: 'default' as const, label: 'Approved' },
+      rejected: { variant: 'destructive' as const, label: 'Rejected' },
+      converted: { variant: 'default' as const, label: 'Converted' }
+    };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
 
-  // Theme mounting removed for customer side
-
-  useEffect(() => {
-    const validateTokenAndLoadQuotation = async () => {
-      try {
-        setIsLoading(true);
-        console.log('🔍 [Quote Access] Validating token:', token);
-        
-        const response = await fetch(`/api/quotations/validate-magic-link`, {
+  const handleDownloadQuotation = async () => {
+    if (!quotation) return;
+    
+    setIsDownloadingQuotation(true);
+    try {
+      const response = await fetch(`/api/quotations/generate-pdf-magic-link`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ token }),
+        body: JSON.stringify({ token: params?.token }),
         });
 
-        console.log('🔍 [Quote Access] API response status:', response.status);
-        console.log('🔍 [Quote Access] API response ok:', response.ok);
+        if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `quotation-${quotation.quote_number?.toString().padStart(6, '0') || quotation.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success('Quotation downloaded successfully!');
+      } catch (error) {
+      console.error('Error downloading quotation:', error);
+      toast.error(`Failed to download quotation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+      setIsDownloadingQuotation(false);
+    }
+  };
+
+
+  const handleApprove = async (notes: string, signature: string, bccEmails: string) => {
+    if (!quotation) return;
+    
+    setIsApproving(true);
+    try {
+      const response = await fetch('/api/quotations/approve-optimized', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: quotation.id,
+          notes: notes,
+          signature: signature
+        }),
+      });
+      
+      if (response.ok) {
+        toast.success('Quotation approved successfully!');
+        // Refresh the page or update state
+          window.location.reload();
+      } else {
+        throw new Error('Failed to approve quotation');
+      }
+    } catch (error) {
+      console.error('Error approving quotation:', error);
+      toast.error('Failed to approve quotation. Please try again.');
+    } finally {
+      setIsApproving(false);
+    }
+  };
+  
+  const handleReject = async (reason: string, signature: string, bccEmails: string) => {
+    if (!quotation) return;
+    
+    setIsRejecting(true);
+    try {
+      const response = await fetch('/api/quotations/reject-optimized', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: quotation.id,
+          reason: reason,
+          signature: signature
+        }),
+      });
+      
+      if (response.ok) {
+        toast.success('Quotation rejected successfully!');
+        // Refresh the page or update state
+          window.location.reload();
+      } else {
+        throw new Error('Failed to reject quotation');
+      }
+    } catch (error) {
+      console.error('Error rejecting quotation:', error);
+      toast.error('Failed to reject quotation. Please try again.');
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+  
+  useEffect(() => {
+    const fetchQuotation = async () => {
+      if (!params?.token) return;
+      
+      try {
+        const response = await fetch('/api/quotations/validate-magic-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+          body: JSON.stringify({ token: params.token }),
+        });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          console.log('🔍 [Quote Access] API error data:', errorData);
-          if (response.status === 410) {
-            setIsExpired(true);
-            setError('This magic link has expired.');
-          } else {
-            setError(errorData.error || 'Invalid or expired magic link');
-          }
-          return;
+          throw new Error('Invalid or expired magic link');
         }
 
         const data = await response.json();
-        console.log('🔍 [Quote Access] API success data:', data);
         setQuotation(data.quotation);
-        
-      } catch (error) {
-        console.error('❌ [Quote Access] Error loading quotation:', error);
-        setError('Failed to load quotation. Please try again.');
-      } finally {
-        setIsLoading(false);
+    } catch (error) {
+        console.error('Error fetching quotation:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load quotation');
+    } finally {
+        setLoading(false);
       }
     };
 
-    if (token) {
-      validateTokenAndLoadQuotation();
-    }
-  }, [token]);
+    fetchQuotation();
+  }, [params?.token]);
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <div className="text-center space-y-4">
-            <Skeleton className="h-12 w-64 mx-auto" />
-            <Skeleton className="h-6 w-96 mx-auto" />
-          </div>
-          <Card>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-              </div>
-            </CardContent>
-          </Card>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading quotation...</p>
         </div>
       </div>
     );
@@ -289,619 +267,661 @@ export default function QuoteAccessPage() {
 
   if (error || !quotation) {
     return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="max-w-2xl mx-auto text-center space-y-6">
-          <div className="p-6">
-            {isExpired ? (
-              <AlertCircle className="h-16 w-16 text-amber-500 mx-auto mb-4" />
-            ) : (
-              <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            )}
-            <h1 className="text-2xl font-bold mb-2">
-              {isExpired ? 'Magic Link Expired' : 'Access Denied'}
-            </h1>
-            <p className="text-muted-foreground mb-6">
-              {error || 'Unable to access this quotation'}
-            </p>
-            {isExpired && (
-              <p className="text-sm text-muted-foreground">
-                Magic links are valid for 7 days. Please contact us for a new link.
-              </p>
-            )}
-            <Button 
-              onClick={() => window.history.back()} 
-              className="mt-4"
-              variant="outline"
-            >
-              Go Back
-            </Button>
-          </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Error</h1>
+          <p className="text-muted-foreground mb-4">{error || 'Quotation not found'}</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
         </div>
       </div>
     );
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-  
-  // Helper functions for approval/rejection
-  const handleApprove = async (notes: string, signature?: string, bccEmails?: string) => {
-    if (!quotation) return;
-    
-    setIsApproving(true);
-    setProgressOpen(true);
-    setProgressVariant('approval');
-    
-    try {
-      // Start progress animation
-      const progressPromise = startProgress(progressConfigs.approval);
-
-      // Start API call in parallel
-      const apiPromise = fetch('/api/quotations/approve-magic-link-optimized', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          quotation_id: quotation.id,
-          notes: notes,
-          signature: signature,
-          bcc_emails: 'booking@japandriver.com'
-        }),
-      });
-
-      // Wait for both to complete
-      const [_, response] = await Promise.all([progressPromise, apiPromise]);
-      
-      if (response.ok) {
-        toast({
-          title: 'Quotation approved successfully',
-          description: 'Email notification sent to customer and admin',
-          variant: 'default',
-        });
-        setTimeout(() => {
-          setProgressOpen(false);
-          // Refresh the quotation data
-          window.location.reload();
-        }, 200);
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error('Error approving quotation:', error);
-      setProgressOpen(false);
-      toast({
-        title: 'Error',
-        description: 'Failed to approve quotation. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsApproving(false);
-    }
-  };
-  
-  const handleReject = async (reason: string, signature?: string, bccEmails?: string) => {
-    if (!quotation) return;
-    
-    setIsRejecting(true);
-    setProgressOpen(true);
-    setProgressVariant('rejection');
-    
-    try {
-      // Start progress animation
-      const progressPromise = startProgress(progressConfigs.rejection);
-
-      // Start API call in parallel
-      const apiPromise = fetch('/api/quotations/reject-magic-link-optimized', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          quotation_id: quotation.id,
-          reason: reason,
-          signature: signature,
-          bcc_emails: 'booking@japandriver.com'
-        }),
-      });
-
-      // Wait for both to complete
-      const [_, response] = await Promise.all([progressPromise, apiPromise]);
-      
-      if (response.ok) {
-        toast({
-          title: 'Quotation rejected successfully',
-          description: 'Email notification sent to customer and admin',
-          variant: 'default',
-        });
-        setTimeout(() => {
-          setProgressOpen(false);
-          // Refresh the quotation data
-          window.location.reload();
-        }, 200);
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error('Error rejecting quotation:', error);
-      setProgressOpen(false);
-      toast({
-        title: 'Error',
-        description: 'Failed to reject quotation. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsRejecting(false);
-    }
-  };
-  
-  // Download functions
-  const handleDownloadQuotation = async () => {
-    if (!quotation) return;
-    
-    setIsDownloadingQuotation(true);
-    setProgressOpen(true);
-    setProgressVariant('default');
-    
-    try {
-      // Start progress animation
-      const progressPromise = startProgress({
-        steps: [
-          { value: 10, label: 'Preparing...' },
-          { value: 35, label: 'Generating PDF...' },
-          { value: 70, label: 'Processing content...' },
-          { value: 90, label: 'Preparing download...' }
-        ],
-        totalDuration: 3000,
-        stepDelays: [200, 800, 600, 300]
-      });
-
-      // Start API call in parallel
-      const apiPromise = fetch('/api/quotations/generate-pdf-magic-link', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          quotation_id: quotation.id,
-          language: 'en',
-          token: token
-        }),
-      });
-
-      // Wait for both to complete
-      const [_, response] = await Promise.all([progressPromise, apiPromise]);
-      
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `quotation-QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0')}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        
-        toast({
-          title: 'Quotation downloaded successfully',
-          variant: 'default',
-        });
-        setTimeout(() => setProgressOpen(false), 200);
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error('Error downloading quotation:', error);
-      setProgressOpen(false);
-      toast({
-        title: 'Error',
-        description: 'Failed to download quotation. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDownloadingQuotation(false);
-    }
-  };
-  
-  const handleDownloadInvoice = async () => {
-    if (!quotation) return;
-    
-    setIsDownloadingInvoice(true);
-    setProgressOpen(true);
-    setProgressVariant('invoice');
-    
-    try {
-      // Start progress animation
-      const progressPromise = startProgress({
-        steps: [
-          { value: 10, label: 'Preparing...' },
-          { value: 35, label: 'Generating PDF...' },
-          { value: 70, label: 'Processing content...' },
-          { value: 90, label: 'Preparing download...' }
-        ],
-        totalDuration: 3000,
-        stepDelays: [200, 800, 600, 300]
-      });
-
-      // Start API call in parallel
-      const apiPromise = fetch('/api/quotations/generate-invoice-pdf-magic-link', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          quotation_id: quotation.id,
-          language: 'en',
-          token: token
-        }),
-      });
-
-      // Wait for both to complete
-      const [_, response] = await Promise.all([progressPromise, apiPromise]);
-      
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `invoice-INV-JPDR-${quotation.quote_number?.toString().padStart(6, '0')}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        
-        toast({
-          title: 'Invoice downloaded successfully',
-          variant: 'default',
-        });
-        setTimeout(() => setProgressOpen(false), 200);
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error('Error downloading invoice:', error);
-      setProgressOpen(false);
-      toast({
-        title: 'Error',
-        description: 'Failed to download invoice. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDownloadingInvoice(false);
-    }
-  };
-  
-  const handleDownloadReceipt = () => {
-    if (quotation?.receipt_url) {
-      window.open(quotation.receipt_url, '_blank');
-    }
-  };
-  
-  // Share functionality
-  const handleWhatsAppShare = () => {
-    if (!quotation) return;
-    
-    const formattedQuoteNumber = `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
-    const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
-    
-    const shareMessage = `Check out this quotation: ${quotation.title || 'Untitled'} (${formattedQuoteNumber})\n\n${currentUrl}`;
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareMessage)}`;
-    
-    window.open(whatsappUrl, '_blank');
-    setIsShareOpen(false);
-    
-    toast({
-      title: 'Opened WhatsApp',
-      description: 'Share the quotation via WhatsApp',
-    });
-  };
-
-  const handleLineShare = () => {
-    if (!quotation) return;
-    
-    const formattedQuoteNumber = `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
-    const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
-    
-    const shareMessage = `Check out this quotation: ${quotation.title || 'Untitled'} (${formattedQuoteNumber})\n\n${currentUrl}`;
-    const lineUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(shareMessage)}`;
-    
-    window.open(lineUrl, '_blank');
-    setIsShareOpen(false);
-    
-    toast({
-      title: 'Opened LINE',
-      description: 'Share the quotation via LINE',
-    });
-  };
-
-  const handleCopyLink = async () => {
-    if (!quotation) return;
-    
-    try {
-      const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
-      await navigator.clipboard.writeText(currentUrl);
-      setIsShareOpen(false);
-      
-      toast({
-        title: 'Link copied!',
-        description: 'Quotation link copied to clipboard',
-      });
-    } catch (error) {
-      toast({
-        title: 'Failed to copy link',
-        description: 'Please copy the URL manually',
-        variant: 'destructive',
-      });
-    }
-  };
-  
-
-  
-
- 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      draft: { 
-        variant: 'outline' as const, 
-        text: 'Draft',
-        className: 'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
-      },
-      sent: { 
-        variant: 'outline' as const, 
-        text: 'Sent',
-        className: 'text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20'
-      },
-      approved: { 
-        variant: 'outline' as const, 
-        text: 'Approved',
-        className: 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20'
-      },
-      rejected: { 
-        variant: 'outline' as const, 
-        text: 'Rejected',
-        className: 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20'
-      },
-      converted: { 
-        variant: 'outline' as const, 
-        text: 'Converted to Booking',
-        className: 'text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20'
-      },
-      paid: { 
-        variant: 'outline' as const, 
-        text: 'Paid',
-        className: 'text-green-700 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20'
-      }
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || { 
-      variant: 'outline' as const, 
-      text: status,
-      className: 'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
-    };
-    
-    return (
-      <Badge variant={config.variant} className={`font-medium ${config.className}`}>
-        {config.text}
-      </Badge>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-background">
-      {/* Header - Matching Admin Design */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-6 py-8">
-          {/* Top bar with logo and actions */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <img 
-                src="/img/driver-header-logo.png" 
-                alt="DRIVER Logo" 
-                className="h-8 w-auto"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <DropdownMenu open={isShareOpen} onOpenChange={setIsShareOpen}>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Share2 className="h-4 w-4" />
-                    Share
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={handleWhatsAppShare} className="gap-2">
-                    <MessageCircle className="h-4 w-4 text-green-600" />
-                    WhatsApp
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLineShare} className="gap-2">
-                    <Phone className="h-4 w-4 text-green-500" />
-                    LINE
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleCopyLink} className="gap-2">
-                    <Share2 className="h-4 w-4" />
-                    Copy Link
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
+      {/* Header */}
+      <div className="border-b bg-card/50 backdrop-blur-sm">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+           {/* Header with logo, title, and status */}
+           <div className="space-y-4 sm:space-y-0 sm:flex sm:items-start sm:gap-4 mb-6">
+             {/* Mobile: 2x2 Grid Layout */}
+             <div className="sm:hidden space-y-4">
+               {/* Row 1: Logo + Title */}
+               <div className="flex items-center gap-3">
+                 <img 
+                   src="/img/driver-quotation-logo.png" 
+                   alt="Driver Logo" 
+                   className="h-10 w-10 object-contain flex-shrink-0"
+                 />
+                 <h1 className="text-lg font-bold text-foreground flex-1 leading-tight">
+                   {quotation.title || 'Untitled Quotation'}
+                 </h1>
+               </div>
+               
+               {/* Row 2: Quote Info Grid */}
+               <div className="grid grid-cols-2 gap-3">
+                 {/* Top Left: Quote Number */}
+                 <div className="bg-muted/20 rounded-lg p-3">
+                   <div className="text-xs text-muted-foreground mb-1">Quote Number</div>
+                   <div className="text-sm font-semibold text-foreground">
+                     #{quotation.quote_number?.toString().padStart(6, '0')}
+                   </div>
+                 </div>
+                 
+                 {/* Top Right: Status */}
+                 <div className="bg-muted/20 rounded-lg p-3">
+                   <div className="text-xs text-muted-foreground mb-1">Status</div>
+                   <div className={`text-sm font-semibold ${
+                     quotation.status === 'sent' ? 'text-green-600 dark:text-green-400' :
+                     quotation.status === 'approved' ? 'text-blue-600 dark:text-blue-400' :
+                     quotation.status === 'rejected' ? 'text-red-600 dark:text-red-400' :
+                     quotation.status === 'converted' ? 'text-purple-600 dark:text-purple-400' :
+                     'text-gray-600 dark:text-gray-400'
+                   }`}>
+                     {quotation.status === 'sent' ? 'Sent' : 
+                      quotation.status === 'approved' ? 'Approved' : 
+                      quotation.status === 'rejected' ? 'Rejected' : 
+                      quotation.status === 'converted' ? 'Converted' : 'Draft'}
+                   </div>
+                 </div>
+                 
+                 {/* Bottom Left: Customer */}
+                 <div className="bg-muted/20 rounded-lg p-3">
+                   <div className="text-xs text-muted-foreground mb-1">Customer</div>
+                   <div className="text-sm font-medium text-foreground truncate">
+                     {quotation.customer_name}
+                   </div>
+                 </div>
+                 
+                 {/* Bottom Right: Valid Until */}
+                 <div className="bg-muted/20 rounded-lg p-3">
+                   <div className="text-xs text-muted-foreground mb-1">Valid Until</div>
+                   <div className="text-sm font-medium text-foreground">
+                     {addDays(new Date(quotation.created_at), 7).toLocaleDateString()}
+                   </div>
+                 </div>
+               </div>
+               
+               {/* Created Date - Full Width */}
+               <div className="bg-muted/20 rounded-lg p-3">
+                 <div className="text-xs text-muted-foreground mb-1">Created</div>
+                 <div className="text-sm font-medium text-foreground">
+                   {new Date(quotation.created_at).toLocaleDateString('en-US', {
+                     weekday: 'long',
+                     year: 'numeric',
+                     month: 'long',
+                     day: 'numeric'
+                   })}
+                 </div>
+               </div>
+             </div>
+             
+             {/* Desktop: Original Layout */}
+             <div className="hidden sm:flex sm:items-start gap-4">
+               <img 
+                 src="/img/driver-quotation-logo.png" 
+                 alt="Driver Logo" 
+                 className="h-10 w-auto object-contain flex-shrink-0"
+               />
+               <div className="flex-1 min-w-0">
+                 <h1 className="text-2xl lg:text-3xl font-bold mb-3 break-words">
+                   {quotation.title || 'Untitled Quotation'}
+                 </h1>
+                 <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                   <span className="font-medium">Quote #{quotation.quote_number?.toString().padStart(6, '0')}</span>
+                   <span>•</span>
+                   <span className="break-normal">{quotation.customer_name}</span>
+                   <span>•</span>
+                   <span>Created {new Date(quotation.created_at).toLocaleDateString()}</span>
+                   <span>•</span>
+                   <span className="font-medium text-foreground">
+                     {quotation.status === 'sent' ? 'Sent' : 
+                      quotation.status === 'approved' ? 'Approved' : 
+                      quotation.status === 'rejected' ? 'Rejected' : 
+                      quotation.status === 'converted' ? 'Converted' : 'Draft'}
+                   </span>
+                   <span>•</span>
+                   <span>Valid until {addDays(new Date(quotation.created_at), 7).toLocaleDateString()}</span>
+                 </div>
+               </div>
+             </div>
+           </div>
           
-          {/* Quotation Header - Enhanced to match admin */}
-          <div className="space-y-4">
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <h1 className="text-3xl font-bold mb-2 break-words">
-                  {quotation.title || 'Untitled Quotation'}
-                </h1>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                  <p className="text-muted-foreground">
-                    Quote #{quotation.quote_number?.toString().padStart(6, '0')} • {quotation.customer_name}
-                  </p>
-                  {getStatusBadge(quotation.status)}
+          {/* Next Step Indicator */}
+          {(() => {
+            let nextStepText = '';
+            if (quotation.status === 'draft') {
+              nextStepText = 'Next step: Quotation will be sent to customer';
+            } else if (quotation.status === 'sent') {
+              nextStepText = 'Next step: Waiting for customer approval';
+            } else if (quotation.status === 'approved') {
+              nextStepText = 'Next step: Payment processing';
+            } else if (quotation.status === 'converted') {
+              nextStepText = 'Next step: Service confirmed';
+            } else {
+              nextStepText = 'Next step: Review quotation';
+            }
+
+            return (
+               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                   <div className="flex items-center gap-3">
+                     <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></div>
+                     <span className="text-blue-900 dark:text-blue-100 font-medium text-sm sm:text-base">{nextStepText}</span>
+                   </div>
+                   {/* Mobile: 50/50 buttons */}
+                   <div className="sm:hidden grid grid-cols-2 gap-2">
+                     <QuotationShareButtons quotation={quotation as any} />
+                     <Button 
+                       onClick={handleDownloadQuotation}
+                       disabled={isDownloadingQuotation}
+                       size="sm"
+                       className="h-8 text-xs"
+                     >
+                       <Download className="h-4 w-4 mr-2" />
+                       {isDownloadingQuotation ? 'Downloading...' : 'Download'}
+                     </Button>
+                   </div>
+                   {/* Desktop: Original layout */}
+                   <div className="hidden sm:flex items-center gap-2 flex-wrap">
+                     <QuotationShareButtons quotation={quotation as any} />
+                     <Button 
+                       onClick={handleDownloadQuotation}
+                       disabled={isDownloadingQuotation}
+                       size="sm"
+                       className="h-8 text-sm"
+                     >
+                       <Download className="h-4 w-4 mr-2" />
+                       {isDownloadingQuotation ? 'Downloading...' : 'Download Quotation'}
+                     </Button>
+                   </div>
+                 </div>
+               </div>
+            );
+          })()}
+        </div>
+      </div>
+          
+       {/* Compact Workflow Section */}
+       <div className="bg-muted/30 border-b">
+         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
+           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+             <div>
+               <h2 className="text-lg font-semibold">Your Quotation Journey</h2>
+               <p className="text-sm text-muted-foreground mt-1">Click on any step to see detailed information</p>
+             </div>
+             {/* Mobile: 3 column 2 row grid */}
+             <div className="sm:hidden grid grid-cols-3 gap-2">
+               {/* Row 1 */}
+               <div 
+                 className="flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-3 transition-colors"
+                 onClick={() => setExpandedStep(expandedStep === 'created' ? null : 'created')}
+               >
+                 <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center border-2 border-green-400 dark:border-green-500 shadow-sm">
+                   <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                 </div>
+                 <div className="text-center">
+                   <div className="text-xs font-semibold text-green-600 dark:text-green-400">Created</div>
+                   <div className="text-xs text-muted-foreground">Tap for details</div>
+                 </div>
+               </div>
+
+               <div 
+                 className="flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-3 transition-colors"
+                 onClick={() => setExpandedStep(expandedStep === 'sent' ? null : 'sent')}
+               >
+                 <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 shadow-sm ${
+                   quotation?.status === 'sent' || quotation?.last_sent_at
+                     ? 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-500' 
+                     : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
+                 }`}>
+                   {quotation?.status === 'sent' || quotation?.last_sent_at ? (
+                     <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                   ) : (
+                     <Mail className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                   )}
+                 </div>
+                 <div className="text-center">
+                   <div className={`text-xs font-semibold ${
+                     quotation?.status === 'sent' || quotation?.last_sent_at
+                       ? 'text-green-600 dark:text-green-400' 
+                       : 'text-muted-foreground'
+                   }`}>Sent</div>
+                   <div className="text-xs text-muted-foreground">Tap for details</div>
+                 </div>
+               </div>
+
+               <div 
+                 className="flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-3 transition-colors"
+                 onClick={() => setExpandedStep(expandedStep === 'approval' ? null : 'approval')}
+               >
+                 <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 shadow-sm ${
+                   quotation?.approved_at 
+                     ? 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-500' 
+                     : quotation?.status === 'sent'
+                     ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-400 dark:border-blue-500'
+                     : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
+                 }`}>
+                   {quotation?.approved_at ? (
+                     <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                   ) : quotation?.status === 'sent' ? (
+                     <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                   ) : (
+                     <User className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                   )}
+                 </div>
+                 <div className="text-center">
+                   <div className={`text-xs font-semibold ${
+                     quotation?.approved_at 
+                       ? 'text-green-600 dark:text-green-400' 
+                       : quotation?.status === 'sent'
+                       ? 'text-blue-600 dark:text-blue-400'
+                       : 'text-muted-foreground'
+                   }`}>Approval</div>
+                   <div className="text-xs text-muted-foreground">Tap for details</div>
+                 </div>
+               </div>
+
+               {/* Row 2 */}
+               <div 
+                 className="flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-3 transition-colors"
+                 onClick={() => setExpandedStep(expandedStep === 'payment' ? null : 'payment')}
+               >
+                 <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 shadow-sm ${
+                   quotation?.payment_completed_at 
+                     ? 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-500' 
+                     : quotation?.payment_link_sent_at
+                     ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-400 dark:border-blue-500'
+                     : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
+                 }`}>
+                   {quotation?.payment_completed_at ? (
+                     <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                   ) : quotation?.payment_link_sent_at ? (
+                     <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                   ) : (
+                     <CreditCard className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                   )}
+                 </div>
+                 <div className="text-center">
+                   <div className={`text-xs font-semibold ${
+                     quotation?.payment_completed_at 
+                       ? 'text-green-600 dark:text-green-400' 
+                       : quotation?.payment_link_sent_at
+                       ? 'text-blue-600 dark:text-blue-400'
+                       : 'text-muted-foreground'
+                   }`}>Payment</div>
+                   <div className="text-xs text-muted-foreground">Tap for details</div>
+                 </div>
+               </div>
+
+               <div 
+                 className="flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-3 transition-colors"
+                 onClick={() => setExpandedStep(expandedStep === 'confirmed' ? null : 'confirmed')}
+               >
+                 <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 shadow-sm ${
+                   quotation?.status === 'converted' 
+                     ? 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-500' 
+                     : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
+                 }`}>
+                   {quotation?.status === 'converted' ? (
+                     <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                   ) : (
+                     <Calendar className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                   )}
+                 </div>
+                 <div className="text-center">
+                   <div className={`text-xs font-semibold ${
+                     quotation?.status === 'converted' 
+                       ? 'text-green-600 dark:text-green-400' 
+                       : 'text-muted-foreground'
+                   }`}>Confirmed</div>
+                   <div className="text-xs text-muted-foreground">Tap for details</div>
+                 </div>
+               </div>
+
+               {/* Empty cell for 3x2 grid */}
+               <div></div>
+             </div>
+             
+             {/* Desktop: Horizontal layout */}
+             <div className="hidden sm:flex items-center gap-2 lg:gap-4 overflow-x-auto pb-2 lg:pb-0">
+              {/* Step 1: Created - Always completed */}
+              <div 
+                className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-2 transition-colors"
+                onClick={() => setExpandedStep(expandedStep === 'created' ? null : 'created')}
+              >
+                <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center border-2 border-green-400 dark:border-green-500 shadow-sm">
+                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Created {formatDate(quotation.created_at)}
-                </p>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-green-600 dark:text-green-400">Created</span>
+                  <div className="text-xs text-muted-foreground">Click for details</div>
+                </div>
               </div>
-              
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button 
-                  onClick={handleDownloadQuotation}
-                  disabled={isDownloadingQuotation}
-                  className="gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Download Quotation
-                </Button>
+
+              {/* Step 2: Sent */}
+              <div 
+                className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-2 transition-colors"
+                onClick={() => setExpandedStep(expandedStep === 'sent' ? null : 'sent')}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 shadow-sm ${
+                  quotation?.status === 'sent' || quotation?.last_sent_at
+                    ? 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-500' 
+                    : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
+                }`}>
+                  {quotation?.status === 'sent' || quotation?.last_sent_at ? (
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  ) : (
+                    <Mail className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  )}
+                </div>
+                <div className="flex flex-col">
+                  <span className={`text-sm font-semibold ${
+                    quotation?.status === 'sent' || quotation?.last_sent_at
+                      ? 'text-green-600 dark:text-green-400' 
+                      : 'text-muted-foreground'
+                  }`}>Sent</span>
+                  <div className="text-xs text-muted-foreground">Click for details</div>
+                </div>
               </div>
-            </div>
-            
-            {/* Next Step Indicator - Matching Admin Style */}
-            {(() => {
-              let nextStepText = '';
-              if (quotation.status === 'draft') {
-                nextStepText = 'Send to customer';
-              } else if (quotation.status === 'sent') {
-                nextStepText = 'Waiting for customer approval';
-              } else if (quotation.status === 'approved' && !quotation.payment_link_sent_at && !quotation.payment_completed_at) {
-                nextStepText = 'Select payment method';
-              } else if (quotation.payment_link_sent_at && !quotation.payment_completed_at) {
-                nextStepText = 'Wait for payment';
-              } else if (quotation.payment_completed_at && quotation.status !== 'converted') {
-                nextStepText = 'Convert to booking';
-              }
-              
-              if (nextStepText) {
-                return (
-                  <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                    <div className="text-sm text-blue-700 dark:text-blue-300">
-                      <span className="font-medium">Next step:</span> {nextStepText}
-                    </div>
-                  </div>
-                );
-              }
-              return null;
-            })()}
+
+              {/* Step 3: Approval */}
+              <div 
+                className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-2 transition-colors"
+                onClick={() => setExpandedStep(expandedStep === 'approval' ? null : 'approval')}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 shadow-sm ${
+                  quotation?.approved_at 
+                    ? 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-500' 
+                    : quotation?.status === 'sent'
+                    ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-400 dark:border-blue-500'
+                    : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
+                }`}>
+                  {quotation?.approved_at ? (
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  ) : quotation?.status === 'sent' ? (
+                    <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  ) : (
+                    <User className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  )}
+                </div>
+                <div className="flex flex-col">
+                  <span className={`text-sm font-semibold ${
+                    quotation?.approved_at 
+                      ? 'text-green-600 dark:text-green-400' 
+                      : quotation?.status === 'sent'
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-muted-foreground'
+                  }`}>Approval</span>
+                  <div className="text-xs text-muted-foreground">Click for details</div>
+                </div>
+              </div>
+
+              {/* Step 4: Payment */}
+              <div 
+                className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-2 transition-colors"
+                onClick={() => setExpandedStep(expandedStep === 'payment' ? null : 'payment')}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 shadow-sm ${
+                  quotation?.payment_completed_at 
+                    ? 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-500' 
+                    : quotation?.payment_link_sent_at
+                    ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-400 dark:border-blue-500'
+                    : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
+                }`}>
+                  {quotation?.payment_completed_at ? (
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  ) : quotation?.payment_link_sent_at ? (
+                    <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  ) : (
+                    <CreditCard className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+            )}
           </div>
+                <div className="flex flex-col">
+                  <span className={`text-sm font-semibold ${
+                    quotation?.payment_completed_at 
+                      ? 'text-green-600 dark:text-green-400' 
+                      : quotation?.payment_link_sent_at
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-muted-foreground'
+                  }`}>Payment</span>
+                  <div className="text-xs text-muted-foreground">Click for details</div>
         </div>
       </div>
 
-      {/* Main Content - Matching Admin Layout */}
-      <div className="container mx-auto px-6 py-8">
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 xl:gap-8">
-            {/* Main Content - 2 columns on XL screens, full width on smaller */}
-            <div className="xl:col-span-2 space-y-6">
-            {/* Customer Information - Clean Design */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <User className="h-5 w-5 text-primary" />
-                  <CardTitle>Customer Information</CardTitle>
+              {/* Step 5: Confirmed */}
+              <div 
+                className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-2 transition-colors"
+                onClick={() => setExpandedStep(expandedStep === 'confirmed' ? null : 'confirmed')}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 shadow-sm ${
+                  quotation?.status === 'converted' 
+                    ? 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-500' 
+                    : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
+                }`}>
+                  {quotation?.status === 'converted' ? (
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  ) : (
+                    <Calendar className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  )}
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Customer Details */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Personal Information */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-muted">
-                        <User className="h-5 w-5 text-muted-foreground" />
+                <div className="flex flex-col">
+                  <span className={`text-sm font-semibold ${
+                    quotation?.status === 'converted' 
+                      ? 'text-green-600 dark:text-green-400' 
+                      : 'text-muted-foreground'
+                  }`}>Confirmed</span>
+                  <div className="text-xs text-muted-foreground">Click for details</div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-lg">Personal Information</h3>
-                        <p className="text-sm text-muted-foreground">Customer contact details</p>
+              </div>
                       </div>
                     </div>
                     
-                    <div className="space-y-3">
-                      <div className="p-3 bg-muted/50 rounded-lg border">
-                        <div className="flex items-center gap-2 mb-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-xs font-medium text-muted-foreground">Full Name</span>
+          {/* Expanded Step Details */}
+          {expandedStep && (
+            <div className="mt-4 p-4 bg-background rounded-lg border border-muted/30 animate-in slide-in-from-top-2 duration-200">
+              {expandedStep === 'created' && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-green-600 dark:text-green-400">✓ Quotation Created</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Your quotation was created on {new Date(quotation?.created_at || '').toLocaleDateString()} at {new Date(quotation?.created_at || '').toLocaleTimeString()}
+                  </p>
                         </div>
-                        <div className="text-sm">{quotation.customer_name}</div>
+              )}
+              
+              {expandedStep === 'sent' && (
+                <div className="space-y-2">
+                  <h4 className={`font-semibold ${quotation?.status === 'sent' || quotation?.last_sent_at ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                    {quotation?.status === 'sent' || quotation?.last_sent_at ? '✓ Quotation Sent' : '⏳ Not Sent Yet'}
+                  </h4>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">
+                      {quotation?.last_sent_at 
+                        ? `Sent on ${new Date(quotation.last_sent_at).toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })} at ${new Date(quotation.last_sent_at).toLocaleTimeString('en-US', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: true 
+                          })}`
+                        : quotation?.status === 'sent'
+                        ? `Status: Sent (sent on ${new Date(quotation?.created_at || '').toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })} at ${new Date(quotation?.created_at || '').toLocaleTimeString('en-US', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: true 
+                          })})`
+                        : 'This quotation has not been sent to the customer yet'
+                      }
+                    </p>
+                    {quotation?.status === 'sent' && (
+                      <p className="text-xs text-muted-foreground">
+                        The quotation is now available for customer review and approval
+                      </p>
+                    )}
                       </div>
-                      
-                      <div className="p-3 bg-muted/50 rounded-lg border">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-xs font-medium text-muted-foreground">Email</span>
+                </div>
+              )}
+              
+              {expandedStep === 'approval' && (
+                <div className="space-y-2">
+                  <h4 className={`font-semibold ${
+                    quotation?.approved_at 
+                      ? 'text-green-600 dark:text-green-400' 
+                      : quotation?.status === 'sent'
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-muted-foreground'
+                  }`}>
+                    {quotation?.approved_at ? '✓ Approved' : quotation?.status === 'sent' ? '⏳ Waiting for Approval' : '⏳ Pending'}
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    {quotation?.approved_at 
+                      ? `Approved on ${new Date(quotation.approved_at).toLocaleDateString()} at ${new Date(quotation.approved_at).toLocaleTimeString()}`
+                      : quotation?.status === 'sent'
+                      ? 'Waiting for customer to review and approve this quotation'
+                      : 'This step will be available after the quotation is sent'
+                    }
+                  </p>
                         </div>
-                        <div className="text-sm">{quotation.customer_email}</div>
+              )}
+              
+              {expandedStep === 'payment' && (
+                <div className="space-y-2">
+                  <h4 className={`font-semibold ${
+                    quotation?.payment_completed_at 
+                      ? 'text-green-600 dark:text-green-400' 
+                      : quotation?.payment_link_sent_at
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-muted-foreground'
+                  }`}>
+                    {quotation?.payment_completed_at ? '✓ Payment Completed' : quotation?.payment_link_sent_at ? '⏳ Payment Link Sent' : '⏳ Pending'}
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    {quotation?.payment_completed_at 
+                      ? `Payment completed on ${new Date(quotation.payment_completed_at).toLocaleDateString()} at ${new Date(quotation.payment_completed_at).toLocaleTimeString()}`
+                      : quotation?.payment_link_sent_at
+                      ? `Payment link sent on ${new Date(quotation.payment_link_sent_at).toLocaleDateString()}`
+                      : 'Payment will be processed after quotation approval'
+                    }
+                  </p>
                       </div>
-                      
-                      {quotation.customer_phone && (
-                        <div className="p-3 bg-muted/50 rounded-lg border">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Phone className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-xs font-medium text-muted-foreground">Phone</span>
+              )}
+              
+              {expandedStep === 'confirmed' && (
+                <div className="space-y-2">
+                  <h4 className={`font-semibold ${
+                    quotation?.status === 'converted' 
+                      ? 'text-green-600 dark:text-green-400' 
+                      : 'text-muted-foreground'
+                  }`}>
+                    {quotation?.status === 'converted' ? '✓ Service Confirmed' : '⏳ Pending Confirmation'}
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    {quotation?.status === 'converted' 
+                      ? 'Your service has been confirmed and is ready to proceed'
+                      : 'Service confirmation will be provided after payment completion'
+                    }
+                  </p>
                           </div>
-                          <div className="text-sm">{quotation.customer_phone}</div>
+              )}
                         </div>
                       )}
                     </div>
                   </div>
                   
-                  {/* Billing Information */}
-                  <div className="space-y-4">
+      {/* Main Content - Full Width */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="space-y-6 sm:space-y-8">
+          {/* Customer Information */}
+          <Card>
+            <CardHeader>
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-muted">
-                        <Building className="h-5 w-5 text-muted-foreground" />
-                      </div>
+                <User className="h-6 w-6 text-primary" />
                       <div>
-                        <h3 className="font-semibold text-lg">Billing Information</h3>
-                        <p className="text-sm text-muted-foreground">Company and billing details</p>
+                  <CardTitle className="text-xl">Customer Information</CardTitle>
+                  <CardDescription>Contact and billing details</CardDescription>
                       </div>
                     </div>
-                    
-                    <div className="space-y-3">
-                      {quotation.billing_company_name && (
-                        <div className="p-3 bg-muted/50 rounded-lg border">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Building className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-xs font-medium text-muted-foreground">Company</span>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                {/* Contact Details */}
+                <div className="space-y-4 sm:space-y-6">
+                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Contact Details</h4>
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <User className="h-5 w-5 text-primary" />
                           </div>
-                          <div className="text-sm">{quotation.billing_company_name}</div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-lg">{quotation.customer_name}</div>
+                        <div className="text-sm text-muted-foreground">Full Name</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Mail className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-lg">{quotation.customer_email}</div>
+                        <div className="text-sm text-muted-foreground">Email Address</div>
+                      </div>
+                    </div>
+                    {quotation.customer_phone && (
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Phone className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-lg">{quotation.customer_phone}</div>
+                          <div className="text-sm text-muted-foreground">Phone Number</div>
+                        </div>
                         </div>
                       )}
-                      
+                  </div>
+                </div>
+
+                {/* Billing Information */}
+                <div className="space-y-4 sm:space-y-6">
+                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Billing Information</h4>
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Building className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-lg">{quotation.billing_company_name || 'Individual Customer'}</div>
+                        <div className="text-sm text-muted-foreground">Company Name</div>
+                      </div>
+                    </div>
                       {quotation.billing_tax_number && (
-                        <div className="p-3 bg-muted/50 rounded-lg border">
-                          <div className="flex items-center gap-2 mb-2">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-xs font-medium text-muted-foreground">Tax Number</span>
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <CreditCard className="h-5 w-5 text-primary" />
                           </div>
-                          <div className="text-sm">{quotation.billing_tax_number}</div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-lg">{quotation.billing_tax_number}</div>
+                          <div className="text-sm text-muted-foreground">Tax ID</div>
                         </div>
-                      )}
-                      
-                      {/* Billing Address - Always show this section */}
-                      <div className="space-y-3">
-                        <div className="p-3 bg-muted/50 rounded-lg border">
-                          <div className="flex items-center gap-2 mb-2">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-xs font-medium text-muted-foreground">Address</span>
                           </div>
-                          <div className="text-sm space-y-1">
-                            {quotation.billing_street_name && (
-                              <div>{quotation.billing_street_name}</div>
-                            )}
-                            <div>
-                              {quotation.billing_city && `${quotation.billing_city}`}
-                              {quotation.billing_state && `, ${quotation.billing_state}`}
-                              {quotation.billing_postal_code && ` ${quotation.billing_postal_code}`}
-                              {quotation.billing_country && `, ${quotation.billing_country}`}
+                    )}
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <MapPin className="h-5 w-5 text-primary" />
                             </div>
-                          </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-lg">{quotation.customer_address || 'Address not provided'}</div>
+                        <div className="text-sm text-muted-foreground">Billing Address</div>
                         </div>
                       </div>
                     </div>
@@ -910,174 +930,127 @@ export default function QuoteAccessPage() {
               </CardContent>
             </Card>
 
-            <Separator />
-
-            {/* Selected Services - Enhanced Design */}
+          {/* Service Details & Pricing - Connected Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+            {/* Service Details - Scalable for Multiple Services */}
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-3">
-                  <Car className="h-5 w-5 text-primary" />
-                  <CardTitle>Selected Services ({quotation.quotation_items.length})</CardTitle>
+                  <Package className="h-6 w-6 text-primary" />
+                  <div>
+                    <CardTitle className="text-xl">Service Details</CardTitle>
+                    <CardDescription>{quotation?.quotation_items?.length || 0} service{(quotation?.quotation_items?.length || 0) !== 1 ? 's' : ''} selected</CardDescription>
                 </div>
+                        </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {quotation.quotation_items.map((item) => (
-                  <Card key={item.id} className="border-l-4 border-l-primary/20">
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-foreground mb-1">
-                            {item.service_type_name}
+              <CardContent>
+                <div className="space-y-4">
+                  {quotation?.quotation_items?.map((item, index) => (
+                    <div key={item.id} className="border rounded-lg p-4">
+                      <div className="flex items-start gap-3 mb-3">
+                        {/* Vehicle Image - Smaller for scalability */}
+                        <div className="w-12 h-12 bg-muted/20 rounded-lg overflow-hidden border flex items-center justify-center flex-shrink-0">
+                          {item.vehicle_type ? (
+                            <img 
+                              src={`/img/${item.vehicle_type.toLowerCase().replace(/\s+/g, '-').replace('executive-lounge', 'executive')}.jpg`}
+                              alt={item.vehicle_type}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (fallback) {
+                                  fallback.style.display = 'flex';
+                                }
+                              }}
+                            />
+                          ) : null}
+                          <div className={`w-full h-full bg-primary/10 flex items-center justify-center ${item.vehicle_type ? 'hidden' : 'flex'}`}>
+                            <Car className="h-4 w-4 text-primary" />
+                        </div>
+                      </div>
+                      
+                        {/* Service Info - Compact */}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-base mb-1 truncate">
+                            {item.service_type_name || 'Service'}
                           </h3>
-                          {item.vehicle_type && (
-                            <p className="text-sm text-muted-foreground mb-2">
-                              {item.vehicle_type}
-                            </p>
-                          )}
-                          <p className="text-sm text-muted-foreground mb-2">
-                            {item.description}
+                          <p className="text-sm text-muted-foreground mb-1 truncate">
+                            {item.vehicle_type || 'Premium Vehicle'}
                           </p>
-                        </div>
-                        <div className="text-right">
-                                                  <div className="text-lg font-bold text-primary">
-                          {formatCurrency(item.total_price, selectedCurrency)}
+                          <div className="text-xs text-muted-foreground">
+                            #{index + 1} • {item.id.slice(-8)}
                         </div>
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Package className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">
-                            {item.service_days && item.service_days > 1 ? 'Duration:' : 'Quantity:'}
-                          </span>
-                          <span className="font-medium">
-                            {item.service_days && item.service_days > 1 
-                              ? `${item.service_days} day(s) × ${formatCurrency(item.unit_price, selectedCurrency)} = ${formatCurrency(item.total_price, selectedCurrency)}`
-                              : item.quantity
-                            }
-                          </span>
+                      {/* Service Details Grid - Compact */}
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <div className="text-muted-foreground mb-1">Pickup Date</div>
+                          <div className="font-medium">
+                            {item.pickup_date ? new Date(item.pickup_date).toLocaleDateString('en-US', {
+                              weekday: 'short',
+                              month: 'short',
+                              day: 'numeric'
+                            }) : 'TBD'}
                         </div>
-                        
-                        <div className="flex items-center gap-2 text-sm">
-                          <Tag className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">
-                            {item.service_days && item.service_days > 1 ? 'Unit Price:' : 'Unit Price:'}
-                          </span>
-                          <span className="font-medium">
-                            {item.service_days && item.service_days > 1 
-                              ? formatCurrency(item.unit_price, selectedCurrency)
-                              : formatCurrency(item.unit_price, selectedCurrency)
-                            }
-                          </span>
-                        </div>
+                          </div>
+                        <div>
+                          <div className="text-muted-foreground mb-1">Pickup Time</div>
+                          <div className="font-medium">{item.pickup_time || 'TBD'}</div>
                       </div>
-                      
-                      {/* Service-specific details - ALWAYS SHOW */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Pickup Date:</span>
-                          <span className="font-medium">{formatDate((item.pickup_date || quotation.pickup_date) || '')}</span>
+                        <div>
+                          <div className="text-muted-foreground mb-1">Duration</div>
+                          <div className="font-medium">
+                            {item.duration_hours ? `${item.duration_hours}h` : 'TBD'}
+                            {item.service_days && item.service_days > 1 && ` × ${item.service_days}d`}
+                          </div>
+                          </div>
+                        <div>
+                          <div className="text-muted-foreground mb-1">Vehicle</div>
+                          <div className="font-medium truncate">{item.vehicle_type || 'Premium'}</div>
+                        </div>
                         </div>
                         
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Pickup Time:</span>
-                          <span className="font-medium">{item.pickup_time || quotation.pickup_time}</span>
-                        </div>
-                      </div>
-                      
-                      {/* Duration and time-based adjustments - ALWAYS SHOW */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Timer className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Duration:</span>
-                          <span className="font-medium">{item.duration_hours || quotation.duration_hours} hour(s)</span>
-                        </div>
-                        
+                      {/* Additional Info - Only if needed */}
+                      {(item.quantity && item.quantity > 1) || (item.time_based_adjustment && parseFloat(item.time_based_adjustment) > 0) ? (
+                        <div className="mt-3 pt-3 border-t border-muted/30">
+                          <div className="flex flex-wrap gap-3 text-xs">
+                            {item.quantity && item.quantity > 1 && (
+                              <div className="flex items-center gap-1">
+                                <Package className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-muted-foreground">Qty:</span>
+                                <span className="font-medium">{item.quantity}</span>
+                          </div>
+                        )}
                         {item.time_based_adjustment && parseFloat(item.time_based_adjustment) > 0 && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">Time Adjustment:</span>
-                            <span className="font-medium text-orange-600">
-                              +{formatCurrency((item.unit_price * parseFloat(item.time_based_adjustment)) / 100, selectedCurrency)} (+{item.time_based_adjustment}%)
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Service days for multi-day services - ALWAYS SHOW */}
-                      {(item.service_days && item.service_days > 1) || (quotation.service_days && quotation.service_days > 1) && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">Service Duration:</span>
-                            <span className="font-medium">{(item.service_days || quotation.service_days)} day(s) × {(item.hours_per_day || quotation.hours_per_day || 1)}h/day</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 text-sm">
-                            <Timer className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">Total Hours:</span>
-                            <span className="font-medium">{(item.service_days || quotation.service_days) * (item.hours_per_day || quotation.hours_per_day || 1)}h total</span>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Price breakdown */}
-                      <div className="border-t pt-3">
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-muted-foreground">Base Price:</span>
-                          <span className="font-medium">{formatCurrency(item.unit_price, selectedCurrency)}</span>
-                        </div>
-                        
-                        {/* Show service days breakdown for multi-day services */}
-                        {item.service_days && item.service_days > 1 && (
-                          <div className="flex justify-between items-center text-sm text-blue-600">
-                            <span>Service Days ({item.service_days} day(s) × {formatCurrency(item.unit_price, selectedCurrency)}):</span>
-                            <span className="font-medium">+{formatCurrency(item.total_price - item.unit_price, selectedCurrency)}</span>
-                          </div>
-                        )}
-                        
-                        {item.time_based_adjustment && parseFloat(item.time_based_adjustment) > 0 && (
-                          <div className="flex justify-between items-center text-sm text-orange-600">
-                            <span>Time Adjustment ({item.time_based_adjustment}%):</span>
-                            <span className="font-medium">+{formatCurrency((item.unit_price * parseFloat(item.time_based_adjustment)) / 100, selectedCurrency)}</span>
+                              <div className="flex items-center gap-1">
+                                <Timer className="h-3 w-3 text-orange-600" />
+                                <span className="text-orange-600 font-medium">
+                                  +{item.time_based_adjustment}% overtime
+                                </span>
                         </div>
                         )}
-                        
-                        <div className="flex justify-between items-center text-sm font-semibold border-t pt-2 mt-2">
-                          <span>Total:</span>
-                          <span className="text-primary">{formatCurrency(item.total_price, selectedCurrency)}</span>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-                
-                {/* Services Summary */}
-                <Card className="bg-muted/30 border border-muted/70 dark:border-muted/60">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-semibold">Services Subtotal</span>
-                      <span className="text-xl font-bold text-primary">
-                        {formatCurrency(quotation.amount, quotation.currency)}
-                      </span>
+                      ) : null}
                     </div>
-                  </CardContent>
-                </Card>
+                  ))}
+                    </div>
               </CardContent>
             </Card>
 
-            {/* Price Details */}
+            {/* Price Breakdown with Approve/Reject Buttons */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Calculator className="h-5 w-5 text-primary" />
-                    <CardTitle>Price Details</CardTitle>
+                    <Calculator className="h-6 w-6 text-primary" />
+                    <div>
+                      <CardTitle className="text-xl">Price Breakdown</CardTitle>
+                      <CardDescription>Detailed pricing information</CardDescription>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  </div>
                     <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
                       <SelectTrigger className="w-[120px] h-8">
                         <SelectValue placeholder="Currency" />
@@ -1091,612 +1064,157 @@ export default function QuoteAccessPage() {
                         <SelectItem value="SGD">SGD ($)</SelectItem>
                       </SelectContent>
                     </Select>
-                    
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="h-6 w-6 p-0 cursor-help flex items-center justify-center rounded-md hover:bg-muted/50 transition-colors">
-                            <Clock className="h-4 w-4 text-orange-500" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="w-auto">
-                          <div className="space-y-3 max-w-xs">
-                            <div>
-                              <p className="font-medium">Exchange Rate Information</p>
-                              {selectedCurrency !== 'JPY' && (
-                                <div className="space-y-1 mt-2">
-                                  <p className="text-sm font-medium text-blue-600">
-                                    1 JPY = {formatCurrency(1, selectedCurrency).replace(/[^\d.,]/g, '')} {selectedCurrency}
-                                  </p>
-                                  <p className="text-sm font-medium text-blue-600">
-                                    1 {selectedCurrency} = {(1 / (selectedCurrency === 'USD' ? 0.0067 : selectedCurrency === 'EUR' ? 0.0062 : selectedCurrency === 'THB' ? 0.22 : selectedCurrency === 'CNY' ? 0.048 : 0.0091)).toFixed(4)} JPY
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div className="space-y-1 text-xs">
-                              <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">Source:</span>
-                                <span className="font-medium text-green-600">Fixed rates</span>
-                              </div>
-                              
-                              <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">Updated:</span>
-                                <span className="font-medium text-green-600">Real-time</span>
-                              </div>
-                              
-                              <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">Base:</span>
-                                <span className="font-medium">JPY</span>
-                              </div>
-                            </div>
-
-                            {/* Show all available exchange rates */}
-                            <div className="pt-2 border-t">
-                              <p className="text-xs font-medium text-muted-foreground mb-2">All Rates (1 JPY):</p>
-                              <div className="space-y-1">
-                                {['USD', 'EUR', 'THB', 'CNY', 'SGD'].map((code) => (
-                                  <div key={code} className="flex items-center justify-between text-xs">
-                                    <span className="text-muted-foreground">{code}:</span>
-                                    <span className="font-mono font-medium">
-                                      {code === 'USD' ? '0.0067' : code === 'EUR' ? '0.0062' : code === 'THB' ? '0.22' : code === 'CNY' ? '0.048' : '0.0091'}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div className="pt-2 border-t">
-                              <p className="text-xs text-muted-foreground">
-                                Rates are for reference only and may not reflect real-time market conditions.
-                              </p>
-                            </div>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {/* Services Breakdown - Compact Design with Better Spacing */}
-                  <div className="space-y-2">
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                      Service Items
-                    </h3>
-                    {quotation.quotation_items.map((item, index) => (
-                      <div key={item.id} className={`p-2.5 rounded border ${index % 2 === 0 ? 'bg-muted/20' : 'bg-background'} border-muted/30`}>
-                        <div className="flex justify-between items-start">
+                  {/* Service Items */}
+                  <div>
+                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">Service Items</h4>
+                    <div className="space-y-3">
+                      {quotation?.quotation_items?.map((item, index) => (
+                        <div key={item.id} className="flex justify-between items-start py-2 border-b border-muted/30 last:border-b-0">
                           <div className="flex-1">
-                            <div className="font-semibold text-foreground text-xs mb-1 truncate">{item.service_type_name}</div>
-                            <div className="text-xs text-muted-foreground mb-1.5">
+                            <div className="font-medium text-sm">{item.service_type_name}</div>
+                            <div className="text-xs text-muted-foreground">
                               {item.service_days && item.service_days > 1 ? (
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {item.service_days} day(s) × {formatCurrency(item.unit_price, selectedCurrency)} = {(() => {
-                                    // For Charter Services, calculate total based on duration (unit_price × service_days)
-                                    if (item.service_type_name?.toLowerCase().includes('charter')) {
-                                      return formatCurrency(item.unit_price * (item.service_days || 1), selectedCurrency);
-                                    }
-                                    // For other services, use existing logic
-                                    return formatCurrency(item.total_price, selectedCurrency);
-                                  })()}
+                                <span>
+                                  {item.service_days} day(s) × {formatCurrencyWithCurrency(item.unit_price, selectedCurrency)} = {formatCurrencyWithCurrency(item.unit_price * item.service_days, selectedCurrency)}
                                 </span>
                                                               ) : (
-                                  <span className="flex items-center gap-1">
-                                    <Package className="h-3 w-3" />
-                                    Qty: {item.quantity} × {formatCurrency(item.unit_price, selectedCurrency)}
+                                <span>
+                                  Qty: {item.quantity} × {formatCurrencyWithCurrency(item.unit_price, selectedCurrency)} = {formatCurrencyWithCurrency(item.unit_price * item.quantity, selectedCurrency)}
                                   </span>
                               )}
                             </div>
-                            
-                            {/* Show overtime if applicable */}
                             {item.time_based_adjustment && parseFloat(item.time_based_adjustment) > 0 && (
-                              <div className="flex items-center gap-1 text-xs text-orange-600 bg-orange-50 dark:bg-orange-900/20 px-1 py-0.5 rounded">
-                                <Timer className="h-3 w-3" />
-                                +{formatCurrency((item.unit_price * parseFloat(item.time_based_adjustment)) / 100, selectedCurrency)} ({item.time_based_adjustment}% overtime)
-                              </div>
-                            )}
-                            
-                            {/* Show overtime if applicable from main quotation */}
-                            {quotation.time_based_adjustment && parseFloat(quotation.time_based_adjustment.toString()) > 0 && !item.time_based_adjustment && (
-                              <div className="flex items-center gap-1 text-xs text-orange-600 bg-orange-50 dark:bg-orange-900/20 px-1 py-0.5 rounded">
-                                <Timer className="h-3 w-3" />
-                                +{formatCurrency((quotation.amount * parseFloat(quotation.time_based_adjustment.toString())) / 100, selectedCurrency)} ({item.time_based_adjustment}% overtime)
+                              <div className="text-xs text-orange-600 mt-1">
+                                + Overtime ({item.time_based_adjustment}%): +{formatCurrencyWithCurrency((item.unit_price * parseFloat(item.time_based_adjustment)) / 100, selectedCurrency)}
                               </div>
                             )}
                           </div>
                           <div className="text-right">
-                            <div className="text-xs font-bold text-primary">{formatCurrency(item.total_price, selectedCurrency)}</div>
-                          </div>
+                            <div className="font-semibold text-primary">{formatCurrencyWithCurrency(item.total_price, selectedCurrency)}</div>
                         </div>
                       </div>
                     ))}
                   </div>
-                  
-                  {/* Summary Section - Enhanced Compact */}
-                  <div className="space-y-3 bg-muted/30 rounded-lg p-3 border border-muted/50">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                      Summary
-                    </h3>
-                    
-                    {/* Services Subtotal */}
-                    <div className="flex justify-between items-center py-1">
-                      <span className="text-sm font-medium text-foreground">Services Subtotal</span>
-                      <span className="text-sm font-semibold text-foreground">{formatCurrency(quotation.amount, selectedCurrency)}</span>
                     </div>
                     
-                    {/* Regular Discount Percentage */}
-                    {quotation.discount_percentage && quotation.discount_percentage > 0 && (
-                      <div className="flex justify-between items-center py-1 text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">
-                        <span className="flex items-center gap-1 text-sm">
-                          <Percent className="h-3 w-3" />
-                          Discount ({quotation.discount_percentage}%)
-                        </span>
-                        <span className="text-sm font-semibold">-{formatCurrency((quotation.amount * quotation.discount_percentage) / 100, selectedCurrency)}</span>
+                  {/* Summary */}
+                  <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Summary</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Services Subtotal</span>
+                        <span>{formatCurrencyWithCurrency(quotation.amount, selectedCurrency)}</span>
+                      </div>
+                      
+                      {quotation.selected_promotion_name && (
+                        <div className="flex justify-between text-sm text-green-600">
+                          <span>Promotion: {quotation.selected_promotion_name}</span>
+                          <span>-{formatCurrencyWithCurrency(quotation.promotion_discount || 0, selectedCurrency)}</span>
                       </div>
                     )}
                     
-                    {/* Promotion Discount */}
-                    {quotation.promotion_discount && quotation.promotion_discount > 0 && (
-                      <div className="flex justify-between items-center py-1 text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">
-                        <span className="flex items-center gap-1 text-sm">
-                          <Gift className="h-3 w-3" />
-                          Promotion: {quotation.selected_promotion_name || 'Discount'} ({Math.round((quotation.promotion_discount / quotation.amount) * 100)}%)
-                        </span>
-                        <span className="text-sm font-semibold">-{formatCurrency(quotation.promotion_discount, selectedCurrency)}</span>
+                      <div className="flex justify-between text-sm">
+                        <span>Subtotal</span>
+                        <span>{formatCurrencyWithCurrency(quotation.amount - (quotation.promotion_discount || 0), selectedCurrency)}</span>
                       </div>
-                    )}
-                    
-                    {/* Subtotal after discounts */}
-                    {(quotation.discount_percentage && quotation.discount_percentage > 0) || (quotation.promotion_discount && quotation.promotion_discount > 0) ? (
-                      <div className="flex justify-between items-center py-1 border-t border-muted/30 pt-2">
-                        <span className="text-sm font-medium text-foreground">Subtotal</span>
-                        <span className="text-sm font-semibold text-foreground">
-                          {formatCurrency(
-                            quotation.amount - 
-                            ((quotation.discount_percentage || 0) * quotation.amount / 100) - 
-                            (quotation.promotion_discount || 0), 
-                            selectedCurrency
-                          )}
-                        </span>
+                      
+                      <div className="flex justify-between text-sm">
+                        <span>Tax (10%)</span>
+                        <span>+{formatCurrencyWithCurrency(((quotation.amount - (quotation.promotion_discount || 0)) * 10) / 100, selectedCurrency)}</span>
                       </div>
-                    ) : null}
                     
-                    {/* Tax */}
-                    {quotation.tax_percentage && quotation.tax_percentage > 0 && (
-                      <div className="flex items-center justify-between py-1 text-muted-foreground bg-muted/50 px-2 py-1 rounded">
-                        <span className="flex items-center gap-1 text-sm">
-                          <Percent className="h-3 w-3" />
-                          Tax ({quotation.tax_percentage}%)
-                        </span>
-                        <span className="text-sm font-semibold">+{formatCurrency(
-                          ((quotation.amount - 
-                            ((quotation.discount_percentage || 0) * quotation.amount / 100) - 
-                            (quotation.promotion_discount || 0)) * quotation.tax_percentage) / 100, 
-                          selectedCurrency
-                        )}</span>
-                      </div>
-                    )}
-                    
+                      <div className="flex justify-between text-lg font-bold border-t pt-2">
+                        <span>Total Amount Due</span>
+                        <span className="text-primary">{formatCurrencyWithCurrency(quotation.total_amount, selectedCurrency)}</span>
                   </div>
-                  
-                  {/* Total Amount Due - Larger font with stroke/border like Services Subtotal */}
-                  <div className="bg-muted/30 rounded-lg p-3 border border-muted/70 dark:border-muted/60">
-                    <div className="flex justify-between items-center py-1">
-                      <span className="text-lg font-semibold text-foreground">Total Amount Due</span>
-                      <span className="text-lg font-semibold text-foreground">{formatCurrency(quotation.total_amount, selectedCurrency)}</span>
                     </div>
                   </div>
+
                 </div>
               </CardContent>
             </Card>
+          </div>
 
-            {/* Customer Actions - Moved below Price Details */}
+          {/* Quotation Approval - Full Width */}
             {['draft', 'sent'].includes(quotation.status) && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    Customer Actions
-                  </CardTitle>
-                  <CardDescription>
-                    Approve or reject this quotation
-                  </CardDescription>
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-6 w-6 text-primary" />
+                  <div>
+                    <CardTitle className="text-xl">Quotation Approval</CardTitle>
+                    <CardDescription>Review this quotation and either approve to proceed or reject with detailed feedback</CardDescription>
+                  </div>
+                </div>
                 </CardHeader>
                 <CardContent>
                   <QuotationDetailsApprovalPanel
                     isProcessing={isApproving || isRejecting}
                     customerName={quotation.customer_name}
                     quotation={quotation as any}
-                    onApprove={handleApprove}
-                    onReject={handleReject}
+                  onApprove={async (notes, signature) => {
+                    setIsApproving(true);
+                    try {
+                      await handleApprove(notes, signature || '', '');
+                    } finally {
+                      setIsApproving(false);
+                    }
+                  }}
+                  onReject={async (reason, signature) => {
+                    setIsRejecting(true);
+                    try {
+                      await handleReject(reason, signature || '', '');
+                    } finally {
+                      setIsRejecting(false);
+                    }
+                  }}
                     showBccFields={false}
+                  hideHeader={true}
                   />
                 </CardContent>
               </Card>
             )}
 
-            {/* Notes and Terms */}
-            {(quotation.notes || quotation.terms) && (
-              <>
-                <Separator />
+          {/* Customer Notes */}
                 <Card>
                   <CardHeader>
                     <div className="flex items-center gap-3">
-                      <Clock className="h-5 w-5 text-primary" />
-                      <CardTitle>Additional Information</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {quotation.notes && (
+                <StickyNote className="h-6 w-6 text-primary" />
                       <div>
-                        <h3 className="text-sm font-medium text-muted-foreground mb-2">Notes</h3>
-                        <div className="text-sm whitespace-pre-wrap border rounded-md p-3 bg-muted/30">
-                          {quotation.notes}
+                  <CardTitle className="text-xl">Customer Notes</CardTitle>
+                  <CardDescription>Additional information and comments</CardDescription>
                         </div>
                       </div>
-                    )}
-                    
-                    {quotation.terms && (
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground mb-2">Terms & Conditions</h3>
-                        <div className="text-sm whitespace-pre-wrap">
-                          {quotation.terms}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </>
-            )}
-
-            {/* Footer */}
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground mb-4">
-                This magic link will expire on {formatDate(addDays(new Date(quotation.created_at), 7).toISOString())}
-              </p>
-              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <span>Secure access via magic link (valid for 7 days)</span>
-              </div>
-            </div>
-          </div>
-          
-          {/* Sidebar - Right Column */}
-          <div className="xl:col-span-1 space-y-6">
-            {/* Quotation Status Card */}
-            <Card className="border-l-4 border-l-blue-500">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <RefreshCw className="h-5 w-5 text-blue-600" />
-                  Quotation Status
-                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
-                  <span className="text-sm font-medium text-muted-foreground">Status</span>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-blue-500" />
-                    <Badge variant="outline" className={`font-medium ${
-                      quotation.status === 'draft' ? 'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20' :
-                      quotation.status === 'sent' ? 'text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20' :
-                      quotation.status === 'approved' ? 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20' :
-                      quotation.status === 'rejected' ? 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20' :
-                      quotation.status === 'paid' ? 'text-green-700 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20' :
-                      quotation.status === 'converted' ? 'text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20' :
-                      'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
-                    }`}>
-                      {quotation.status === 'draft' ? 'Draft' :
-                       quotation.status === 'sent' ? 'Sent' :
-                       quotation.status === 'approved' ? 'Approved' :
-                       quotation.status === 'rejected' ? 'Rejected' :
-                       quotation.status === 'paid' ? 'Paid' :
-                       quotation.status === 'converted' ? 'Converted' :
-                       'Unknown'}
-                    </Badge>
-                  </div>
-                </div>
-                
-                {/* Next Step Indicator - Compact */}
-                {(() => {
-                  let nextStepText = '';
-                  if (quotation.status === 'draft') {
-                    nextStepText = 'Send to customer';
-                  } else if (quotation.status === 'sent') {
-                    nextStepText = 'Wait for approval';
-                  } else if (quotation.status === 'approved' && !quotation.payment_link_sent_at && !quotation.payment_completed_at) {
-                    nextStepText = 'Select payment method';
-                  } else if (quotation.payment_link_sent_at && !quotation.payment_completed_at) {
-                    nextStepText = 'Wait for payment';
-                  } else if (quotation.payment_completed_at && quotation.status !== 'converted') {
-                    nextStepText = 'Convert to booking';
-                  }
-                  
-                  if (nextStepText) {
-                    return (
-                      <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                        <div className="text-xs text-blue-700 dark:text-blue-300">
-                          <span className="font-medium">Next:</span> {nextStepText}
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-                
-                {/* Show expiration only for non-approved quotations */}
-                {daysUntilExpiry !== null && !['approved', 'paid', 'converted'].includes(quotation.status) && (
-                  <div className="text-center p-4 rounded-lg bg-green-50 dark:bg-green-900/50 border border-green-200 dark:border-green-600 text-green-700 dark:text-green-200">
-                    <div className="text-sm font-semibold mb-1">
-                      {daysUntilExpiry > 0 ? (
-                        `Valid for ${daysUntilExpiry} more day${daysUntilExpiry !== 1 ? 's' : ''}`
-                      ) : daysUntilExpiry === 0 ? (
-                        'Expires today'
-                      ) : (
-                        `Expired ${Math.abs(daysUntilExpiry)} day${Math.abs(daysUntilExpiry) === 1 ? '' : 's'} ago`
-                      )}
-                    </div>
-                    {daysUntilExpiry >= 0 && (
-                      <div className="text-xs opacity-90">
-                        Valid until {formatDate(addDays(new Date(quotation.created_at), 2).toISOString())}
-                      </div>
-                    )}
-                  </div>
-                )}
+            <CardContent>
+              <Textarea
+                value={quotation.customer_notes || ''}
+                readOnly
+                placeholder="No customer notes provided"
+                className="min-h-[100px]"
+              />
               </CardContent>
             </Card>
-
-            {/* Quotation Workflow */}
-            <Card className="border-l-4 border-l-green-500">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg text-foreground">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  Quotation Workflow
-                </CardTitle>
-                <CardDescription className="text-sm text-muted-foreground">
-                  Track the progress of this quotation through each stage
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {/* Draft Created */}
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center border-2 border-green-300 dark:border-green-600">
-                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-sm text-foreground">Draft Created</div>
-                      <div className="text-xs text-muted-foreground">
-                        Quotation has been created and saved as draft
-                      </div>
-                      <Badge variant="outline" className="text-xs text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20">
-                        {formatDate(quotation.created_at)} at {new Date(quotation.created_at).toLocaleTimeString('en-US', { 
-                          hour: '2-digit', 
-                          minute: '2-digit',
-                          hour12: true 
-                        })}
-                      </Badge>
                     </div>
                   </div>
 
-                  {/* Quotation Sent */}
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                      quotation.last_sent_at || ['sent', 'approved', 'rejected', 'paid', 'converted'].includes(quotation.status)
-                        ? 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-600' : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
-                    }`}>
-                      {quotation.last_sent_at || ['sent', 'approved', 'rejected', 'paid', 'converted'].includes(quotation.status) ? (
-                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      ) : (
-                        <Mail className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-sm text-foreground">Quotation Sent</div>
-                      <div className="text-xs text-muted-foreground">
-                        Quotation has been sent to customer for review
-                      </div>
-                      {quotation.last_sent_at ? (
-                        <Badge variant="outline" className="text-xs text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20">
-                          {formatDate(quotation.last_sent_at)} at {new Date(quotation.last_sent_at).toLocaleTimeString('en-US', { 
-                            hour: '2-digit', 
-                            minute: '2-digit',
-                            hour12: true 
-                          })}
-                        </Badge>
-                      ) : (['sent', 'approved', 'rejected', 'paid', 'converted'].includes(quotation.status) && quotation.created_at) ? (
-                        <Badge variant="outline" className="text-xs text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20">
-                          {formatDate(quotation.created_at)} at {new Date(quotation.created_at).toLocaleTimeString('en-US', { 
-                            hour: '2-digit', 
-                            minute: '2-digit',
-                            hour12: true 
-                          })}
-                        </Badge>
-                      ) : (
-                        <div className="text-xs text-muted-foreground italic">Pending</div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Customer Approved */}
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                      quotation.status === 'approved' || quotation.status === 'paid' || quotation.status === 'converted'
-                        ? 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-600' : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
-                    }`}>
-                      {quotation.status === 'approved' || quotation.status === 'paid' || quotation.status === 'converted' ? (
-                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      ) : (
-                        <CheckCircle className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-sm text-foreground">Customer Approved</div>
-                      <div className="text-xs text-muted-foreground">
-                        Customer has approved the quotation
-                      </div>
-                      {quotation.approved_at ? (
-                        <Badge variant="outline" className="text-xs text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20">
-                          {formatDate(quotation.approved_at)} at {new Date(quotation.approved_at).toLocaleTimeString('en-US', { 
-                            hour: '2-digit', 
-                            minute: '2-digit',
-                            hour12: true 
-                          })}
-                        </Badge>
-                      ) : (
-                        <div className="text-xs text-muted-foreground italic">Pending</div>
-                      )}
-                    </div>
-                  </div>
-
-
-
-                  {/* Payment Method Selected */}
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                      quotation.payment_link_sent_at || quotation.payment_completed_at || quotation.status === 'paid' || quotation.status === 'converted'
-                        ? 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-600' : 
-                          quotation.status === 'approved' ? 'bg-blue-100 dark:bg-blue-900/20 border-blue-300 dark:border-blue-600' : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
-                    }`}>
-                      {quotation.payment_link_sent_at || quotation.payment_completed_at || quotation.status === 'paid' || quotation.status === 'converted' ? (
-                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      ) : quotation.status === 'approved' ? (
-                        <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      ) : (
-                        <Mail className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-sm text-foreground">Payment Method Selected</div>
-                      <div className="text-xs text-muted-foreground">
-                        Payment link sent to customer or bank transfer method selected
-                      </div>
-                      {(quotation.payment_link_sent_at || quotation.payment_completed_at) ? (
-                        <Badge variant="outline" className="text-xs text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20">
-                          {formatDate((quotation.payment_link_sent_at || quotation.payment_completed_at) as string)} at {new Date((quotation.payment_link_sent_at || quotation.payment_completed_at) as string).toLocaleTimeString('en-US', { 
-                            hour: '2-digit', 
-                            minute: '2-digit',
-                            hour12: true 
-                          })}
-                        </Badge>
-                      ) : (
-                        <div className="text-xs text-muted-foreground italic">Pending</div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Payment Completed */}
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                      quotation.status === 'paid' || quotation.status === 'converted'
-                        ? 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-600' : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
-                    }`}>
-                      {quotation.status === 'paid' || quotation.status === 'converted' ? (
-                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      ) : (
-                        <CreditCard className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-sm text-foreground">Payment Completed</div>
-                      <div className="text-xs text-muted-foreground">
-                        Payment has been received and confirmed
-                      </div>
-                      {quotation.payment_completed_at ? (
-                        <Badge variant="outline" className="text-xs">
-                          {formatDate(quotation.payment_completed_at)} at {new Date(quotation.payment_completed_at).toLocaleTimeString('en-US', { 
-                            hour: '2-digit', 
-                            minute: '2-digit',
-                            hour12: true 
-                          })}
-                        </Badge>
-                      ) : (
-                        <div className="text-xs text-muted-foreground italic">Pending</div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Converted to Booking */}
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                      quotation.status === 'converted'
-                        ? 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-600' : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
-                    }`}>
-                      {quotation.status === 'converted' ? (
-                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      ) : (
-                        <Car className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-sm text-foreground">Converted to Booking</div>
-                      <div className="text-xs text-muted-foreground">
-                        Quotation has been converted to a confirmed booking
-                      </div>
-                      {quotation.status === 'converted' ? (
-                        <Badge variant="outline" className="text-xs">
-                          {formatDate(quotation.updated_at || quotation.created_at)} at {new Date(quotation.updated_at || quotation.created_at).toLocaleTimeString('en-US', { 
-                            hour: '2-digit', 
-                            minute: '2-digit',
-                            hour12: true 
-                          })}
-                        </Badge>
-                      ) : (
-                        <div className="text-xs text-muted-foreground italic">Pending</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Customer Notes Section */}
-            {quotation.customer_notes && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Customer Notes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div 
-                    className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-blue-500 whitespace-pre-wrap break-words"
-                  >
-                    {quotation.customer_notes}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Notes visible to the customer on the quotation
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-            
-
-
-
+      {/* Footer */}
+      <div className="border-t bg-muted/30">
+        <div className="max-w-6xl mx-auto px-6 py-4">
+          <div className="text-center text-sm text-muted-foreground">
+            <p>This magic link will expire on {addDays(new Date(quotation?.created_at || new Date()), 7).toLocaleDateString()}</p>
+            <p className="mt-1 flex items-center justify-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              Secure access via magic link (valid for 7 days)
+            </p>
           </div>
         </div>
       </div>
 
-
-
-
-
-      {/* Enhanced Progress Modal */}
-      <LoadingModal
-        open={progressOpen}
-        onOpenChange={setProgressOpen}
-        variant={progressVariant}
-        value={progressValue}
-        label={progressLabel}
-        steps={progressSteps}
-        title="Processing"
-      />
     </div>
   );
 }

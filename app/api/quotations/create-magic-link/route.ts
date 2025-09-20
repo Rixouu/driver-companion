@@ -55,16 +55,18 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate the magic link URL using quote number instead of token
-    let baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
-    if (!baseUrl) {
-      // Fallback based on environment
-      if (process.env.NODE_ENV === 'production') {
-        baseUrl = 'https://my.japandriver.com';
-      } else if (process.env.NODE_ENV === 'development') {
-        baseUrl = 'http://localhost:3000';
-      } else {
-        baseUrl = 'https://my.japandriver.com'; // Default to production
-      }
+    // Auto-detect environment from request headers for dynamic base URL
+    const host = req.headers.get('host') || '';
+    const protocol = req.headers.get('x-forwarded-proto') || 'http';
+    
+    let baseUrl;
+    if (host.includes('localhost') || host.includes('127.0.0.1') || host.includes('3000')) {
+      baseUrl = 'http://localhost:3000';
+    } else if (host.includes('my.japandriver.com')) {
+      baseUrl = 'https://my.japandriver.com';
+    } else {
+      // Fallback to environment variables or default
+      baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://my.japandriver.com';
     }
     const magicLinkUrl = `${baseUrl}/quote-access/QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
 

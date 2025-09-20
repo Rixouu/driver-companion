@@ -20,6 +20,7 @@ interface QuotationDetailsApprovalPanelProps {
   customerName?: string;
   quotation?: { quote_number?: string };
   showBccFields?: boolean; // Control whether BCC fields are visible
+  hideHeader?: boolean; // Control whether to hide the header with icon and text
 }
 
 export function QuotationDetailsApprovalPanel({
@@ -28,7 +29,8 @@ export function QuotationDetailsApprovalPanel({
   isProcessing,
   customerName,
   quotation,
-  showBccFields = true // Default to true for admin side
+  showBccFields = true, // Default to true for admin side
+  hideHeader = false // Default to false
 }: QuotationDetailsApprovalPanelProps) {
   const { t } = useI18n();
   const [showApproveDialog, setShowApproveDialog] = useState(false);
@@ -64,17 +66,19 @@ export function QuotationDetailsApprovalPanel({
       id="approval-panel-container"
     >
       <Card className="border-2 border-dashed border-muted-foreground/20 hover:border-primary/40 transition-all duration-300 bg-gradient-to-br from-background to-muted/20">
-        <CardHeader className="text-center pb-4">
-          <div className="mx-auto mb-3 p-3 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full w-fit">
-            <CheckCircle className="h-8 w-8 text-primary" />
-          </div>
-          <CardTitle className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-            {t('quotations.details.approvalPanel.title') || 'Quotation Approval'}
-          </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            {t('quotations.details.approvalPanel.description') || 'Review this quotation and either approve to proceed or reject with detailed feedback.'}
-          </CardDescription>
-        </CardHeader>
+        {!hideHeader && (
+          <CardHeader className="text-center pb-4">
+            <div className="mx-auto mb-3 p-3 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full w-fit">
+              <CheckCircle className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              {t('quotations.details.approvalPanel.title') || 'Quotation Approval'}
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
+              {t('quotations.details.approvalPanel.description') || 'Review this quotation and either approve to proceed or reject with detailed feedback.'}
+            </CardDescription>
+          </CardHeader>
+        )}
         
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

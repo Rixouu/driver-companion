@@ -71,7 +71,19 @@ export async function POST(request: NextRequest) {
     // Generate magic link (if needed)
     let magicLink: string | null = null
     try {
-      const magicLinkResponse = await fetch(`${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/quotations/create-magic-link`, {
+      // Auto-detect environment from request headers for dynamic base URL
+      const host = request.headers.get('host') || '';
+      let baseUrl;
+      if (host.includes('localhost') || host.includes('127.0.0.1') || host.includes('3000')) {
+        baseUrl = 'http://localhost:3000';
+      } else if (host.includes('my.japandriver.com')) {
+        baseUrl = 'https://my.japandriver.com';
+      } else {
+        // Fallback to environment variables or default
+        baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://my.japandriver.com';
+      }
+      
+      const magicLinkResponse = await fetch(`${baseUrl}/api/quotations/create-magic-link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -181,7 +193,7 @@ export async function POST(request: NextRequest) {
       // Charter Services specific fields
       service_days: quotation.service_days || 1,
       hours_per_day: quotation.hours_per_day || 8,
-      service_type_charter: quotation.service_type?.toLowerCase().includes('charter') || false,
+      service_type_charter: (quotation.service_type?.toLowerCase().includes('charter') || false) ? 'true' : 'false',
       
       // Location and timing
       pickup_location: quotation.pickup_location || quotation.customer_notes || 'Pick up location',

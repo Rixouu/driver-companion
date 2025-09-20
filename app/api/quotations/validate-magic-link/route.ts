@@ -118,6 +118,14 @@ export async function POST(req: NextRequest) {
       .eq('id', quotationId)
       .single();
 
+    // Get customer billing information separately
+    console.log('🔍 [Validate Magic Link API] Querying customer data for quotation:', quotationId);
+    const { data: customer, error: customerError } = await supabase
+      .from('customers')
+      .select('address, billing_company_name, billing_street_name, billing_street_number, billing_city, billing_state, billing_postal_code, billing_country')
+      .eq('id', quotation.customer_id)
+      .single();
+
     console.log('🔍 [Validate Magic Link API] Quotation query result:', { quotation, quotationError });
 
     if (quotationError || !quotation) {
@@ -154,13 +162,14 @@ export async function POST(req: NextRequest) {
                     customer_name: quotation.customer_name,
                     customer_email: quotation.customer_email,
                     customer_phone: quotation.customer_phone,
+                    customer_address: customer?.address,
                     billing_company_name: quotation.billing_company_name,
                     billing_tax_number: quotation.billing_tax_number,
-                    billing_street_name: quotation.billing_street_name,
-                    billing_city: quotation.billing_city,
-                    billing_state: quotation.billing_state,
-                    billing_postal_code: quotation.billing_postal_code,
-                    billing_country: quotation.billing_country,
+                    billing_street_name: customer?.billing_street_name,
+                    billing_city: customer?.billing_city,
+                    billing_state: customer?.billing_state,
+                    billing_postal_code: customer?.billing_postal_code,
+                    billing_country: customer?.billing_country,
                     status: quotation.status,
                     quote_number: quotation.quote_number,
                     created_at: quotation.created_at,

@@ -54,6 +54,26 @@ export default async function CreateQuotationPage({ searchParams: searchParamsPr
   
   if (duplicateId) {
     try {
+      // Check if duplicateId is a beautiful URL format (QUO-JPDR-XXXXXX)
+      let actualQuotationId = duplicateId;
+      if (duplicateId.startsWith('QUO-JPDR-')) {
+        const quoteNumber = parseInt(duplicateId.replace('QUO-JPDR-', ''));
+        if (!isNaN(quoteNumber)) {
+          const { data: quotationData } = await supabase
+            .from('quotations')
+            .select('id')
+            .eq('quote_number', quoteNumber)
+            .single();
+          
+          if (quotationData) {
+            actualQuotationId = quotationData.id;
+          } else {
+            console.error('Quotation not found for quote number:', quoteNumber);
+            actualQuotationId = ''; // This will cause the fetch to fail gracefully
+          }
+        }
+      }
+      
       // Fetch the quotation AND any associated items to fully duplicate
       const { data: quotationData, error } = await supabase
         .from('quotations')
@@ -61,7 +81,7 @@ export default async function CreateQuotationPage({ searchParams: searchParamsPr
           *,
           quotation_items (*)
         `)
-        .eq('id', duplicateId)
+        .eq('id', actualQuotationId)
         .single();
       
       if (error) {

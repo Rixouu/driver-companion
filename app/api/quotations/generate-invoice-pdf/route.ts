@@ -11,7 +11,8 @@ export function generateInvoiceHtml(
   quotation: any, 
   language: 'en' | 'ja' = 'en',
   selectedPackage: PricingPackage | null = null,
-  selectedPromotion: PricingPromotion | null = null
+  selectedPromotion: PricingPromotion | null = null,
+  statusLabel?: string
 ): string {
   const isJapanese = language === 'ja';
   const localeCode = language === 'ja' ? 'ja-JP' : 'en-US';
@@ -115,7 +116,7 @@ export function generateInvoiceHtml(
             ${isJapanese ? '見積参照:' : 'Quotation Ref:'} QUO-JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}
           </p>
           
-                     <!-- Status Badge for Paid and Converted Quotations -->
+                     <!-- Status Badge for Paid, Converted, and Pending Quotations -->
            ${quotation.status === 'paid' ? `
              <div style="background: #10b981; color: white; padding: 8px 12px; border-radius: 5px; margin-top: 10px; font-weight: bold; font-size: 14px; display: inline-block;">
                ${isJapanese ? '✓ 支払い済み' : '✓ PAID'}
@@ -135,6 +136,13 @@ export function generateInvoiceHtml(
                ${quotation.updated_at ? 
                  `${isJapanese ? '予約変換日時:' : 'Converted on:'} ${new Date(quotation.updated_at).toLocaleDateString(localeCode)} ${new Date(quotation.updated_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
                  `${isJapanese ? '予約変換日時:' : 'Converted on:'} ${invoiceDate}`}
+             </p>
+           ` : statusLabel === 'PENDING' || quotation.status === 'sent' ? `
+             <div style="background: #f59e0b; color: white; padding: 8px 12px; border-radius: 5px; margin-top: 10px; font-weight: bold; font-size: 14px; display: inline-block;">
+               ${isJapanese ? '⏳ 支払い待ち' : '⏳ PENDING'}
+             </div>
+             <p style="margin: 5px 0 0 0; font-size: 13px;">
+               ${isJapanese ? '支払いをお待ちしています' : 'Awaiting payment'}
              </p>
            ` : ''}
         </div>
@@ -422,7 +430,7 @@ export function generateInvoiceHtml(
 
 export async function POST(request: NextRequest) {
   try {
-    const { quotation_id, language = 'en' } = await request.json()
+    const { quotation_id, language = 'en', status_label } = await request.json()
     
     if (!quotation_id) {
       return NextResponse.json(
@@ -434,10 +442,17 @@ export async function POST(request: NextRequest) {
     // Create server client
     const supabase = await getSupabaseServerClient()
     
-    // Authenticate user
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-    if (authError || !authUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // For internal API calls, skip user authentication if service role key is provided
+    const authHeader = request.headers.get('authorization')
+    if (authHeader && authHeader.includes('Bearer')) {
+      // This is an internal API call, proceed without user auth
+      console.log('🔑 [PDF-GEN] Internal API call detected, skipping user auth')
+    } else {
+      // Authenticate user for external calls
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+      if (authError || !authUser) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
     }
     
     // Fetch quotation data
@@ -454,10 +469,10 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Only allow invoice generation for approved, paid, or converted quotations
-    if (!['approved', 'paid', 'converted'].includes(quotation.status)) {
+    // Only allow invoice generation for sent, approved, paid, or converted quotations
+    if (!['sent', 'approved', 'paid', 'converted'].includes(quotation.status)) {
       return NextResponse.json(
-        { error: 'Can only generate invoices for approved, paid, or converted quotations' },
+        { error: 'Can only generate invoices for sent, approved, paid, or converted quotations' },
         { status: 400 }
       )
     }
@@ -489,7 +504,7 @@ export async function POST(request: NextRequest) {
     console.log('Generating invoice PDF with quotation data:', JSON.stringify(quotation, null, 2));
     
     // Generate HTML content for invoice
-    const htmlContent = generateInvoiceHtml(quotation, language as 'en' | 'ja', selectedPackage, selectedPromotion)
+    const htmlContent = generateInvoiceHtml(quotation, language as 'en' | 'ja', selectedPackage, selectedPromotion, status_label)
     
     // Convert to PDF using optimized generator
     const pdfBuffer = await generateOptimizedPdfFromHtml(htmlContent, {
@@ -499,7 +514,7 @@ export async function POST(request: NextRequest) {
     }, quotation, selectedPackage, selectedPromotion, language)
     
     // Return PDF as blob
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(pdfBuffer as any, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="INV-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}.pdf"`

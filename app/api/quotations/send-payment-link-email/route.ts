@@ -21,6 +21,8 @@ export async function POST(request: NextRequest) {
     const email = formData.get('email') as string
     const language = (formData.get('language') as string) || 'en'
     const bccEmails = formData.get('bcc_emails') as string || 'booking@japandriver.com'
+    const paymentLinkFromForm = formData.get('payment_link') as string
+    const invoicePdf = formData.get('invoice_pdf') as File
 
     if (!quotationId) {
       return NextResponse.json({ error: 'Quotation ID is required' }, { status: 400 })
@@ -69,27 +71,32 @@ export async function POST(request: NextRequest) {
       selectedPromotion = promotionData as PricingPromotion | null
     }
 
-    // Generate payment link for invoice (customer hasn't paid yet)
-    let paymentLink: string | null = null
-    try {
-      console.log('🔍 [SEND-PAYMENT-LINK-EMAIL] Calling payment link generation with quotationId:', quotationId)
-      const paymentLinkResponse = await fetch(`${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/quotations/generate-omise-payment-link`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          quotation_id: quotationId
+    // Use payment link from form if provided, otherwise try to generate one
+    let paymentLink: string | null = paymentLinkFromForm || null
+    
+    if (!paymentLink) {
+      try {
+        console.log('🔍 [SEND-PAYMENT-LINK-EMAIL] Calling payment link generation with quotationId:', quotationId)
+        const paymentLinkResponse = await fetch(`${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/quotations/generate-omise-payment-link`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            quotation_id: quotationId
+          })
         })
-      })
-      
-      if (paymentLinkResponse.ok) {
-        const paymentLinkData = await paymentLinkResponse.json()
-        paymentLink = paymentLinkData.paymentUrl || paymentLinkData.payment_link
-        console.log('✅ [MIGRATED-INVOICE-API] Payment link generated:', paymentLink)
-      } else {
-        console.error('❌ [MIGRATED-INVOICE-API] Payment link generation failed:', await paymentLinkResponse.text())
+        
+        if (paymentLinkResponse.ok) {
+          const paymentLinkData = await paymentLinkResponse.json()
+          paymentLink = paymentLinkData.paymentUrl || paymentLinkData.payment_link
+          console.log('✅ [MIGRATED-INVOICE-API] Payment link generated:', paymentLink)
+        } else {
+          console.error('❌ [MIGRATED-INVOICE-API] Payment link generation failed:', await paymentLinkResponse.text())
+        }
+      } catch (error) {
+        console.warn('⚠️ [MIGRATED-INVOICE-API] Could not generate payment link:', error)
       }
-    } catch (error) {
-      console.warn('⚠️ [MIGRATED-INVOICE-API] Could not generate payment link:', error)
+    } else {
+      console.log('✅ [MIGRATED-INVOICE-API] Using payment link from form:', paymentLink)
     }
 
     // Generate magic link as well
@@ -265,9 +272,40 @@ export async function POST(request: NextRequest) {
 
     console.log('🔄 [UNIFIED-EMAIL-API] Using direct template service')
     
-    // Skip PDF generation for now to improve performance
-    console.log('🔄 [MIGRATED-INVOICE-API] Skipping PDF generation for performance')
+    // Generate PDF with proper status labels
     let pdfAttachment = null
+    try {
+      console.log('🔄 [MIGRATED-INVOICE-API] Generating invoice PDF with status labels')
+      
+      // Generate PDF using the same logic as approved quotations
+      const pdfResponse = await fetch(`${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/quotations/generate-invoice-pdf`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` // Add auth header
+        },
+        body: JSON.stringify({
+          quotation_id: quotationId,
+          language: language,
+          include_details: true,
+          status_label: quotation.status === 'paid' ? 'PAID' : 'PENDING' // Add status label
+        })
+      })
+      
+      if (pdfResponse.ok) {
+        const pdfBuffer = await pdfResponse.arrayBuffer()
+        pdfAttachment = {
+          filename: `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || '000000'}.pdf`,
+          content: Buffer.from(pdfBuffer),
+          contentType: 'application/pdf'
+        }
+        console.log('✅ [MIGRATED-INVOICE-API] PDF generated successfully:', pdfBuffer.byteLength, 'bytes')
+      } else {
+        console.error('❌ [MIGRATED-INVOICE-API] PDF generation failed:', await pdfResponse.text())
+      }
+    } catch (error) {
+      console.error('❌ [MIGRATED-INVOICE-API] PDF generation error:', error)
+    }
     
     // Render the template using emailTemplateService directly - Use Invoice Email template
     const rendered = await emailTemplateService.renderTemplate(

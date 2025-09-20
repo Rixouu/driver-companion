@@ -212,8 +212,14 @@ export async function POST(request: NextRequest) {
       total_amount: quotation.total_amount || 0,
       amount: quotation.total_amount || 0,
       currency: quotation.currency || 'JPY',
-      service_total: quotation.total_amount || 0,
+      service_total: quotation.amount || quotation.total_amount || 0,
       final_total: quotation.total_amount || 0,
+      
+      // Tax and discount information
+      tax_percentage: quotation.tax_percentage || 0,
+      tax_amount: quotation.total_amount * ((quotation.tax_percentage || 0) / 100),
+      promotion_discount: quotation.promotion_discount || 0,
+      discount_percentage: quotation.discount_percentage || 0,
       
       // Important dates
       expiry_date: quotation.expiry_date || '2025-10-15',
@@ -236,17 +242,19 @@ export async function POST(request: NextRequest) {
       // Invoice dates (issue and due dates) - Due date is 2 days from now
       issue_date: (() => {
         const date = new Date()
-        const day = date.getDate().toString().padStart(2, '0')
-        const month = (date.getMonth() + 1).toString().padStart(2, '0')
-        const year = date.getFullYear()
-        return `${day}/${month}/${year}`
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
       })(),
       due_date: (() => {
         const date = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) // 2 days from now
-        const day = date.getDate().toString().padStart(2, '0')
-        const month = (date.getMonth() + 1).toString().padStart(2, '0')
-        const year = date.getFullYear()
-        return `${day}/${month}/${year}`
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
       })(),
       
       // Greeting message - Invoice specific (payment required)
@@ -257,47 +265,9 @@ export async function POST(request: NextRequest) {
 
     console.log('🔄 [UNIFIED-EMAIL-API] Using direct template service')
     
-    // Generate invoice PDF attachment using existing professional system
-    console.log('🔄 [MIGRATED-INVOICE-API] Generating invoice PDF attachment using existing system')
+    // Skip PDF generation for now to improve performance
+    console.log('🔄 [MIGRATED-INVOICE-API] Skipping PDF generation for performance')
     let pdfAttachment = null
-    try {
-      // Get customers and quotation_items for proper invoice generation (same as existing system)
-      const supabaseForPdf = createServiceClient()
-      const { data: quotationWithRelations, error: fetchError } = await supabaseForPdf
-        .from('quotations')
-        .select('*, customers (*), quotation_items (*)')
-        .eq('id', quotationId)
-        .single()
-
-      if (fetchError || !quotationWithRelations) {
-        throw new Error(`Failed to fetch quotation data: ${fetchError?.message}`)
-      }
-
-      // Use the EXISTING generateInvoiceHtml function - same as the professional system
-      const htmlContent = generateInvoiceHtml(
-        quotationWithRelations,
-        language as 'en' | 'ja',
-        selectedPackage,
-        selectedPromotion
-      )
-      
-      // Use the same PDF generation as the existing system
-      const pdfBuffer = await generateOptimizedPdfFromHtml(htmlContent, {
-        format: 'A4',
-        margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },
-        printBackground: true
-      }, quotationWithRelations, selectedPackage, selectedPromotion, language)
-      
-      pdfAttachment = {
-        filename: `INV-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || quotation.id.slice(-6).toUpperCase()}.pdf`,
-        content: pdfBuffer,
-        contentType: 'application/pdf'
-      }
-      console.log('✅ [MIGRATED-INVOICE-API] Professional invoice PDF attachment generated:', pdfAttachment.filename)
-    } catch (error) {
-      console.warn('⚠️ [MIGRATED-INVOICE-API] Could not generate professional invoice PDF attachment:', error)
-      console.error('PDF generation error details:', error)
-    }
     
     // Render the template using emailTemplateService directly - Use Invoice Email template
     const rendered = await emailTemplateService.renderTemplate(
@@ -323,7 +293,7 @@ export async function POST(request: NextRequest) {
       subject: language === 'ja' ? `インボイス - お支払いをお願いいたします - #${templateVariables.quotation_id}` : `Invoice - Payment Required - #${templateVariables.quotation_id}`,
       html: rendered.html,
       text: rendered.text,
-      ...(pdfAttachment && { attachments: [pdfAttachment] })
+      ...(pdfAttachment ? { attachments: [pdfAttachment] } : {})
     }
 
     console.log('🔄 [UNIFIED-EMAIL-API] Sending email')

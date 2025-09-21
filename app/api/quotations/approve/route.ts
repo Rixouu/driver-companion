@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const quotationId = formData.get('quotation_id') as string
     const email = formData.get('email') as string
     const language = (formData.get('language') as string) || 'en'
-    const bccEmails = formData.get('bcc_emails') as string || 'booking@japandriver.com'
+    const bccEmails = formData.get('bcc_emails') as string || 'admin.rixou@gmail.com'
 
     if (!quotationId) {
       return NextResponse.json({ error: 'Quotation ID is required' }, { status: 400 })

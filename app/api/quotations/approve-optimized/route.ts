@@ -94,8 +94,8 @@ export async function POST(request: NextRequest) {
       .insert({
         quotation_id: quotationId,
         action: 'approved',
-        description: notes || 'Quotation approved',
-        metadata: {
+        details: {
+          description: notes || 'Quotation approved',
           signature: signature || null,
           approved_via: 'admin_panel'
         },

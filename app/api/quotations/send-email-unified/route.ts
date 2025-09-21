@@ -243,6 +243,10 @@ export async function POST(request: NextRequest) {
           const hours = quotation.hours_per_day || 8;
           return `(${days} ${language === 'ja' ? '日間' : 'day(s)'} × ${hours} ${language === 'ja' ? '時間/日' : 'h/day'})`;
         }
+        // For Airport Transfer services, show "Fixed rates"
+        if (quotation.service_type?.toLowerCase().includes('airport')) {
+          return language === 'ja' ? '（固定料金）' : '（Fixed rates）';
+        }
         return '';
       })(),
       
@@ -289,6 +293,10 @@ export async function POST(request: NextRequest) {
         ? 'Thank you for your interest in our services. Please find your updated quotation below.'
         : 'Thank you for your interest in our services. Please find your quotation below.'
     }
+
+    // Debug: Log the service_days_display value
+    console.log('🔍 [UNIFIED-EMAIL-API] service_days_display value:', templateVariables.service_days_display);
+    console.log('🔍 [UNIFIED-EMAIL-API] service_type:', quotation.service_type);
 
     console.log('🔄 [UNIFIED-EMAIL-API] Using direct template service')
     

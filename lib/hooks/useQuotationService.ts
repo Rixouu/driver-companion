@@ -195,14 +195,24 @@ export const useQuotationService = () => {
       console.log(`🔍 [PRICING] Duration Hours: ${durationHours}`);
       console.log(`🔍 [PRICING] Selected Vehicle:`, selectedVehicle);
       
-      // Try to fetch price from database first using vehicle_id
+      // Check if selectedVehicle.id is a valid UUID
+      const isValidUUID = selectedVehicle?.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedVehicle.id);
+      
+      // Try to fetch price from database first using vehicle_id (only if it's a valid UUID)
       let query = supabase
         .from('pricing_items')
         .select('*')
         .eq('service_type_id', serviceTypeId)
-        .eq('vehicle_id', selectedVehicle?.id || '') // Use vehicle_id instead of vehicle_type
         .eq('duration_hours', durationHours)
         .eq('is_active', true);
+      
+      // Only filter by vehicle_id if it's a valid UUID
+      if (isValidUUID) {
+        query = query.eq('vehicle_id', selectedVehicle.id);
+        console.log(`🔍 [PRICING] Filtering by vehicle ID: "${selectedVehicle.id}"`);
+      } else {
+        console.log(`⚠️ [PRICING] Invalid vehicle ID format: "${selectedVehicle?.id}", skipping vehicle filter`);
+      }
       
       // If vehicle category is provided, filter by it
       if (vehicleCategory) {
@@ -216,6 +226,8 @@ export const useQuotationService = () => {
       
       if (pricingError) {
         console.error(`❌ [PRICING] Database error:`, pricingError);
+        // If there's a database error, continue with fallback pricing
+        console.log(`🔄 [PRICING] Continuing with fallback pricing due to database error`);
       }
       
       console.log(`🔍 [PRICING] Query results: ${pricingItems?.length || 0} items found`);

@@ -15,6 +15,7 @@ import { useProgressSteps } from '@/lib/hooks/useProgressSteps';
 import { progressConfigs } from '@/lib/config/progressConfigs';
 import { useCurrency } from '@/lib/services/currency-service';
 import { CurrencySelector } from '@/components/ui/currency-selector';
+import { getQuotationUrl, getQuotationEditUrl } from '@/lib/utils/quotation-url';
 import { 
   ArrowLeft,
   Calendar,
@@ -529,7 +530,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 <QuotationShareButtons quotation={quotation} />
                 {isOrganizationMember && !['approved', 'rejected', 'converted', 'paid'].includes(quotation.status) && (
                   <Button variant="outline" asChild className="w-full sm:w-auto gap-2">
-                    <Link href={`/quotations/${quotation.id}/edit`}>
+                    <Link href={getQuotationEditUrl(quotation) as any}>
                       <Edit className="h-4 w-4" />
                       {t('quotations.actions.edit')}
                     </Link>
@@ -1395,6 +1396,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     const success = response.ok;
                     
                     if (success) {
+                      const responseData = await response.json();
+                      console.log('✅ [APPROVAL] API Response:', responseData);
                       toast({
                         title: t('quotations.notifications.approveSuccess'),
                         variant: 'default',
@@ -1403,6 +1406,10 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                         setProgressOpen(false);
                         router.refresh();
                       }, 500);
+                    } else {
+                      const errorData = await response.json();
+                      console.error('❌ [APPROVAL] API Error:', response.status, errorData);
+                      throw new Error(`API Error: ${response.status} - ${errorData.error || 'Unknown error'}`);
                     }
                   } catch (error) {
                     console.error('Error approving quotation:', error);

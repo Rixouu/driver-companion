@@ -25,7 +25,9 @@ import { useMediaQuery } from '@/lib/hooks/use-media-query';
 import LoadingSpinner from '@/components/shared/loading-spinner';
 import { TeamSwitcher } from '@/components/team-switcher';
 import LoadingModal from '@/components/ui/loading-modal';
-import { useProgressSteps } from '@/lib/hooks/useProgressSteps';
+import { useProgressSteps } from '@/lib/hooks/useProgressSteps'
+import { useCountdownToast } from '@/lib/hooks/useCountdownToast'
+import { CountdownToast } from '@/components/ui/countdown-toast';
 import { progressConfigs } from '@/lib/config/progressConfigs';
 
 // Import step components
@@ -529,10 +531,8 @@ export default function QuotationFormRefactored({
             setProgressTitle('Sending Quotation');
             setProgressSteps(progressConfigs.sendEmail.steps);
             
-            // Start progress simulation and API call in parallel
-            const progressPromise = startProgress(progressConfigs.sendEmail);
-            
-            const emailResponse = await fetch('/api/quotations/send-email-unified', {
+            // Start API call first
+            const emailResponsePromise = fetch('/api/quotations/send-email-unified', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -545,15 +545,35 @@ export default function QuotationFormRefactored({
               }),
             });
             
+            // Start progress simulation with API promise
+            const progressPromise = startProgress(progressConfigs.sendEmail, emailResponsePromise);
+            
+            // Wait for both to complete
+            const [emailResponse] = await Promise.all([emailResponsePromise, progressPromise]);
+            
             if (!emailResponse.ok) {
               throw new Error('Failed to send quotation email');
             }
             
-            // Wait for progress animation to complete
-            await progressPromise;
-            
             advance('Emailing customer');
             setProgressOpen(false); // Close modal after email is sent
+            
+            // Show countdown toast for redirection
+            if (result) {
+              const beautifulUrl = result.quote_number 
+                ? `/quotations/QUO-JPDR-${result.quote_number.toString().padStart(6, '0')}`
+                : `/quotations/${result.id}`;
+              
+              showCountdownToast({
+                message: "Quotation sent successfully!",
+                redirectUrl: beautifulUrl,
+                duration: 3
+              });
+              
+              if (onSuccess) {
+                onSuccess(result);
+              }
+            }
             // Don't show toast here - let the parent component handle it
           }
         } else {
@@ -575,10 +595,8 @@ export default function QuotationFormRefactored({
             setProgressTitle('Sending Quotation');
             setProgressSteps(progressConfigs.sendEmail.steps);
             
-            // Start progress simulation and API call in parallel
-            const progressPromise = startProgress(progressConfigs.sendEmail);
-            
-            const emailResponse = await fetch('/api/quotations/send-email-unified', {
+            // Start API call first
+            const emailResponsePromise = fetch('/api/quotations/send-email-unified', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -591,15 +609,35 @@ export default function QuotationFormRefactored({
               }),
             });
             
+            // Start progress simulation with API promise
+            const progressPromise = startProgress(progressConfigs.sendEmail, emailResponsePromise);
+            
+            // Wait for both to complete
+            const [emailResponse] = await Promise.all([emailResponsePromise, progressPromise]);
+            
             if (!emailResponse.ok) {
               throw new Error('Failed to send quotation email');
             }
             
-            // Wait for progress animation to complete
-            await progressPromise;
-            
             advance('Emailing customer');
             setProgressOpen(false); // Close modal after email is sent
+            
+            // Show countdown toast for redirection
+            if (result) {
+              const beautifulUrl = result.quote_number 
+                ? `/quotations/QUO-JPDR-${result.quote_number.toString().padStart(6, '0')}`
+                : `/quotations/${result.id}`;
+              
+              showCountdownToast({
+                message: "Quotation sent successfully!",
+                redirectUrl: beautifulUrl,
+                duration: 3
+              });
+              
+              if (onSuccess) {
+                onSuccess(result);
+              }
+            }
             // Don't show toast here - let the parent component handle it
           }
         }
@@ -613,10 +651,8 @@ export default function QuotationFormRefactored({
             setProgressTitle('Sending Quotation');
             setProgressSteps(progressConfigs.sendEmail.steps);
             
-            // Start progress simulation and API call in parallel
-            const progressPromise = startProgress(progressConfigs.sendEmail);
-            
-            const emailResponse = await fetch('/api/quotations/send-email-unified', {
+            // Start API call first
+            const emailResponsePromise = fetch('/api/quotations/send-email-unified', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -629,15 +665,35 @@ export default function QuotationFormRefactored({
               }),
             });
             
+            // Start progress simulation with API promise
+            const progressPromise = startProgress(progressConfigs.sendEmail, emailResponsePromise);
+            
+            // Wait for both to complete
+            const [emailResponse] = await Promise.all([emailResponsePromise, progressPromise]);
+            
             if (!emailResponse.ok) {
               throw new Error('Failed to send quotation email');
             }
             
-            // Wait for progress animation to complete
-            await progressPromise;
-            
             advance('Emailing customer');
             setProgressOpen(false); // Close modal after email is sent
+            
+            // Show countdown toast for redirection
+            if (result) {
+              const beautifulUrl = result.quote_number 
+                ? `/quotations/QUO-JPDR-${result.quote_number.toString().padStart(6, '0')}`
+                : `/quotations/${result.id}`;
+              
+              showCountdownToast({
+                message: "Quotation sent successfully!",
+                redirectUrl: beautifulUrl,
+                duration: 3
+              });
+              
+              if (onSuccess) {
+                onSuccess(result);
+              }
+            }
             // Don't show toast here - let the parent component handle it
           }
         } else {
@@ -657,10 +713,8 @@ export default function QuotationFormRefactored({
             setProgressTitle('Sending Quotation');
             setProgressSteps(progressConfigs.sendEmail.steps);
             
-            // Start progress simulation and API call in parallel
-            const progressPromise = startProgress(progressConfigs.sendEmail);
-            
-            const emailResponse = await fetch('/api/quotations/send-email-unified', {
+            // Start API call first
+            const emailResponsePromise = fetch('/api/quotations/send-email-unified', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -673,29 +727,41 @@ export default function QuotationFormRefactored({
               }),
             });
             
+            // Start progress simulation with API promise
+            const progressPromise = startProgress(progressConfigs.sendEmail, emailResponsePromise);
+            
+            // Wait for both to complete
+            const [emailResponse] = await Promise.all([emailResponsePromise, progressPromise]);
+            
             if (!emailResponse.ok) {
               throw new Error('Failed to send quotation email');
             }
             
-            // Wait for progress animation to complete
-            await progressPromise;
-            
             advance('Emailing customer');
             setProgressOpen(false); // Close modal after email is sent
+            
+            // Show countdown toast for redirection
+            if (result) {
+              const beautifulUrl = result.quote_number 
+                ? `/quotations/QUO-JPDR-${result.quote_number.toString().padStart(6, '0')}`
+                : `/quotations/${result.id}`;
+              
+              showCountdownToast({
+                message: "Quotation sent successfully!",
+                redirectUrl: beautifulUrl,
+                duration: 3
+              });
+              
+              if (onSuccess) {
+                onSuccess(result);
+              }
+            }
             // Don't show toast here - let the parent component handle it
           }
         }
       }
 
-      if (result && onSuccess) {
-        onSuccess(result);
-      } else if (result) {
-        // Use beautiful URL format instead of UUID
-        const beautifulUrl = result.quote_number 
-          ? `/quotations/QUO-JPDR-${result.quote_number.toString().padStart(6, '0')}`
-          : `/quotations/${result.id}`;
-        router.push(beautifulUrl as any);
-      }
+      // Redirection is now handled immediately after email sending
       
       // Wait for progress animation to complete for draft saving
       if (progressPromise) {
@@ -740,6 +806,13 @@ export default function QuotationFormRefactored({
   const [progressTitle, setProgressTitle] = useState('Saving');
   const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice'>('default');
   const { progressValue, progressLabel, progressSteps, setProgressSteps, startProgress, resetProgress } = useProgressSteps();
+  
+  const { 
+    isVisible: isCountdownVisible, 
+    toastConfig, 
+    showCountdownToast, 
+    handleComplete: handleCountdownComplete 
+  } = useCountdownToast();
   
   // Team selection state
   const [currentTeam, setCurrentTeam] = useState<'japan' | 'thailand'>(
@@ -962,6 +1035,15 @@ export default function QuotationFormRefactored({
         showSteps={progressSteps.length > 0}
         steps={progressSteps}
         onOpenChange={setProgressOpen}
+      />
+
+      {/* Countdown Toast for Redirection */}
+      <CountdownToast
+        isVisible={isCountdownVisible}
+        onComplete={handleCountdownComplete}
+        message={toastConfig.message}
+        redirectUrl={toastConfig.redirectUrl}
+        duration={toastConfig.duration}
       />
 
       {/* BCC Dialog */}

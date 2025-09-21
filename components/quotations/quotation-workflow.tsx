@@ -12,7 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import LoadingModal from '@/components/ui/loading-modal';
-import { useProgressSteps } from '@/lib/hooks/useProgressSteps';
+import { useProgressSteps } from '@/lib/hooks/useProgressSteps'
+import { useCountdownToast } from '@/lib/hooks/useCountdownToast'
+import { CountdownToast } from '@/components/ui/countdown-toast';
 import { progressConfigs } from '@/lib/config/progressConfigs';
 import { useI18n } from '@/lib/i18n/context';
 import { cn } from '@/lib/utils';
@@ -182,9 +184,6 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     setProgressTitle('Sending Quotation');
     
     try {
-      // Start progress simulation and API call in parallel
-      const progressPromise = startProgress(progressConfigs.sendEmail);
-      
       // Use the new unified email system
       const formData = new FormData();
       formData.append('email', emailToSend!);
@@ -192,13 +191,16 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       formData.append('language', sendQuotationLanguage);
       formData.append('bcc_emails', sendQuotationBccEmails);
 
-      const response = await fetch('/api/quotations/send-email-unified', {
+      const responsePromise = fetch('/api/quotations/send-email-unified', {
         method: 'POST',
         body: formData,
       });
       
+      // Start progress simulation with API promise
+      const progressPromise = startProgress(progressConfigs.sendEmail, responsePromise);
+      
       // Wait for both progress animation and API call to complete
-      await Promise.all([progressPromise, response]);
+      const [response] = await Promise.all([responsePromise, progressPromise]);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -208,6 +210,13 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       // Don't show toast here - let the parent component handle it
       setProgressOpen(false);
       setIsSendQuotationDialogOpen(false);
+      
+      // Show countdown toast for redirection
+      showCountdownToast({
+        message: "Quotation sent successfully!",
+        redirectUrl: `/quotations/${quotation.id}`,
+        duration: 3
+      });
       
       // Refresh the page to show updated status
       if (onRefresh) {
@@ -238,6 +247,13 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
   const [progressTitle, setProgressTitle] = useState('Processing');
   const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice'>('default');
   const { progressValue, progressLabel, progressSteps, startProgress, resetProgress } = useProgressSteps();
+  
+  const { 
+    isVisible: isCountdownVisible, 
+    toastConfig, 
+    showCountdownToast, 
+    handleComplete: handleCountdownComplete 
+  } = useCountdownToast();
 
   // Handle sending payment link
   const handleSendPaymentLink = async () => {
@@ -1399,6 +1415,15 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         label={progressLabel}
         steps={progressSteps}
         showSteps={true}
+      />
+
+      {/* Countdown Toast for Redirection */}
+      <CountdownToast
+        isVisible={isCountdownVisible}
+        onComplete={handleCountdownComplete}
+        message={toastConfig.message}
+        redirectUrl={toastConfig.redirectUrl}
+        duration={toastConfig.duration}
       />
 
       {/* Mark As Paid Dialog */}

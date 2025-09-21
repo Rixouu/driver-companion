@@ -172,15 +172,22 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
                 value={value} 
                 className="h-3 bg-muted/50"
               />
-              {/* Progress glow effect */}
+              {/* Enhanced progress glow effect with shimmer */}
               {value > 0 && (
-                <div 
-                  className={cn(
-                    "absolute top-0 left-0 h-3 rounded-full opacity-30 blur-sm",
-                    config.progressColor
-                  )} 
-                  style={{ width: `${value}%` }} 
-                />
+                <>
+                  <div 
+                    className={cn(
+                      "absolute top-0 left-0 h-3 rounded-full opacity-40 blur-sm transition-all duration-500",
+                      config.progressColor
+                    )} 
+                    style={{ width: `${value}%` }} 
+                  />
+                  {/* Shimmer effect */}
+                  <div 
+                    className="absolute top-0 left-0 h-3 rounded-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"
+                    style={{ width: `${value}%` }}
+                  />
+                </>
               )}
             </div>
           </div>

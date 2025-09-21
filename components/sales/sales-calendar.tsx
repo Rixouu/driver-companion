@@ -30,6 +30,7 @@ import {
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { EventsFilter, EventsFilterOptions } from "./events-filter"
 import { useAutoScroll } from "@/lib/hooks/use-auto-scroll"
+import { getQuotationUrl } from '@/lib/utils/quotation-url'
 
 interface SalesEvent {
   id: string
@@ -663,7 +664,7 @@ export function SalesCalendar({ quotations = [], bookings = [], users = [] }: Sa
                     {event.service_type || 'Standard Service'}
                   </p>
                   <Button size="sm" variant="outline" asChild>
-                    <Link href={`/${event.type === 'quotation' ? 'quotations' : 'bookings'}/${event.id}`}>
+                    <Link href={event.type === 'quotation' ? getQuotationUrl(event) as any : `/bookings/${event.id}`}>
                       <Eye className="h-3 w-3" />
                     </Link>
                   </Button>
@@ -749,7 +750,7 @@ export function SalesCalendar({ quotations = [], bookings = [], users = [] }: Sa
                     </TableCell>
                     <TableCell>
                       <Button size="sm" variant="outline" asChild>
-                        <Link href={`/${event.type === 'quotation' ? 'quotations' : 'bookings'}/${event.id}`}>
+                        <Link href={event.type === 'quotation' ? getQuotationUrl(event) as any : `/bookings/${event.id}`}>
                           <Eye className="h-3 w-3" />
                         </Link>
                       </Button>
@@ -997,7 +998,7 @@ export function SalesCalendar({ quotations = [], bookings = [], users = [] }: Sa
                 <CardContent className="space-y-2 p-3">
                   {selectedDateEvents.length > 0 ? (
                     paginatedSidebarEvents.map((event) => (
-                      <Link key={`${event.type}-${event.id}`} href={`/${event.type === 'quotation' ? 'quotations' : 'bookings'}/${event.id}`} className="block">
+                      <Link key={`${event.type}-${event.id}`} href={event.type === 'quotation' ? getQuotationUrl(event) as any : `/bookings/${event.id}`} className="block">
                         <div className="border rounded-lg p-3 space-y-2 hover:bg-muted/50 transition-colors cursor-pointer">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">

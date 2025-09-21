@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
 import { cn } from '@/lib/utils'
 import { EventsFilter, EventsFilterOptions } from './events-filter'
+import { getQuotationUrl } from '@/lib/utils/quotation-url'
 
 interface SalesEvent {
   id: string
@@ -437,7 +438,7 @@ export function DateEventsPage({ date }: DateEventsPageProps) {
               </div>
               
               <Button asChild className="w-full sm:w-auto">
-                <Link href={`/${event.type === 'quotation' ? 'quotations' : 'bookings'}/${event.id}`}>
+                <Link href={event.type === 'quotation' ? getQuotationUrl(event) as any : `/bookings/${event.id}`}>
                   <Eye className="h-4 w-4 mr-2" />
                   View Details
                 </Link>

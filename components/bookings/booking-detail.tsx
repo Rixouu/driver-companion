@@ -12,6 +12,7 @@ import { useI18n } from '@/lib/i18n/context'
 import { getStatusBadgeClasses } from '@/lib/utils/styles'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import { getQuotationUrl } from '@/lib/utils/quotation-url'
 
 interface BookingDetailProps {
   booking: Booking
@@ -189,7 +190,7 @@ export function BookingDetail({ booking }: BookingDetailProps) {
                     <div className="sm:col-span-2">
                       <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">From Quotation</dt>
                       <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                        <Link href={`/quotations/${booking.meta.quotation_id}`} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                        <Link href={getQuotationUrl({ id: booking.meta.quotation_id, quote_number: booking.meta.quote_number }) as any} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
                           View Original Quotation
                         </Link>
                       </dd>

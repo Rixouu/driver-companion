@@ -101,6 +101,38 @@ export class EmailTemplateService {
           }
         })
 
+        // Handle {{#each}} blocks
+        processedContent = processedContent.replace(/\{\{#each\s+([^}]+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (match, arrayName, blockContent) => {
+          try {
+            const array = (allVariables as any)[arrayName.trim()]
+            if (!Array.isArray(array) || array.length === 0) {
+              return ''
+            }
+            
+            return array.map((item: any) => {
+              let itemContent = blockContent
+              // Replace variables within the each block with item properties
+              itemContent = itemContent.replace(/\{\{([^}]+)\}\}/g, (varMatch: string, expression: string) => {
+                const expr = expression.trim()
+                // Handle nested properties like item.property
+                if (expr.includes('.')) {
+                  const parts = expr.split('.')
+                  let value = item
+                  for (const part of parts) {
+                    value = value?.[part]
+                  }
+                  return value !== undefined ? String(value) : ''
+                }
+                return item[expr] !== undefined ? String(item[expr]) : ''
+              })
+              return itemContent
+            }).join('')
+          } catch (error) {
+            console.warn('Handlebars each block error:', error, 'for array:', arrayName)
+            return ''
+          }
+        })
+
         // Then handle simple variable replacement
         return processedContent.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
           try {

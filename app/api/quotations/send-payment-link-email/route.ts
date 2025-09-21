@@ -34,11 +34,11 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔄 [UNIFIED-EMAIL-API] Processing quotation ${quotationId} for ${email}`)
 
-    // Get quotation data
+    // Get quotation data with quotation_items
     const supabase = createServiceClient()
     const { data: quotation, error: quotationError } = await supabase
       .from('quotations')
-      .select('*')
+      .select('*, quotation_items (*)')
       .eq('id', quotationId)
       .single()
 
@@ -151,9 +151,9 @@ export async function POST(request: NextRequest) {
       service_days: quotation.service_days || 1,
       hours_per_day: quotation.hours_per_day || quotation.duration_hours || 1,
       
-      // Fix field name mismatches
-      pickup_location: quotation.pickup_location || `${quotation.customer_notes || 'Pick up location'}`,
-      dropoff_location: quotation.dropoff_location || `${quotation.merchant_notes || 'Drop off location'}`,
+      // Fix field name mismatches - only use actual locations
+      pickup_location: quotation.pickup_location || '',
+      dropoff_location: quotation.dropoff_location || '',
       date: quotation.pickup_date,
       time: quotation.pickup_time,
       
@@ -208,10 +208,12 @@ export async function POST(request: NextRequest) {
       service_name: quotation.service_type || 'Transportation Service',
       vehicle_type: quotation.vehicle_type || 'Standard Vehicle',
       duration_hours: quotation.duration_hours || 1,
+      service_days: quotation.service_days || 1,
+      hours_per_day: quotation.hours_per_day || quotation.duration_hours || 1,
       
-      // Location and timing
-      pickup_location: quotation.pickup_location || quotation.customer_notes || 'Pick up location',
-      dropoff_location: quotation.dropoff_location || quotation.merchant_notes || 'Drop off location', 
+      // Location and timing - only use actual locations, not notes
+      pickup_location: quotation.pickup_location || '',
+      dropoff_location: quotation.dropoff_location || '', 
       date: quotation.pickup_date || 'TBD',
       time: quotation.pickup_time || 'TBD',
       
@@ -267,18 +269,63 @@ export async function POST(request: NextRequest) {
       // Greeting message - Invoice specific (payment required)
       greeting_text: language === 'ja' 
         ? 'インボイスをお送りいたします。下記のリンクからお支払いをお願いいたします。'
-        : 'Please find your invoice below. You can complete your payment using the link provided.'
+        : 'Please find your invoice below. You can complete your payment using the link provided.',
+      
+      // Add computed totals for PDF generation (override existing values)
+      regular_discount: quotation.amount * ((quotation.discount_percentage || 0) / 100)
     }
 
     console.log('🔄 [UNIFIED-EMAIL-API] Using direct template service')
+    
+    // Add currency formatting helper to template variables
+    const formatCurrency = (value: number, currency: string = 'JPY'): string => {
+      if (!value) return currency === 'JPY' ? `¥0` : `${currency} 0`;
+      
+      if (currency === 'JPY') {
+        return `¥${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+      } else if (currency === 'THB') {
+        return `฿${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+      } else {
+        return `${currency} ${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+      }
+    };
+    
+    // Add formatCurrency helper and quotation_items to template variables (cast to any to bypass type checking)
+    (templateVariables as any).formatCurrency = formatCurrency;
+    (templateVariables as any).quotation_items = (quotation.quotation_items || []).map((item: any) => ({
+      ...item,
+      // Ensure proper formatting for template
+      unit_price: item.unit_price || 0,
+      total_price: item.total_price || 0,
+      quantity: item.quantity || 1,
+      service_days: item.service_days || 1,
+      duration_hours: item.duration_hours || 0,
+      pickup_date: item.pickup_date || quotation.pickup_date,
+      pickup_time: item.pickup_time || quotation.pickup_time
+    }));
     
     // Generate PDF with proper status labels
     let pdfAttachment = null
     try {
       console.log('🔄 [MIGRATED-INVOICE-API] Generating invoice PDF with status labels')
+      console.log('🔍 [MIGRATED-INVOICE-API] Quotation status:', quotation.status)
+      console.log('🔍 [MIGRATED-INVOICE-API] Quotation ID:', quotationId)
       
       // Generate PDF using the same logic as approved quotations
-      const pdfResponse = await fetch(`${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/quotations/generate-invoice-pdf`, {
+      // Auto-detect environment from request headers for dynamic base URL
+      const host = request.headers.get('host') || '';
+      let baseUrl;
+      if (host.includes('localhost') || host.includes('127.0.0.1') || host.includes('3000')) {
+        baseUrl = 'http://localhost:3000';
+      } else if (host.includes('my.japandriver.com')) {
+        baseUrl = 'https://my.japandriver.com';
+      } else {
+        baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://my.japandriver.com';
+      }
+      
+      console.log('🔍 [MIGRATED-INVOICE-API] Using base URL:', baseUrl)
+      
+      const pdfResponse = await fetch(`${baseUrl}/api/quotations/generate-invoice-pdf`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -287,10 +334,11 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           quotation_id: quotationId,
           language: language,
-          include_details: true,
           status_label: quotation.status === 'paid' ? 'PAID' : 'PENDING' // Add status label
         })
       })
+      
+      console.log('🔍 [MIGRATED-INVOICE-API] PDF response status:', pdfResponse.status)
       
       if (pdfResponse.ok) {
         const pdfBuffer = await pdfResponse.arrayBuffer()
@@ -301,7 +349,9 @@ export async function POST(request: NextRequest) {
         }
         console.log('✅ [MIGRATED-INVOICE-API] PDF generated successfully:', pdfBuffer.byteLength, 'bytes')
       } else {
-        console.error('❌ [MIGRATED-INVOICE-API] PDF generation failed:', await pdfResponse.text())
+        const errorText = await pdfResponse.text()
+        console.error('❌ [MIGRATED-INVOICE-API] PDF generation failed:', errorText)
+        console.error('❌ [MIGRATED-INVOICE-API] Response status:', pdfResponse.status)
       }
     } catch (error) {
       console.error('❌ [MIGRATED-INVOICE-API] PDF generation error:', error)
@@ -310,7 +360,7 @@ export async function POST(request: NextRequest) {
     // Render the template using emailTemplateService directly - Use Invoice Email template
     const rendered = await emailTemplateService.renderTemplate(
       'Invoice Email',
-      templateVariables,
+      templateVariables as any,
       'japan',
       language as 'en' | 'ja'
     )

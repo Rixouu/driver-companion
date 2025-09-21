@@ -67,7 +67,8 @@ export async function POST(request: NextRequest) {
     console.log('✅ [APPROVE-API] Quotation found:', quotation.id)
 
     // Update quotation status to approved with signature and notes
-    const { error: updateError } = await supabase
+    console.log('🔄 [APPROVE-API] Updating quotation status to approved...')
+    const { data: updateData, error: updateError } = await supabase
       .from('quotations')
       .update({
         status: 'approved',
@@ -77,16 +78,18 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString()
       })
       .eq('id', quotationId)
+      .select()
 
     if (updateError) {
       console.error('❌ [APPROVE-API] Error updating quotation:', updateError)
       return NextResponse.json({ error: 'Failed to approve quotation' }, { status: 500 })
     }
 
-    console.log('✅ [APPROVE-API] Quotation status updated to approved')
+    console.log('✅ [APPROVE-API] Quotation status updated to approved:', updateData)
 
     // Record the approval activity
-    await supabase
+    console.log('🔄 [APPROVE-API] Recording approval activity...')
+    const { error: activityError } = await supabase
       .from('quotation_activities')
       .insert({
         quotation_id: quotationId,
@@ -98,6 +101,12 @@ export async function POST(request: NextRequest) {
         },
         created_at: new Date().toISOString()
       })
+
+    if (activityError) {
+      console.warn('⚠️ [APPROVE-API] Failed to record activity:', activityError)
+    } else {
+      console.log('✅ [APPROVE-API] Activity recorded successfully')
+    }
 
     // Get updated quotation with signature for PDF generation
     const { data: updatedQuotation } = await supabase

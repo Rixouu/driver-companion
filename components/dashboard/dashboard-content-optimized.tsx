@@ -17,6 +17,7 @@ import type { DbVehicle, DbInspection, DbMaintenanceTask } from "@/types"
 import { useState, useEffect } from "react"
 import { getBookings } from "@/app/actions/bookings"
 import { Booking } from "@/types/bookings"
+import { getQuotationUrl } from '@/lib/utils/quotation-url'
 
 // Lazy load heavy dashboard components
 import { 
@@ -315,7 +316,7 @@ export function DashboardContentOptimized({
           <CardContent>
             <div className="space-y-3">
               {expiringQuotations.map((quotation) => (
-                <Link key={quotation.id} href={`/quotations/${quotation.id}`}>
+                <Link key={quotation.id} href={getQuotationUrl(quotation) as any}>
                   <div className="flex items-center justify-between p-3 bg-background rounded-lg border hover:bg-accent transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">

@@ -17,8 +17,8 @@ export const useProgressSteps = () => {
   const [progressLabel, setProgressLabel] = useState('');
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>([]);
 
-  const startProgress = useCallback(async (config: ProgressConfig) => {
-    const { steps, totalDuration = 2000, stepDelays } = config;
+  const startProgress = useCallback(async (config: ProgressConfig, apiPromise?: Promise<any>) => {
+    const { steps, totalDuration = 3000, stepDelays } = config;
     
     // Set initial state immediately
     setProgressValue(0);
@@ -38,32 +38,65 @@ export const useProgressSteps = () => {
       })));
     }
     
-    // Calculate delays if not provided
+    // If we have an API promise, sync progress with it
+    if (apiPromise) {
+      // Start a race between progress animation and API completion
+      const progressPromise = new Promise<void>((resolve) => {
+        let currentStep = 1;
+        const maxSteps = steps.length;
+        
+        const progressInterval = setInterval(() => {
+          if (currentStep < maxSteps) {
+            const step = steps[currentStep];
+            setProgressLabel(step.label);
+            setProgressValue(step.value);
+            setProgressSteps(prev => prev.map((s, idx) => ({
+              ...s,
+              completed: idx < currentStep + 1
+            })));
+            currentStep++;
+          } else {
+            clearInterval(progressInterval);
+            // Don't complete yet, wait for API
+          }
+        }, Math.max(300, totalDuration / maxSteps)); // Minimum 300ms per step
+        
+        // Clean up interval when API completes
+        apiPromise.finally(() => {
+          clearInterval(progressInterval);
+          // Complete the progress
+          setProgressLabel('Finalizing...');
+          setProgressValue(95);
+          setProgressSteps(prev => prev.map(step => ({ ...step, completed: true })));
+          setTimeout(() => {
+            setProgressValue(100);
+            setProgressLabel('Completed');
+            resolve();
+          }, 200);
+        });
+      });
+      
+      return progressPromise;
+    }
+    
+    // Fallback to original behavior if no API promise
     const delays = stepDelays || steps.map((_, index) => {
       const baseDelay = totalDuration / steps.length;
-      return baseDelay + (Math.random() * 200 - 100); // Add some variation
+      return baseDelay + (Math.random() * 200 - 100);
     });
     
-    // Execute remaining steps with smooth progression
     for (let i = 1; i < steps.length; i++) {
       const step = steps[i];
-      
-      // Wait for this step's delay
       await new Promise(resolve => setTimeout(resolve, delays[i]));
-      
-      // Update progress with smooth transition
       setProgressLabel(step.label);
       setProgressValue(step.value);
       setProgressSteps(prev => prev.map((s, idx) => ({
         ...s,
         completed: idx < i + 1
       })));
-      
-      // Small delay to make animation more visible
       await new Promise(resolve => setTimeout(resolve, 50));
     }
     
-    // Final completion step (90% → 100%)
     await new Promise(resolve => setTimeout(resolve, 150));
     setProgressLabel('Finalizing...');
     setProgressValue(95);

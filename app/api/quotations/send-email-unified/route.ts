@@ -78,61 +78,63 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ [UNIFIED-EMAIL-API] Quotation found:', !!quotation, 'Keys:', Object.keys(quotation || {}).length)
 
-    // Get selected package if exists
-    let selectedPackage: PricingPackage | null = null
-    if (quotation.selected_package_id) {
-      const { data: packageData } = await supabase
+    // Run package, promotion, and magic link queries in parallel
+    const [packageResult, promotionResult, magicLinkResult] = await Promise.allSettled([
+      // Get selected package if exists
+      quotation.selected_package_id ? supabase
         .from('pricing_packages')
         .select('*')
         .eq('id', quotation.selected_package_id)
-        .single()
-      selectedPackage = packageData as PricingPackage | null
-    }
-
-    // Get selected promotion if exists
-    let selectedPromotion: PricingPromotion | null = null
-    if (quotation.selected_promotion_id) {
-      const { data: promotionData } = await supabase
+        .single() : Promise.resolve({ data: null }),
+      
+      // Get selected promotion if exists  
+      quotation.selected_promotion_id ? supabase
         .from('pricing_promotions')
         .select('*')
         .eq('id', quotation.selected_promotion_id)
-        .single()
-      selectedPromotion = promotionData as PricingPromotion | null
-    }
+        .single() : Promise.resolve({ data: null }),
+      
+      // Generate magic link
+      (async () => {
+        try {
+          const host = request.headers.get('host') || '';
+          let baseUrl;
+          if (host.includes('localhost') || host.includes('127.0.0.1') || host.includes('3000')) {
+            baseUrl = 'http://localhost:3000';
+          } else if (host.includes('my.japandriver.com')) {
+            baseUrl = 'https://my.japandriver.com';
+          } else {
+            baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://my.japandriver.com';
+          }
+          
+          const magicLinkResponse = await fetch(`${baseUrl}/api/quotations/create-magic-link`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              quotation_id: quotationId, 
+              customer_email: quotation.customer_email 
+            })
+          });
+          
+          if (magicLinkResponse.ok) {
+            const magicLinkData = await magicLinkResponse.json();
+            return magicLinkData.magic_link;
+          }
+          return null;
+        } catch (error) {
+          console.warn('⚠️ [UNIFIED-EMAIL-API] Could not generate magic link:', error);
+          return null;
+        }
+      })()
+    ]);
 
-    // Generate magic link (if needed)
-    let magicLink: string | null = null
-    try {
-      // Auto-detect environment from request headers for dynamic base URL
-      const host = request.headers.get('host') || '';
-      let baseUrl;
-      if (host.includes('localhost') || host.includes('127.0.0.1') || host.includes('3000')) {
-        baseUrl = 'http://localhost:3000';
-      } else if (host.includes('my.japandriver.com')) {
-        baseUrl = 'https://my.japandriver.com';
-      } else {
-        // Fallback to environment variables or default
-        baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://my.japandriver.com';
-      }
-      
-      const magicLinkResponse = await fetch(`${baseUrl}/api/quotations/create-magic-link`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          quotation_id: quotationId, 
-          customer_email: quotation.customer_email 
-        })
-      })
-      
-      if (magicLinkResponse.ok) {
-        const magicLinkData = await magicLinkResponse.json()
-        magicLink = magicLinkData.magic_link
-        console.log('✅ [UNIFIED-EMAIL-API] Magic link generated:', magicLink)
-      } else {
-        console.error('❌ [UNIFIED-EMAIL-API] Magic link generation failed:', await magicLinkResponse.text())
-      }
-    } catch (error) {
-      console.warn('⚠️ [UNIFIED-EMAIL-API] Could not generate magic link:', error)
+    // Extract results
+    const selectedPackage = packageResult.status === 'fulfilled' ? packageResult.value.data as PricingPackage | null : null;
+    const selectedPromotion = promotionResult.status === 'fulfilled' ? promotionResult.value.data as PricingPromotion | null : null;
+    const magicLink = magicLinkResult.status === 'fulfilled' ? magicLinkResult.value : null;
+    
+    if (magicLink) {
+      console.log('✅ [UNIFIED-EMAIL-API] Magic link generated:', magicLink);
     }
 
     // Determine if this is an updated quotation
@@ -290,34 +292,46 @@ export async function POST(request: NextRequest) {
 
     console.log('🔄 [UNIFIED-EMAIL-API] Using direct template service')
     
-    // Generate quotation PDF attachment
-    console.log('🔄 [UNIFIED-EMAIL-API] Generating quotation PDF attachment')
-    let pdfAttachment = null
-    try {
-      const pdfBuffer = await generateOptimizedQuotationPDF(
-        quotation,
-        language,
-        selectedPackage,
-        selectedPromotion
-      )
+    // Run PDF generation and template rendering in parallel
+    console.log('🔄 [UNIFIED-EMAIL-API] Generating PDF and rendering template in parallel')
+    const [pdfResult, templateResult] = await Promise.allSettled([
+      // Generate quotation PDF attachment
+      (async () => {
+        try {
+          const pdfBuffer = await generateOptimizedQuotationPDF(
+            quotation,
+            language,
+            selectedPackage,
+            selectedPromotion
+          )
+          
+          return {
+            filename: `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || quotation.id.slice(-6).toUpperCase()}.pdf`,
+            content: pdfBuffer,
+            contentType: 'application/pdf'
+          }
+        } catch (error) {
+          console.warn('⚠️ [UNIFIED-EMAIL-API] Could not generate PDF attachment:', error)
+          return null
+        }
+      })(),
       
-      pdfAttachment = {
-        filename: `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || quotation.id.slice(-6).toUpperCase()}.pdf`,
-        content: pdfBuffer,
-        contentType: 'application/pdf'
-      }
+      // Render the template using emailTemplateService directly
+      emailTemplateService.renderTemplate(
+        'Quotation Sent',
+        templateVariables,
+        'japan',
+        language as 'en' | 'ja'
+      )
+    ])
+
+    // Extract results
+    const pdfAttachment = pdfResult.status === 'fulfilled' ? pdfResult.value : null
+    const rendered = templateResult.status === 'fulfilled' ? templateResult.value : null
+
+    if (pdfAttachment) {
       console.log('✅ [UNIFIED-EMAIL-API] PDF attachment generated:', pdfAttachment.filename)
-    } catch (error) {
-      console.warn('⚠️ [UNIFIED-EMAIL-API] Could not generate PDF attachment:', error)
     }
-    
-    // Render the template using emailTemplateService directly
-    const rendered = await emailTemplateService.renderTemplate(
-      'Quotation Sent',
-      templateVariables,
-      'japan',
-      language as 'en' | 'ja'
-    )
 
     if (!rendered) {
       console.error('❌ [UNIFIED-EMAIL-API] Template rendering failed')

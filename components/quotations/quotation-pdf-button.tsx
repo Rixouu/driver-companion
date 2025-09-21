@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button'
 import LoadingModal from '@/components/ui/loading-modal'
 import { useProgressSteps } from '@/lib/hooks/useProgressSteps'
+import { useCountdownToast } from '@/lib/hooks/useCountdownToast'
+import { CountdownToast } from '@/components/ui/countdown-toast'
 import { progressConfigs } from '@/lib/config/progressConfigs'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -239,6 +241,13 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
   const [includeDetails, setIncludeDetails] = useState(true)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
   const { progressValue, progressLabel, progressSteps, startProgress, resetProgress } = useProgressSteps()
+  
+  const { 
+    isVisible: isCountdownVisible, 
+    toastConfig, 
+    showCountdownToast, 
+    handleComplete: handleCountdownComplete 
+  } = useCountdownToast()
   const [progressOpen, setProgressOpen] = useState(false)
   const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice'>('default')
   
@@ -341,10 +350,7 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
     setProgressVariant('email')
     
     try {
-      // Start progress animation
-      const progressPromise = startProgress(progressConfigs.sendEmail);
-
-      // Start API call in parallel
+      // Start API call first
       const formData = new FormData();
       formData.append('email', targetEmail);
       formData.append('quotation_id', quotation.id);
@@ -356,6 +362,9 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
         body: formData,
       });
 
+      // Start progress animation with API promise
+      const progressPromise = startProgress(progressConfigs.sendEmail, apiPromise);
+
       // Wait for both to complete
       const [_, response] = await Promise.all([progressPromise, apiPromise]);
       
@@ -364,10 +373,11 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
         throw new Error(errorData.error || 'Failed to send email');
       }
       
-      // Show success toast
-      toast({
-        title: t('quotations.notifications.sendSuccess') || 'Quotation sent successfully',
-        variant: 'default',
+      // Show countdown toast for redirection
+      showCountdownToast({
+        message: t('quotations.notifications.sendSuccess') || 'Quotation sent successfully',
+        redirectUrl: `/quotations/${quotation.id}`,
+        duration: 3
       });
       
       setTimeout(() => setProgressOpen(false), 200)
@@ -492,6 +502,15 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
         label={progressLabel}
         steps={progressSteps}
         title="Generating Quotation PDF"
+      />
+
+      {/* Countdown Toast for Redirection */}
+      <CountdownToast
+        isVisible={isCountdownVisible}
+        onComplete={handleCountdownComplete}
+        message={toastConfig.message}
+        redirectUrl={toastConfig.redirectUrl}
+        duration={toastConfig.duration}
       />
     </>
   )

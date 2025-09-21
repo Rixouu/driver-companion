@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service-client'
 import { generateOptimizedPdfFromHtml } from '@/lib/optimized-html-pdf-generator'
 import { PricingPackage, PricingPromotion } from '@/types/quotations'
 import { getTeamAddressHtml, getTeamFooterHtml } from '@/lib/team-addresses'
@@ -439,16 +440,17 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Create server client
-    const supabase = await getSupabaseServerClient()
-    
     // For internal API calls, skip user authentication if service role key is provided
     const authHeader = request.headers.get('authorization')
+    let supabase;
+    
     if (authHeader && authHeader.includes('Bearer')) {
-      // This is an internal API call, proceed without user auth
-      console.log('🔑 [PDF-GEN] Internal API call detected, skipping user auth')
+      // This is an internal API call, use service client
+      console.log('🔑 [PDF-GEN] Internal API call detected, using service client')
+      supabase = createServiceClient()
     } else {
-      // Authenticate user for external calls
+      // External call, use server client with user authentication
+      supabase = await getSupabaseServerClient()
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
       if (authError || !authUser) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -456,18 +458,30 @@ export async function POST(request: NextRequest) {
     }
     
     // Fetch quotation data
+    console.log('🔍 [PDF-GEN] Looking for quotation:', quotation_id)
     const { data: quotation, error } = await supabase
       .from('quotations')
       .select('*, customers (*), quotation_items (*)')
       .eq('id', quotation_id)
       .single()
     
-    if (error || !quotation) {
+    if (error) {
+      console.error('❌ [PDF-GEN] Database error:', error)
+      return NextResponse.json(
+        { error: 'Quotation not found', details: error.message },
+        { status: 404 }
+      )
+    }
+    
+    if (!quotation) {
+      console.error('❌ [PDF-GEN] No quotation found for ID:', quotation_id)
       return NextResponse.json(
         { error: 'Quotation not found' },
         { status: 404 }
       )
     }
+    
+    console.log('✅ [PDF-GEN] Quotation found:', quotation.id, 'Status:', quotation.status)
     
     // Only allow invoice generation for sent, approved, paid, or converted quotations
     if (!['sent', 'approved', 'paid', 'converted'].includes(quotation.status)) {

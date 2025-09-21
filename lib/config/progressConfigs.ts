@@ -48,11 +48,12 @@ export const progressConfigs: Record<string, ProgressConfig> = {
   sendPaymentLink: {
     steps: [
       { label: 'Generating payment link', value: 0 },
-      { label: 'Sending email', value: 50 },
+      { label: 'Generating invoice PDF', value: 25 },
+      { label: 'Sending email', value: 60 },
       { label: 'Finalizing', value: 90 }
     ],
-    totalDuration: 1800,
-    stepDelays: [500, 400, 300]
+    totalDuration: 15000, // Based on actual API testing: ~14.3 seconds
+    stepDelays: [2000, 4000, 6000, 3000] // Realistic timing for payment link + PDF + email
   },
   
   markAsPaid: {

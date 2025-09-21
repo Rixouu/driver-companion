@@ -59,11 +59,12 @@ export const progressConfigs: Record<string, ProgressConfig> = {
   markAsPaid: {
     steps: [
       { label: 'Updating payment status', value: 0 },
-      { label: 'Sending confirmation', value: 50 },
+      { label: 'Generating confirmation PDF', value: 25 },
+      { label: 'Sending confirmation email', value: 60 },
       { label: 'Finalizing', value: 90 }
     ],
-    totalDuration: 1600,
-    stepDelays: [400, 400, 300]
+    totalDuration: 18000, // Based on actual API testing: ~17.2 seconds
+    stepDelays: [2000, 6000, 8000, 2000] // Realistic timing for status update + PDF + email
   },
   
   convertToBooking: {

@@ -809,9 +809,9 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
           description: 'Convert approved quotation to a booking',
           icon: <Calendar className="h-4 w-4" />,
           status: quotation.booking_created_at ? 'completed' :
-                  (quotation.status === 'paid' || quotation.status === 'sent' || quotation.payment_completed_at) ? 'current' : 'pending',
+                  (quotation.status === 'paid' || quotation.payment_completed_at) ? 'current' : 'pending',
           date: quotation.booking_created_at,
-          ...((quotation.status === 'paid' || quotation.status === 'sent' || quotation.payment_completed_at) && !quotation.booking_created_at && isOrganizationMember ? {
+          ...((quotation.status === 'paid' || quotation.payment_completed_at) && !quotation.booking_created_at && isOrganizationMember ? {
             action: {
               label: isConvertingToBooking ? 'Converting...' : 'Convert to Booking',
               onClick: async () => {

@@ -108,19 +108,33 @@ export async function POST(request: NextRequest) {
     let assignedVehicleId = null;
     const vehicleType = quotation.vehicle_type || quotationItems[0]?.vehicle_type;
     if (vehicleType) {
-      // Try to find a vehicle that matches the quotation's vehicle type
-      const { data: matchingVehicles, error: vehicleError } = await supabase
+      console.log(`Looking for vehicle matching type: ${vehicleType}`);
+      
+      // First try to find exact model match
+      const { data: exactMatches, error: exactError } = await supabase
         .from('vehicles')
         .select('id, brand, model, plate_number, status')
         .eq('status', 'active')
-        .or(`brand.ilike.%${vehicleType.split(' ')[0]}%,model.ilike.%${vehicleType}%`);
+        .ilike('model', `%${vehicleType}%`);
       
-      if (!vehicleError && matchingVehicles && matchingVehicles.length > 0) {
-        // Use the first matching vehicle
-        assignedVehicleId = matchingVehicles[0].id;
-        console.log(`Found matching vehicle: ${matchingVehicles[0].brand} ${matchingVehicles[0].model} (${matchingVehicles[0].plate_number})`);
+      if (!exactError && exactMatches && exactMatches.length > 0) {
+        assignedVehicleId = exactMatches[0].id;
+        console.log(`Found exact model match: ${exactMatches[0].brand} ${exactMatches[0].model} (${exactMatches[0].plate_number})`);
       } else {
-        console.log(`No matching vehicle found for type: ${vehicleType}`);
+        // Fallback to brand matching if no exact model match
+        const brand = vehicleType.split(' ')[0];
+        const { data: brandMatches, error: brandError } = await supabase
+          .from('vehicles')
+          .select('id, brand, model, plate_number, status')
+          .eq('status', 'active')
+          .ilike('brand', `%${brand}%`);
+        
+        if (!brandError && brandMatches && brandMatches.length > 0) {
+          assignedVehicleId = brandMatches[0].id;
+          console.log(`Found brand match: ${brandMatches[0].brand} ${brandMatches[0].model} (${brandMatches[0].plate_number})`);
+        } else {
+          console.log(`No matching vehicle found for type: ${vehicleType}`);
+        }
       }
     }
 

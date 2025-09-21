@@ -754,9 +754,9 @@ export default function BookingDetailsPage() {
                           <div className="font-medium text-foreground">
                             {(booking.service_name || booking.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer') === 'Charter Services' 
                               ? (booking.service_days && booking.hours_per_day 
-                                  ? `${booking.service_days} ${t('bookings.details.fields.day')}${booking.service_days > 1 ? t('bookings.details.fields.days') : ''} × ${booking.hours_per_day} ${t('bookings.details.fields.hour')}${booking.hours_per_day > 1 ? t('bookings.details.fields.hours') : ''} = ${booking.duration_hours || (booking.service_days * booking.hours_per_day)} ${t('bookings.details.fields.total')} ${t('bookings.details.fields.hour')}${(booking.duration_hours || (booking.service_days * booking.hours_per_day)) > 1 ? t('bookings.details.fields.hours') : ''}`
+                                  ? `${booking.service_days} ${booking.service_days > 1 ? t('bookings.details.fields.days') : t('bookings.details.fields.day')} × ${booking.hours_per_day} ${booking.hours_per_day > 1 ? t('bookings.details.fields.hours') : t('bookings.details.fields.hour')} = ${booking.duration_hours || (booking.service_days * booking.hours_per_day)} ${t('bookings.details.fields.total')} ${(booking.duration_hours || (booking.service_days * booking.hours_per_day)) > 1 ? t('bookings.details.fields.hours') : t('bookings.details.fields.hour')}`
                                   : booking.duration_hours 
-                                    ? `${booking.duration_hours} ${t('bookings.details.fields.hour')}${booking.duration_hours > 1 ? t('bookings.details.fields.hours') : ''}`
+                                    ? `${booking.duration_hours} ${booking.duration_hours > 1 ? t('bookings.details.fields.hours') : t('bookings.details.fields.hour')}`
                                     : t('bookings.details.fields.notSpecified')
                                 )
                               : t('bookings.details.fields.fixedRateService')

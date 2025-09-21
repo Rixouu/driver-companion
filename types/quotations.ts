@@ -55,6 +55,7 @@ export interface Quotation {
   merchant_id?: string;
   merchant_notes?: string;
   customer_notes?: string;
+  general_notes?: string;
   service_type_id: string;
   service_type?: string;
   vehicle_category?: string;
@@ -67,6 +68,10 @@ export interface Quotation {
   service_days?: number;
   hours_per_day?: number;
   passenger_count?: number | null;
+  flight_number?: string;
+  terminal?: string;
+  number_of_passengers?: number;
+  number_of_bags?: number;
   expiry_date: string;
   amount: number;
   currency: string;
@@ -203,6 +208,7 @@ export interface CreateQuotationInput {
   customer_id?: string | null;
   merchant_notes?: string;
   customer_notes?: string;
+  general_notes?: string;
   service_type_id: string;
   vehicle_category?: string;
   vehicle_type: string;
@@ -417,6 +423,12 @@ export interface ServiceItemInput {
   is_service_item: boolean;
   pickup_date?: string | null;
   pickup_time?: string | null;
+  pickup_location?: string | null;
+  dropoff_location?: string | null;
+  flight_number?: string | null;
+  terminal?: string | null;
+  number_of_passengers?: number | null;
+  number_of_bags?: number | null;
   time_based_adjustment?: number;
   time_based_rule_name?: string;
 } 

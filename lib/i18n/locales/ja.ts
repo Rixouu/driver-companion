@@ -2134,7 +2134,7 @@ export const ja: TranslationValue = {
         bookingStatus: "予約ステータス",
         created: "作成日",
         lastUpdated: "最終更新日",
-        status: "ステータス",
+
         notesComments: "メモとコメント",
         internalNotes: "内部メモ",
         internalNotesDescription: "内部メモとコミュニケーション",
@@ -3027,6 +3027,7 @@ export const ja: TranslationValue = {
         date: "日付",
         time: "時間",
         pickDate: "日付を選択",
+        selectTime: "時間を選択",
         days: "日",
         hours: "時間",
         duration: "期間",
@@ -3069,7 +3070,32 @@ export const ja: TranslationValue = {
         pickupDate: "迎車日",
         pickupTime: "迎車時間",
         vehicle: "車両",
-        unitPrice: "単価"
+        unitPrice: "単価",
+        locationAndFlight: "場所とフライト情報",
+        pickupLocation: "迎車場所",
+        dropoffLocation: "降車場所",
+        enterPickupLocation: "迎車場所を入力",
+        enterDropoffLocation: "降車場所を入力",
+        flightNumber: "フライト番号",
+        terminal: "ターミナル",
+        enterFlightNumber: "フライト番号を入力",
+        enterTerminal: "ターミナルを入力",
+        numberOfPassengers: "乗客数",
+        numberOfBags: "荷物数",
+        enterPassengerCount: "乗客数を入力",
+        enterBagCount: "荷物数を入力"
+      },
+      vehicles: {
+        title: "車両選択とアップグレード",
+        noServices: "サービスが追加されていません",
+        addServicesFirst: "車両を設定するには、まずサービスを追加してください",
+        currentVehicle: "現在の車両",
+        availableVehicles: "利用可能な車両",
+        noVehiclesAvailable: "このカテゴリに利用可能な車両がありません",
+        upgradeDowngrade: "アップグレード/ダウングレードオプション",
+        vehicleUpdated: "車両が更新されました",
+        updateError: "更新に失敗しました",
+        updateErrorDescription: "車両の更新に失敗しました。もう一度お試しください。"
       },
       pricingTabs: {
         basic: "基本料金",
@@ -3094,6 +3120,7 @@ export const ja: TranslationValue = {
         applyJapanTax: "10%適用（日本）",
         applyThailandTax: "7%適用（タイ）",
         noTax: "税金なし（0%）",
+        selectedServices: "選択されたサービス",
         packageBasePrice: "パッケージ基本価格",
         includedServices: "含まれるサービス：",
         afterDiscounts: "割引後",
@@ -3198,10 +3225,10 @@ export const ja: TranslationValue = {
         previewSend: "プレビューと送信"
       },
       stepTitles: {
+        routesServices: "ルートとサービス",
         customerDetails: "顧客詳細",
-        serviceVehicle: "サービスと車両",
-        pricingOptions: "価格とオプション",
         notes: "メモ",
+        pricingOptions: "価格とオプション",
         previewSend: "プレビューと送信"
       },
       billing: {
@@ -3255,8 +3282,17 @@ export const ja: TranslationValue = {
         customerNotes: "見積で顧客に表示されるメモ。"
       },
       notes: {
+        title: "追加情報",
         private: "プライベート",
-        public: "パブリック"
+        public: "パブリック",
+        customerNotes: "顧客へのメモ",
+        internalNotes: "内部メモ",
+        generalNotes: "一般メモ",
+        customerNotesPlaceholder: "顧客の要件、特別な指示、またはメモ...",
+        internalNotesPlaceholder: "内部メモ、ドライバーへの指示、または管理メモ...",
+        generalNotesPlaceholder: "その他の特別な要件、迎車の指示、または追加情報...",
+        customerNotesDescription: "見積で顧客に表示されるメモ。",
+        internalNotesDescription: "内部メモ、顧客には表示されません。"
       },
       previewDescription: "顧客に見積を送信する前に、すべての詳細を注意深く確認してください。",
       preview: {
@@ -3278,6 +3314,7 @@ export const ja: TranslationValue = {
         readyToSend: "送信準備完了",
         reviewMessage: "この見積を顧客に送信する前に、上記すべての情報を確認してください。送信後、顧客は見積詳細と返信用のリンクが記載されたメールを受信します。",
         pricingSummary: "価格概要",
+        pricingBreakdown: "価格内訳",
         appliedPromotion: "適用されたプロモーション",
         afterDiscount: "割引後",
         finalReview: "最終確認",

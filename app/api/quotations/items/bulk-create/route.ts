@@ -86,7 +86,14 @@ export async function POST(req: NextRequest) {
       pickup_date: item.pickup_date || null,
       pickup_time: item.pickup_time || null,
       time_based_adjustment: item.time_based_adjustment || null,
-      time_based_rule_name: item.time_based_rule_name || null
+      time_based_rule_name: item.time_based_rule_name || null,
+      // New fields for pickup/dropoff locations and passenger details
+      pickup_location: item.pickup_location || null,
+      dropoff_location: item.dropoff_location || null,
+      number_of_passengers: item.number_of_passengers || null,
+      number_of_bags: item.number_of_bags || null,
+      flight_number: item.flight_number || null,
+      terminal: item.terminal || null
     }));
     
     console.log('BULK CREATE DEBUG - Formatted items for DB:', JSON.stringify(formattedItems, null, 2));

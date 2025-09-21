@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { PACKAGE_SERVICE_TYPE_ID } from '@/lib/constants/service-types';
 import { Car, Calendar, Settings, Package, Plus, List, Timer, PencilIcon, Copy, Trash, X } from 'lucide-react';
@@ -31,6 +31,10 @@ import { toast } from '@/components/ui/use-toast';
 import { ServiceCard } from '@/components/quotations/service-card';
 import { useQuotationFormData } from '@/lib/hooks/useQuotationFormData';
 import { useTimeBasedPricing } from '@/lib/hooks/useTimeBasedPricing';
+import { GooglePlaceAutocomplete } from '@/components/bookings/google-place-autocomplete';
+import { FlightSearch } from '@/components/bookings/flight-search';
+import { useGoogleMaps } from '@/components/providers/google-maps-provider';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 
 // Import types
 import { 
@@ -79,10 +83,34 @@ export function ServiceSelectionStep({
   calculateQuotationAmount
 }: ServiceSelectionStepProps) {
   const { t } = useI18n();
+  const { isLoaded: isGoogleMapsLoaded, loadError: googleMapsError } = useGoogleMaps();
   const [isCalculating, setIsCalculating] = useState(false);
   const [isEditingService, setIsEditingService] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [serviceTimeBasedPricing, setServiceTimeBasedPricing] = useState<boolean>(true);
+
+  // Optimized onChange handlers to prevent slow execution
+  const handlePassengerChange = useCallback((value: string, onChange: (value: number | null) => void) => {
+    if (value === '') {
+      onChange(null);
+    } else {
+      const numValue = parseInt(value, 10);
+      if (!isNaN(numValue) && numValue >= 1 && numValue <= 50) {
+        onChange(numValue);
+      }
+    }
+  }, []);
+
+  const handleBagChange = useCallback((value: string, onChange: (value: number | null) => void) => {
+    if (value === '') {
+      onChange(null);
+    } else {
+      const numValue = parseInt(value, 10);
+      if (!isNaN(numValue) && numValue >= 0 && numValue <= 20) {
+        onChange(numValue);
+      }
+    }
+  }, []);
 
   // Use the real time-based pricing hook
   const { 
@@ -106,7 +134,69 @@ export function ServiceSelectionStep({
   const vehicleCategory = form.watch('vehicle_category');
   const vehicleType = form.watch('vehicle_type');
   const serviceDays = form.watch('service_days');
+  
+  // Determine color theme based on service type
+  const getServiceTheme = (serviceTypeId: string | null) => {
+    if (!serviceTypeId) return 'default';
+    const serviceTypeName = allServiceTypes.find(st => st.id === serviceTypeId)?.name?.toLowerCase() || '';
+    
+    if (serviceTypeName.includes('airport') || serviceTypeName.includes('haneda') || serviceTypeName.includes('narita')) {
+      return 'airport'; // Green theme
+    } else if (serviceTypeName.includes('charter')) {
+      return 'charter'; // Blue theme
+    }
+    return 'default'; // Default theme
+  };
+  
+  const currentTheme = getServiceTheme(serviceType);
   const hoursPerDay = form.watch('hours_per_day');
+  
+  // Get theme colors based on current theme
+  const getThemeColors = (theme: string) => {
+    switch (theme) {
+      case 'airport':
+        return {
+          primary: 'green',
+          primaryBg: 'bg-green-50/30 dark:bg-green-900/10',
+          primaryBorder: 'border-green-500',
+          primaryHover: 'hover:border-green-300',
+          primaryText: 'text-green-600 dark:text-green-400',
+          primaryButton: 'bg-green-600 hover:bg-green-700',
+          primaryIcon: 'text-green-600 dark:text-green-400',
+          primaryBadge: 'bg-green-100 text-green-700',
+          primaryCard: 'bg-green-50/50 dark:bg-green-900/20',
+          primaryCardBorder: 'border-green-200 dark:border-green-800'
+        };
+      case 'charter':
+        return {
+          primary: 'blue',
+          primaryBg: 'bg-blue-50/30 dark:bg-blue-900/10',
+          primaryBorder: 'border-blue-500',
+          primaryHover: 'hover:border-blue-300',
+          primaryText: 'text-blue-600 dark:text-blue-400',
+          primaryButton: 'bg-blue-600 hover:bg-blue-700',
+          primaryIcon: 'text-blue-600 dark:text-blue-400',
+          primaryBadge: 'bg-blue-100 text-blue-700',
+          primaryCard: 'bg-blue-50/50 dark:bg-blue-900/20',
+          primaryCardBorder: 'border-blue-200 dark:border-blue-800'
+        };
+      default:
+        return {
+          primary: 'gray',
+          primaryBg: 'bg-gray-50/30 dark:bg-gray-900/10',
+          primaryBorder: 'border-gray-500',
+          primaryHover: 'hover:border-gray-300',
+          primaryText: 'text-gray-600 dark:text-gray-400',
+          primaryButton: 'bg-gray-600 hover:bg-gray-700',
+          primaryIcon: 'text-gray-600 dark:text-gray-400',
+          primaryBadge: 'bg-gray-100 text-gray-700',
+          primaryCard: 'bg-gray-50/50 dark:bg-gray-900/20',
+          primaryCardBorder: 'border-gray-200 dark:border-gray-800'
+        };
+    }
+  };
+  
+  const themeColors = getThemeColors(currentTheme);
 
   // Helper functions - now use dynamic data when available
   const getAvailableServiceTypes = (): ServiceTypeInfo[] => {
@@ -351,6 +441,14 @@ export function ServiceSelectionStep({
       // For Charter services, unit_price should be the daily rate, not the total amount
       const unitPrice = isCharter ? (pricingResult.dailyRate || pricingResult.baseAmount) : pricingResult.baseAmount;
 
+      // Get form values for flight and location information
+      const pickupLocation = form.watch('pickup_location');
+      const dropoffLocation = form.watch('dropoff_location');
+      const flightNumber = form.watch('flight_number');
+      const terminal = form.watch('terminal');
+      const numberOfPassengers = form.watch('number_of_passengers');
+      const numberOfBags = form.watch('number_of_bags');
+
       const newItem: ServiceItemInput = {
         service_type_id: effectiveServiceType,
         service_type_name: selectedServiceTypeObject?.name || 'Service',
@@ -367,6 +465,12 @@ export function ServiceSelectionStep({
         is_service_item: true,
         pickup_date: pickupDate ? format(pickupDate, 'yyyy-MM-dd') : null,
         pickup_time: pickupTime || null,
+        pickup_location: pickupLocation || null,
+        dropoff_location: dropoffLocation || null,
+        flight_number: flightNumber || null,
+        terminal: terminal || null,
+        number_of_passengers: numberOfPassengers || null,
+        number_of_bags: numberOfBags || null,
         time_based_adjustment: timeBasedAdjustment !== 0 ? timeBasedAdjustment : undefined,
         time_based_rule_name: ruleName || undefined,
       };
@@ -441,10 +545,21 @@ export function ServiceSelectionStep({
       const pickupDate = form.watch('pickup_date');
       const pickupTime = form.watch('pickup_time');
       
+      // Get form values for flight and location information
+      const pickupLocation = form.watch('pickup_location');
+      const dropoffLocation = form.watch('dropoff_location');
+      const flightNumber = form.watch('flight_number');
+      const terminal = form.watch('terminal');
+      const numberOfPassengers = form.watch('number_of_passengers');
+      const numberOfBags = form.watch('number_of_bags');
+      
       // Calculate time-based adjustment using actual rules
       const { adjustment: timeBasedAdjustment, ruleName } = serviceTimeBasedPricing 
         ? calculateTimeBasedAdjustment(pickupTime, pickupDate, effectiveVehicleCategory, effectiveServiceType)
         : { adjustment: 0, ruleName: null };
+      
+      // For Charter services, unit_price should be the daily rate, not the total amount
+      const unitPrice = isCharter ? (pricingResult.dailyRate || pricingResult.baseAmount) : pricingResult.baseAmount;
       
       // For Charter services, the baseAmount already includes the total duration, so don't multiply by serviceDays again
       const baseServicePrice = isCharter ? pricingResult.baseAmount : pricingResult.baseAmount * (serviceDays || 1);
@@ -460,7 +575,7 @@ export function ServiceSelectionStep({
         vehicle_type: vehicleDisplayName,
         vehicle_category: effectiveVehicleCategory,
         duration_hours: effectiveDuration,
-        unit_price: pricingResult.baseAmount,
+        unit_price: unitPrice,
         quantity: 1,
         total_price: adjustedPrice,
         service_days: serviceDays || existingItem.service_days || 1,
@@ -470,6 +585,12 @@ export function ServiceSelectionStep({
         is_service_item: true,
         pickup_date: pickupDate ? format(pickupDate, 'yyyy-MM-dd') : existingItem.pickup_date || null,
         pickup_time: pickupTime || existingItem.pickup_time || null,
+        pickup_location: pickupLocation || existingItem.pickup_location || '',
+        dropoff_location: dropoffLocation || existingItem.dropoff_location || '',
+        number_of_passengers: numberOfPassengers || existingItem.number_of_passengers || null,
+        number_of_bags: numberOfBags || existingItem.number_of_bags || null,
+        flight_number: flightNumber || existingItem.flight_number || '',
+        terminal: terminal || existingItem.terminal || '',
         time_based_adjustment: timeBasedAdjustment !== 0 ? timeBasedAdjustment : undefined,
         time_based_rule_name: ruleName || undefined,
       };
@@ -534,6 +655,13 @@ export function ServiceSelectionStep({
     if (item.pickup_time) {
       form.setValue('pickup_time', item.pickup_time);
     }
+    
+    // Pre-fill new fields
+    form.setValue('pickup_location', item.pickup_location || '');
+    form.setValue('dropoff_location', item.dropoff_location || '');
+    form.setValue('number_of_passengers', item.number_of_passengers || null);
+    form.setValue('number_of_bags', item.number_of_bags || null);
+    form.setValue('flight_number', item.flight_number || '');
     
     setIsEditingService(true);
     
@@ -804,31 +932,39 @@ export function ServiceSelectionStep({
           {/* Individual Services Option */}
           <Card 
             className={cn(
-              "cursor-pointer transition-all hover:shadow-md border-2",
-              !selectedPackage ? "border-green-500 bg-green-50/30 dark:bg-green-900/10" : "border-gray-200 hover:border-green-300"
+              "cursor-pointer transition-all duration-300 hover:shadow-md border-2",
+              !selectedPackage ? `${themeColors.primaryBorder} ${themeColors.primaryBg}` : `border-gray-200 ${themeColors.primaryHover}`
             )}
             onClick={() => setSelectedPackage(null)}
           >
-            <CardContent className="p-3 sm:p-4 md:p-6">
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                    <Settings className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-400" />
+                  <div className={cn("p-2 rounded-lg transition-colors duration-300", 
+                    currentTheme === 'airport' ? 'bg-green-100 dark:bg-green-900/30' :
+                    currentTheme === 'charter' ? 'bg-blue-100 dark:bg-blue-900/30' :
+                    'bg-gray-100 dark:bg-gray-900/30'
+                  )}>
+                    <Settings className={cn("h-5 w-5 transition-colors duration-300", themeColors.primaryIcon)} />
                   </div>
                   <div>
-                    <h4 className="text-base sm:text-lg font-semibold">{t('quotations.form.services.individual')}</h4>
-                    <p className="text-xs sm:text-sm text-muted-foreground">{t('quotations.form.services.configure')}</p>
+                    <h4 className="text-lg font-semibold">{t('quotations.form.services.individual')}</h4>
+                    <p className="text-sm text-muted-foreground">{t('quotations.form.services.configure')}</p>
                   </div>
                 </div>
                 {!selectedPackage && (
-                  <Badge variant="default" className="bg-green-100 text-green-700 text-xs">{t('quotations.form.services.active')}</Badge>
+                  <Badge variant="default" className={cn("text-xs px-3 py-1 transition-colors duration-300", themeColors.primaryBadge)}>
+                    {t('quotations.form.services.active')}
+                  </Badge>
                 )}
               </div>
               
               {!selectedPackage && (
-                <div className="space-y-4 p-2 sm:p-3 md:p-4 bg-green-50/50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <div className={cn("space-y-4 p-2 sm:p-3 md:p-4 rounded-lg border transition-all duration-300", 
+                  themeColors.primaryCard, themeColors.primaryCardBorder
+                )}>
                   {/* Service Configuration */}
-                  <div className="space-y-3 sm:space-y-4">
+                  <div className="space-y-3 sm:space-y-4" data-service-config>
                     <div className="space-y-2">
                       <FormField
                         control={form.control}
@@ -838,20 +974,28 @@ export function ServiceSelectionStep({
                             <FormLabel className="text-sm font-medium">{t('quotations.form.services.serviceType')}</FormLabel>
                             <FormControl>
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1">
-                                {getAvailableServiceTypes().map((option: any) => (
-                                  <Button
-                                    key={option.id}
-                                    type="button"
-                                    variant={field.value === option.id ? 'default' : 'outline'}
-                                    onClick={() => field.onChange(option.id)}
-                                    className={cn(
-                                      "h-auto py-3 px-3 flex flex-col items-center justify-center text-center transition-all text-sm min-h-[60px] sm:min-h-[70px]",
-                                      field.value === option.id ? 'ring-2 ring-primary' : ''
-                                    )}
-                                  >
-                                    <span className="font-medium break-words leading-tight px-1">{option.name}</span>
-                                  </Button>
-                                ))}
+                                {getAvailableServiceTypes().map((option: any) => {
+                                  const isSelected = field.value === option.id;
+                                  const serviceTheme = getServiceTheme(option.id);
+                                  const serviceColors = getThemeColors(serviceTheme);
+                                  
+                                  return (
+                                    <Button
+                                      key={option.id}
+                                      type="button"
+                                      variant={isSelected ? 'default' : 'outline'}
+                                      onClick={() => field.onChange(option.id)}
+                                      className={cn(
+                                        "h-auto py-3 px-3 flex flex-col items-center justify-center text-center transition-all duration-300 text-sm min-h-[60px] sm:min-h-[70px]",
+                                        isSelected 
+                                          ? `${serviceColors.primaryButton} text-white shadow-md` 
+                                          : `hover:${serviceColors.primaryCard} hover:${serviceColors.primaryCardBorder}`
+                                      )}
+                                    >
+                                      <span className="font-medium break-words leading-tight px-1">{option.name}</span>
+                                    </Button>
+                                  );
+                                })}
                               </div>
                             </FormControl>
                             <FormMessage />
@@ -935,74 +1079,41 @@ export function ServiceSelectionStep({
                                         {/* SERVICE DATE & TIME - UNDER SERVICES */}
                   {serviceType && vehicleCategory && vehicleType && (
                     <div 
-                      className="pt-3 sm:pt-4 border-t border-green-200 dark:border-green-800"
+                      className={cn("pt-3 sm:pt-4 border-t transition-colors duration-300", themeColors.primaryCardBorder)}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                        <Calendar className="h-4 w-4 text-green-600" />
+                        <Calendar className={cn("h-4 w-4 transition-colors duration-300", themeColors.primaryIcon)} />
                         <Label className="text-sm font-medium">{t('quotations.form.services.serviceDateTime')}</Label>
                       </div>
-                      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 items-end">
-                        <FormField
-                          control={form.control}
-                          name="pickup_date"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                              <FormLabel>{t('quotations.form.services.date')}</FormLabel>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <FormControl>
-                                    <Button
-                                      variant={"outline"}
-                                      className={cn(
-                                        "w-full justify-start text-left font-normal",
-                                        !field.value && "text-muted-foreground"
-                                      )}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <Calendar className="mr-2 h-4 w-4" />
-                                      {field.value ? format(field.value, "PPP") : <span>{t('quotations.form.services.pickDate')}</span>}
-                                    </Button>
-                                  </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                  <CalendarComponent
-                                    mode="single"
-                                    selected={field.value}
-                                    onSelect={field.onChange}
-                                    disabled={(date) =>
-                                      date < new Date(new Date().setHours(0, 0, 0, 0))
-                                    }
-                                    initialFocus
+                      <FormField
+                        control={form.control}
+                        name="pickup_date"
+                        render={({ field: dateField }) => (
+                          <FormField
+                            control={form.control}
+                            name="pickup_time"
+                            render={({ field: timeField }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <DateTimePicker
+                                    date={dateField.value}
+                                    time={timeField.value}
+                                    onDateChange={dateField.onChange}
+                                    onTimeChange={timeField.onChange}
+                                    dateLabel={t('quotations.form.services.date')}
+                                    timeLabel={t('quotations.form.services.time')}
+                                    datePlaceholder={t('quotations.form.services.pickDate')}
+                                    timePlaceholder={t('quotations.form.services.selectTime')}
+                                    required
                                   />
-                                </PopoverContent>
-                              </Popover>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="pickup_time"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t('quotations.form.services.time')}</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="time"
-                                  className="w-full"
-                                  {...field}
-                                  value={field.value || ''}
-                                  onClick={(e) => e.stopPropagation()}
-                                  onFocus={(e) => e.stopPropagation()}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                      />
 
                                   {/* Duration for Charter Services */}
                                    {selectedServiceTypeObject?.name.toLowerCase().includes('charter') && (
@@ -1049,12 +1160,181 @@ export function ServiceSelectionStep({
                                 </div>
                               )}
 
+                  {/* Location and Flight Information */}
+                  <div className={cn("mt-4 sm:mt-6 pt-4 border-t transition-colors duration-300", themeColors.primaryCardBorder)}>
+                    <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                      <Settings className={cn("h-4 w-4 transition-colors duration-300", themeColors.primaryIcon)} />
+                      <Label className="text-sm font-medium">{t('quotations.form.services.locationAndFlight')}</Label>
+                    </div>
+                    
+                    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="pickup_location"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('quotations.form.services.pickupLocation')}</FormLabel>
+                            <FormControl>
+                              {isGoogleMapsLoaded && !googleMapsError ? (
+                                <GooglePlaceAutocomplete
+                                  id="pickup_location"
+                                  name="pickup_location"
+                                  label=""
+                                  value={field.value || ''}
+                                  onChange={(name, value) => field.onChange(value)}
+                                  placeholder={t('quotations.form.services.enterPickupLocation')}
+                                  required={false}
+                                />
+                              ) : (
+                                <Input
+                                  placeholder={t('quotations.form.services.enterPickupLocation')}
+                                  className="text-base h-10"
+                                  {...field}
+                                />
+                              )}
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="dropoff_location"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('quotations.form.services.dropoffLocation')}</FormLabel>
+                            <FormControl>
+                              {isGoogleMapsLoaded && !googleMapsError ? (
+                                <GooglePlaceAutocomplete
+                                  id="dropoff_location"
+                                  name="dropoff_location"
+                                  label=""
+                                  value={field.value || ''}
+                                  onChange={(name, value) => field.onChange(value)}
+                                  placeholder={t('quotations.form.services.enterDropoffLocation')}
+                                  required={false}
+                                />
+                              ) : (
+                                <Input
+                                  placeholder={t('quotations.form.services.enterDropoffLocation')}
+                                  className="text-base h-10"
+                                  {...field}
+                                />
+                              )}
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    {/* Flight Information - Only show for Airport Transfer services */}
+                    {selectedServiceTypeObject?.name.toLowerCase().includes('airport') && (
+                      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 mt-3 sm:mt-4">
+                        <FormField
+                          control={form.control}
+                          name="flight_number"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t('quotations.form.services.flightNumber')}</FormLabel>
+                              <FormControl>
+                                <FlightSearch
+                                  value={field.value || ''}
+                                  onSelect={(flight) => {
+                                    if (flight) {
+                                      field.onChange(flight.flightNumber);
+                                    }
+                                  }}
+                                  onFlightSelect={(flight) => {
+                                    if (flight) {
+                                      field.onChange(flight.flightNumber);
+                                    }
+                                  }}
+                                  placeholder={t('quotations.form.services.enterFlightNumber')}
+                                  label=""
+                                  required={false}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="terminal"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t('quotations.form.services.terminal')}</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder={t('quotations.form.services.enterTerminal')}
+                                  className="text-base h-10"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    )}
+
+                    {/* Passenger and Bag Information */}
+                    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 mt-3 sm:mt-4">
+                      <FormField
+                        control={form.control}
+                        name="number_of_passengers"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('quotations.form.services.numberOfPassengers')}</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min={1}
+                                max={50}
+                                placeholder={t('quotations.form.services.enterPassengerCount')}
+                                className="text-base h-10"
+                                value={field.value?.toString() || ''}
+                                onChange={(e) => handlePassengerChange(e.target.value, field.onChange)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="number_of_bags"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('quotations.form.services.numberOfBags')}</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min={0}
+                                max={20}
+                                placeholder={t('quotations.form.services.enterBagCount')}
+                                className="text-base h-10"
+                                value={field.value?.toString() || ''}
+                                onChange={(e) => handleBagChange(e.target.value, field.onChange)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
                   {/* Time-based pricing control */}
                   {serviceType && vehicleCategory && vehicleType && (
-                    <div className="pt-3 sm:pt-4 border-t border-green-200 dark:border-green-800">
+                    <div className={cn("pt-3 sm:pt-4 border-t transition-colors duration-300", themeColors.primaryCardBorder)}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Timer className="h-4 w-4 text-green-600" />
+                          <Timer className={cn("h-4 w-4 transition-colors duration-300", themeColors.primaryIcon)} />
                           <Label className="text-sm font-medium">{t('quotations.form.services.applyTimeBasedPricing')}</Label>
                           {serviceTimeBasedPricing && (
                             <Badge variant="outline" className="text-xs">
@@ -1077,7 +1357,7 @@ export function ServiceSelectionStep({
                   )}
 
                   {/* Button to add or update service - INSIDE THE SERVICE BLOCK */}
-                  <div className="flex flex-col sm:flex-row justify-center gap-2 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-green-200 dark:border-green-800">
+                  <div className={cn("flex flex-col sm:flex-row justify-center gap-2 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t transition-colors duration-300", themeColors.primaryCardBorder)}>
                     {isEditingService ? (
                       <>
                         <Button 
@@ -1126,7 +1406,12 @@ export function ServiceSelectionStep({
                           handleAddServiceItem();
                         }}
                         disabled={!serviceType || !vehicleType}
-                        className="w-full sm:w-auto text-sm"
+                        className={cn(
+                          "w-full text-sm font-medium transition-all duration-300",
+                          serviceItems.length === 0 
+                            ? `${themeColors.primaryButton} text-white shadow-lg hover:shadow-xl` 
+                            : `${themeColors.primaryButton} text-white shadow-md hover:shadow-lg`
+                        )}
                       >
                         <Plus className="h-4 w-4 mr-2" /> 
                         {serviceItems.length === 0 ? t('quotations.form.services.addThisService') : t('quotations.form.services.addAnotherService')}
@@ -1309,6 +1594,25 @@ export function ServiceSelectionStep({
         </div>
 
       </div>
+
+      {/* Floating Add Service Button - Only show when there are existing services */}
+      {serviceItems.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <Button
+            onClick={() => {
+              // Scroll to the service configuration section
+              const serviceSection = document.querySelector('[data-service-config]');
+              if (serviceSection) {
+                serviceSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }}
+            className={cn("rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-300 text-white", themeColors.primaryButton)}
+            size="icon"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 } 

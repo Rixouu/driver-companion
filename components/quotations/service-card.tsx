@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PencilIcon, Copy, Trash, Edit3, Check, X as XIcon } from 'lucide-react';
+import { PencilIcon, Copy, Trash, Car, Calendar, Clock, Plane, MapPin, Users, Check, X as XIcon, Edit3 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ServiceItemInput, PricingPackage } from '@/types/quotations';
@@ -48,15 +48,6 @@ export function ServiceCard({
   const isCharter = item.service_type_name?.toLowerCase().includes('charter');
   const isTransfer = !isPackage && !isCharter;
 
-  // Calculate time-based adjustment for display
-  const baseItemPrice = (item.unit_price || 0) * (item.service_days || 1);
-  const timeAdjustmentAmount = item.time_based_adjustment ? 
-    baseItemPrice * (item.time_based_adjustment / 100) : 0;
-
-  // Get corresponding package for package items
-  const correspondingPackage = isPackage ? 
-    (packages.find(pkg => pkg.id === item.service_type_id) || selectedPackage) : null;
-
   // Handle price editing
   const handlePriceEdit = () => {
     setIsEditingPrice(true);
@@ -78,6 +69,32 @@ export function ServiceCard({
 
   const hasCustomPrice = originalPrice && originalPrice !== item.unit_price;
 
+  // Helper functions for date/time formatting
+  const formatDate = (dateString: string) => {
+    try {
+      return format(parseISO(dateString), 'MMM d, yyyy');
+    } catch {
+      return dateString;
+    }
+  };
+
+  const formatTime = (timeString: string) => {
+    try {
+      // Check if time already contains AM/PM
+      if (timeString.includes('AM') || timeString.includes('PM')) {
+        return timeString;
+      }
+      
+      const [hours, minutes] = timeString.split(':');
+      const hour = parseInt(hours, 10);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 || 12;
+      return `${displayHour}:${minutes} ${ampm}`;
+    } catch {
+      return timeString;
+    }
+  };
+
   return (
     <Card className={cn(
       "relative overflow-hidden transition-all",
@@ -91,255 +108,305 @@ export function ServiceCard({
         isCharter ? 'bg-blue-500' : 'bg-green-500'
       )} />
       
-      <CardContent className="p-3 sm:p-4">
-        <div className="flex flex-col gap-3">
-          {/* Header with main info and actions */}
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-sm sm:text-base flex items-center flex-wrap gap-2">
-                <Badge variant={
-                  isPackage ? "secondary" :
-                  isCharter ? "default" : "outline"
-                } className={cn(
-                  "text-xs",
-                  isPackage && "bg-purple-100 text-purple-700 border-purple-200",
-                  isCharter && "bg-blue-100 text-blue-700 border-blue-200",
-                  isTransfer && "bg-green-100 text-green-700 border-green-200"
-                )}>
-                  {isPackage ? 'Package' : isCharter ? 'Charter' : 'Transfer'}
-                </Badge>
-                <span className="break-words">{item.description}</span>
-                {isEditing && <Badge variant="outline" className="text-xs">Editing</Badge>}
-              </h3>
-              
-              {/* Essential info always visible - compact for mobile */}
-              <div className="mt-2 space-y-1 text-xs sm:text-sm">
-                {!isPackage && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">Vehicle:</span>
-                    <span className="break-words font-medium">{item.vehicle_type}</span>
+      <CardContent className="p-6">
+        <div className="space-y-5">
+          {/* Header with service type and total price */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Badge variant={
+                isPackage ? "secondary" :
+                isCharter ? "default" : "outline"
+              } className={cn(
+                "text-xs px-3 py-1 font-bold uppercase tracking-wide",
+                isPackage && "bg-purple-500 text-white",
+                isCharter && "bg-blue-500 text-white",
+                isTransfer && "bg-green-500 text-white"
+              )}>
+                {isPackage ? 'PACKAGE' : isCharter ? 'CHARTER' : 'SERVICE'}
+              </Badge>
+              {isEditing && <Badge variant="outline" className="text-xs px-2 py-1">Editing</Badge>}
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-green-500">
+                {(() => {
+                  // For Charter Services, calculate total based on duration (unit_price × service_days)
+                  if (isCharter) {
+                    return formatCurrency(item.unit_price * (item.service_days || 1));
+                  }
+                  // For other services, use existing logic
+                  return formatCurrency(item.total_price || item.unit_price);
+                })()}
+              </div>
+            </div>
+          </div>
+
+          {/* Service name and basic info */}
+          <div>
+            <h3 className="text-lg font-bold text-white mb-2">{item.service_type_name || 'Service'}</h3>
+            <div className="text-sm text-gray-400">
+              {!isPackage && item.vehicle_type && (
+                <span className="mr-4">{item.vehicle_type}</span>
+              )}
+              {item.service_days && item.hours_per_day ? (
+                <span>{item.service_days} days × {item.hours_per_day}h/day</span>
+              ) : item.duration_hours && (
+                <span>{item.duration_hours} hour(s)</span>
+              )}
+            </div>
+          </div>
+
+          {/* Two-column layout like the reference */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-4">
+              {/* Date & Duration */}
+              <div>
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">DATE & DURATION</h4>
+                <div className="space-y-1">
+                  {item.pickup_date && (
+                    <div className="text-sm text-white">{formatDate(item.pickup_date)}</div>
+                  )}
+                  {item.pickup_time && (
+                    <div className="text-sm text-white">{formatTime(item.pickup_time)}</div>
+                  )}
+                  <div className="text-sm text-gray-400">
+                    {formatCurrency(item.unit_price)} per day
                   </div>
-                )}
-                
-                {/* Price and total - always visible */}
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Total:</span>
-                  <span className="font-semibold text-base">{(() => {
-                    // For Charter Services, calculate total based on duration (unit_price × service_days)
-                    if (isCharter) {
-                      return formatCurrency(item.unit_price * (item.service_days || 1));
-                    }
-                    // For other services, use existing logic
-                    return formatCurrency(item.total_price || item.unit_price);
-                  })()}</span>
+                </div>
+              </div>
+
+              {/* Flight Details - only for Airport services */}
+              {(item.flight_number || item.terminal) && 
+               item.service_type_name?.toLowerCase().includes('airport') && (
+                <div>
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">FLIGHT DETAILS</h4>
+                  <div className="space-y-1">
+                    {item.flight_number && (
+                      <div className="flex items-center gap-2 text-sm text-white">
+                        <Plane className="h-3 w-3" />
+                        <span>Flight {item.flight_number}</span>
+                      </div>
+                    )}
+                    {item.terminal && (
+                      <div className="flex items-center gap-2 text-sm text-white">
+                        <MapPin className="h-3 w-3" />
+                        <span>Terminal {item.terminal}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Passenger and Bag Details - for all services */}
+              {(item.number_of_passengers || item.number_of_bags) && (
+                <div>
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">PASSENGER & BAG DETAILS</h4>
+                  <div className="space-y-1">
+                    {item.number_of_passengers && (
+                      <div className="flex items-center gap-2 text-sm text-white">
+                        <Users className="h-3 w-3" />
+                        <span>{item.number_of_passengers} passengers</span>
+                      </div>
+                    )}
+                    {item.number_of_bags && (
+                      <div className="flex items-center gap-2 text-sm text-white">
+                        <MapPin className="h-3 w-3" />
+                        <span>{item.number_of_bags} bags</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-4">
+              {/* Locations */}
+              {(item.pickup_location || item.dropoff_location) && (
+                <div>
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">LOCATIONS</h4>
+                  <div className="space-y-1">
+                    {item.pickup_location && (
+                      <div className="flex items-start gap-2 text-sm">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                        <span className="text-white break-words">{item.pickup_location}</span>
+                      </div>
+                    )}
+                    {item.dropoff_location && (
+                      <div className="flex items-start gap-2 text-sm">
+                        <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                        <span className="text-white break-words">{item.dropoff_location}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Pricing */}
+              <div>
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">PRICING</h4>
+                <div className="space-y-1 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white">Unit Price:</span>
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "font-semibold",
+                        hasCustomPrice && "text-blue-400"
+                      )}>
+                        {formatCurrency(item.unit_price)}
+                      </span>
+                      {onPriceChange && !isPackage && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={handlePriceEdit}
+                          className="h-5 w-5 p-0 hover:bg-blue-500/20"
+                          title="Edit Price"
+                        >
+                          <Edit3 className="h-3 w-3 text-blue-400" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  {item.service_days && item.service_days > 1 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-white">× {item.service_days} days:</span>
+                      <span className="font-semibold text-white">{formatCurrency((item.unit_price || 0) * item.service_days)}</span>
+                    </div>
+                  )}
+                  {item.time_based_adjustment && (
+                    <div className="flex items-center justify-between text-orange-400">
+                      <span>Time Adjustment:</span>
+                      <span className="font-semibold">
+                        {item.time_based_adjustment > 0 ? '+' : ''}
+                        {formatCurrency(Math.abs((item.unit_price || 0) * (item.service_days || 1) * (item.time_based_adjustment / 100)))}
+                        {item.time_based_rule_name && (
+                          <span className="text-xs ml-1">({item.time_based_rule_name})</span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between font-bold text-green-500 pt-1 border-t border-gray-600">
+                    <span>Total:</span>
+                    <span>{formatCurrency(item.total_price || item.unit_price || 0)}</span>
+                  </div>
                 </div>
               </div>
             </div>
-            
-            {/* Action buttons - larger and more touch-friendly */}
-            {showActions && (
-              <div className="flex gap-1 flex-shrink-0">
-                {onEdit && (
-                  <Button 
-                    variant={isEditing ? "default" : "ghost"}
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onEdit(index);
-                    }}
-                    title="Edit Service"
-                    type="button"
-                    className="h-9 w-9 sm:h-8 sm:w-8"
-                  >
-                    <PencilIcon className="h-4 w-4 sm:h-3 sm:w-3" />
-                  </Button>
-                )}
-                {onDuplicate && (
-                  <Button 
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onDuplicate(index);
-                    }}
-                    title="Duplicate Service"
-                    type="button"
-                    className="h-9 w-9 sm:h-8 sm:w-8"
-                  >
-                    <Copy className="h-4 w-4 sm:h-3 sm:w-3" />
-                  </Button>
-                )}
-                {onRemove && (
-                  <Button 
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onRemove(index);
-                    }}
-                    title="Remove Service"
-                    type="button"
-                    className="h-9 w-9 sm:h-8 sm:w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash className="h-4 w-4 sm:h-3 sm:w-3" />
-                  </Button>
-                )}
-              </div>
-            )}
           </div>
-          
-          {/* Compact details section - always visible but mobile-optimized */}
-          <div className="space-y-2 text-xs sm:text-sm border-t pt-3">
-            {/* Key details in a compact grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {/* Duration info */}
-              {isCharter ? (
-                <>
-                  <div className="text-muted-foreground">Duration:</div>
-                  <div className="font-medium text-blue-600">
-                    {item.service_days} day{item.service_days !== 1 ? 's' : ''} × {item.hours_per_day}h/day
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="text-muted-foreground">Duration:</div>
-                  <div>{item.duration_hours} hour(s)</div>
-                </>
+
+            
+          {/* Action buttons */}
+          {showActions && (
+            <div className="flex gap-2 justify-end pt-4 border-t border-muted">
+              {onEdit && (
+                <Button 
+                  variant={isEditing ? "default" : "ghost"}
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onEdit(index);
+                  }}
+                  title="Edit Service"
+                  type="button"
+                  className="h-9 w-9 p-0"
+                >
+                  <PencilIcon className="h-4 w-4" />
+                </Button>
               )}
-              
-              {/* Unit price with edit capability */}
-              <div className="text-muted-foreground">Unit Price:</div>
-              <div className="flex items-center gap-2">
-                {isEditingPrice ? (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      value={customPrice}
-                      onChange={(e) => setCustomPrice(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handlePriceSave();
-                        } else if (e.key === 'Escape') {
-                          e.preventDefault();
-                          handlePriceCancel();
-                        }
-                      }}
-                      className="h-8 text-sm w-24 focus:w-32 transition-all duration-200"
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                      autoFocus
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={handlePriceSave}
-                      className="h-8 w-8 p-0 hover:bg-green-50 hover:text-green-700"
-                      title="Save price (Enter)"
-                    >
-                      <Check className="h-4 w-4 text-green-600" />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={handlePriceCancel}
-                      className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-700"
-                      title="Cancel (Esc)"
-                    >
-                      <XIcon className="h-4 w-4 text-red-600" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span className={cn(
-                      "font-medium",
-                      hasCustomPrice && "text-blue-600"
-                    )}>
-                      {formatCurrency(item.unit_price)}
-                    </span>
-                    {hasCustomPrice && (
-                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                        Custom
-                      </Badge>
-                    )}
-                    {onPriceChange && !isPackage && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={handlePriceEdit}
-                        className="h-6 w-6 p-0 hover:bg-blue-50 hover:text-blue-700"
-                        title="Edit Price"
-                      >
-                        <Edit3 className="h-3 w-3 text-blue-600" />
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              {/* Time-based adjustments - always visible if they exist */}
-              {item.time_based_adjustment && (
-                <>
-                  <div className="text-muted-foreground">Time Adjustment:</div>
-                  <div className={cn(
-                    "font-medium",
-                    item.time_based_adjustment > 0 ? "text-orange-600" : "text-green-600"
-                  )}>
-                    {item.time_based_adjustment > 0 ? '+' : ''}{formatCurrency(Math.abs(timeAdjustmentAmount))}
-                    <span className="text-xs ml-1">
-                      ({item.time_based_adjustment > 0 ? '+' : ''}{item.time_based_adjustment}%)
-                    </span>
-                    {item.time_based_rule_name && (
-                      <div className="text-xs text-orange-600 mt-1 font-normal">
-                        {item.time_based_rule_name}
-                      </div>
-                    )}
-                  </div>
-                </>
+              {onDuplicate && (
+                <Button 
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onDuplicate(index);
+                  }}
+                  title="Duplicate Service"
+                  type="button"
+                  className="h-9 w-9 p-0"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
               )}
-              
-              {/* Pickup info - compact display */}
-              {(item.pickup_date || item.pickup_time) && (
-                <>
-                  <div className="text-muted-foreground">Pickup:</div>
-                  <div className="text-xs">
-                    {item.pickup_date ? format(parseISO(item.pickup_date), 'MMM d') : 'N/A'}
-                    {item.pickup_time && ` at ${item.pickup_time}`}
-                  </div>
-                </>
+              {onRemove && (
+                <Button 
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onRemove(index);
+                  }}
+                  title="Remove Service"
+                  type="button"
+                  className="h-9 w-9 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash className="h-4 w-4" />
+                </Button>
               )}
             </div>
-            
-            {/* Package details - always visible for packages */}
-            {isPackage && correspondingPackage && (
-              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                <div className="text-muted-foreground text-xs mb-1">Services Included:</div>
-                {correspondingPackage.items && correspondingPackage.items.length > 0 ? (
-                  <div className="space-y-1">
-                    {correspondingPackage.items.map((pkgItem: any, pkgIndex: number) => (
-                      <div key={pkgIndex} className="text-purple-600 text-xs">
-                        • {pkgItem.name}
-                        {pkgItem.vehicle_type && (
-                          <span className="text-muted-foreground ml-1">({pkgItem.vehicle_type})</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-purple-600 text-xs">• All package services included</div>
-                )}
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </CardContent>
+
+      {/* Price editing modal */}
+      {isEditingPrice && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50 rounded-lg">
+          <div className="bg-gray-800 p-4 rounded-lg border border-gray-600 min-w-[300px]">
+            <div className="flex items-center gap-2 mb-3">
+              <Edit3 className="h-4 w-4 text-blue-400" />
+              <span className="font-semibold text-white">Edit Unit Price</span>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm text-gray-400 mb-1 block">New Price</label>
+                <Input
+                  type="number"
+                  value={customPrice}
+                  onChange={(e) => setCustomPrice(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handlePriceSave();
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault();
+                      handlePriceCancel();
+                    }
+                  }}
+                  className="bg-gray-700 border-gray-600 text-white"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={handlePriceCancel}
+                  className="text-gray-400 hover:text-white"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handlePriceSave}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

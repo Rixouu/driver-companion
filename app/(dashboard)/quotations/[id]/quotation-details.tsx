@@ -925,6 +925,12 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                         is_service_item: item.is_service_item !== false,
                         pickup_date: item.pickup_date || null,
                         pickup_time: item.pickup_time || null,
+                        pickup_location: (item as any).pickup_location || '',
+                        dropoff_location: (item as any).dropoff_location || '',
+                        number_of_passengers: (item as any).number_of_passengers || null,
+                        number_of_bags: (item as any).number_of_bags || null,
+                        flight_number: (item as any).flight_number || '',
+                        terminal: (item as any).terminal || '',
                         time_based_adjustment: (item as any).time_based_adjustment,
                         time_based_rule_name: (item as any).time_based_rule_name,
                       };
@@ -1316,7 +1322,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
           />
 
           {/* Notes & Comments Section */}
-          {(quotation.customer_notes || quotation.merchant_notes) && (
+          {(quotation.customer_notes || quotation.merchant_notes || quotation.general_notes) && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -1355,6 +1361,23 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
                       Internal notes, not visible to the customer
+                    </p>
+                  </div>
+                )}
+                
+                {quotation.general_notes && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <FileText className="h-3 w-3 text-muted-foreground" />
+                      General Notes
+                    </h4>
+                    <div 
+                      className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-gray-500 whitespace-pre-wrap break-words"
+                    >
+                      {processNotesText(quotation.general_notes)}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      General notes and comments
                     </p>
                   </div>
                 )}

@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
-import { User, CreditCard, FileText } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { User, CreditCard, FileText, Lock, Eye, Users } from 'lucide-react'
 import { Booking } from '@/types/bookings'
 
 interface ClientDetailsTabProps {
@@ -178,14 +179,78 @@ export function ClientDetailsTab({ formData, handleInputChange }: ClientDetailsT
               Additional Information
             </h3>
             
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Customer Notes */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="customer_notes" className="flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-blue-500" />
+                    Customer Notes
+                  </Label>
+                  <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20">
+                    <Eye className="h-3 w-3 mr-1" />
+                    Public
+                  </Badge>
+                </div>
+                <div className="relative">
+                  <Textarea
+                    id="customer_notes"
+                    name="customer_notes"
+                    value={formData.customer_notes || ''}
+                    onChange={handleInputChange}
+                    placeholder="Customer requirements, special instructions, or notes..."
+                    className="font-mono text-sm leading-relaxed border-l-4 border-l-blue-500 focus:border-l-blue-600 bg-blue-50/30 dark:bg-blue-900/10 min-h-[120px] max-h-[400px] transition-all focus:ring-2 focus:border-primary"
+                  />
+                  <div className="absolute top-2 right-2">
+                    <Eye className="h-4 w-4 text-blue-500/60" />
+                  </div>
+                </div>
+                <p className="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-sm">
+                  <Users className="h-3 w-3" />
+                  Notes visible to the customer on the quotation.
+                </p>
+              </div>
+              
+              {/* Internal Notes */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="merchant_notes" className="flex items-center gap-2">
+                    <Lock className="h-4 w-4 text-orange-500" />
+                    Internal Notes
+                  </Label>
+                  <Badge variant="outline" className="border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-900/20">
+                    <Lock className="h-3 w-3 mr-1" />
+                    Private
+                  </Badge>
+                </div>
+                <div className="relative">
+                  <Textarea
+                    id="merchant_notes"
+                    name="merchant_notes"
+                    value={formData.merchant_notes || ''}
+                    onChange={handleInputChange}
+                    placeholder="Internal notes, driver instructions, or administrative notes..."
+                    className="font-mono text-sm leading-relaxed border-l-4 border-l-orange-500 focus:border-l-orange-600 bg-orange-50/30 dark:bg-orange-900/10 min-h-[120px] max-h-[400px] transition-all focus:ring-2 focus:border-primary"
+                  />
+                  <div className="absolute top-2 right-2">
+                    <Lock className="h-4 w-4 text-orange-500/60" />
+                  </div>
+                </div>
+                <p className="flex items-center gap-2 text-orange-600 dark:text-orange-400 text-sm">
+                  <User className="h-3 w-3" />
+                  Internal notes, not visible to the customer.
+                </p>
+              </div>
+            </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="notes">Special Instructions or Notes</Label>
+              <Label htmlFor="notes">General Notes</Label>
               <Textarea
                 id="notes"
                 name="notes"
                 value={formData.notes || ''}
                 onChange={handleInputChange}
-                placeholder="Any special requirements, pickup instructions, or additional information..."
+                placeholder="Any other special requirements, pickup instructions, or additional information..."
                 className="min-h-[100px] transition-all focus:ring-2 focus:border-primary"
               />
             </div>

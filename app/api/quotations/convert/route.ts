@@ -198,9 +198,17 @@ export async function POST(request: NextRequest) {
       const proportionalAmount = quotationItems.length > 1 ? 
         (itemTotal / totalQuotationAmount) * totalQuotationAmount : totalQuotationAmount;
 
-      // Get pickup and dropoff locations from quotation
-      const pickupLocation = quotation.pickup_location || 'Location to be confirmed - Please edit booking details';
-      const dropoffLocation = quotation.dropoff_location || 'Location to be confirmed - Please edit booking details';
+      // Get pickup and dropoff locations from quotation item (preferred) or quotation
+      const pickupLocation = item.pickup_location || quotation.pickup_location || 'Location to be confirmed - Please edit booking details';
+      const dropoffLocation = item.dropoff_location || quotation.dropoff_location || 'Location to be confirmed - Please edit booking details';
+      
+      // Get passenger and bag counts from quotation item
+      const numberOfPassengers = item.number_of_passengers || quotation.passenger_count || null;
+      const numberOfBags = item.number_of_bags || null;
+      
+      // Get flight information from quotation item
+      const flightNumber = item.flight_number || null;
+      const terminal = item.terminal || null;
 
       // Create booking for this service
       const { data: booking, error: bookingError } = await supabase
@@ -227,9 +235,15 @@ export async function POST(request: NextRequest) {
           payment_method: 'Omise',
           pickup_location: pickupLocation,
           dropoff_location: dropoffLocation,
+          number_of_passengers: numberOfPassengers,
+          number_of_bags: numberOfBags,
+          flight_number: flightNumber,
+          terminal: terminal,
           distance: '0', // Default distance as string
           duration: `${item.duration_hours || quotation.duration_hours || 1}h`,
-          notes: `Converted from quotation #${quotation.quote_number || quotation.id} - Service ${i + 1} of ${quotationItems.length}. Please edit pickup/dropoff locations as needed.`,
+          notes: `Converted from quotation #${quotation.quote_number || quotation.id} - Service ${i + 1} of ${quotationItems.length}.${numberOfPassengers ? ` Passengers: ${numberOfPassengers}` : ''}${numberOfBags ? ` Bags: ${numberOfBags}` : ''}${flightNumber ? ` Flight: ${flightNumber}` : ''}${terminal ? ` Terminal: ${terminal}` : ''}`,
+          customer_notes: quotation.customer_notes || null,
+          merchant_notes: quotation.merchant_notes || null,
           billing_company_name: quotation.billing_company_name,
           billing_tax_number: quotation.billing_tax_number,
           billing_street_name: quotation.billing_street_name,
@@ -252,6 +266,12 @@ export async function POST(request: NextRequest) {
             service_days: item.service_days,
             hours_per_day: item.hours_per_day,
             time_based_adjustment: item.time_based_adjustment,
+            pickup_location: pickupLocation,
+            dropoff_location: dropoffLocation,
+            number_of_passengers: numberOfPassengers,
+            number_of_bags: numberOfBags,
+            flight_number: flightNumber,
+            terminal: terminal,
             quotation_items: [item], // Store only this item
             conversion_date: new Date().toISOString(),
             is_multi_service_booking: quotationItems.length > 1,

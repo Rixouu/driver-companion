@@ -34,8 +34,8 @@ import { progressConfigs } from '@/lib/config/progressConfigs';
 import { CustomerDetailsStep } from './steps/customer-details-step';
 import { ServiceSelectionStep } from './steps/service-selection-step';
 import { PricingStep } from './steps/pricing-step';
-import { NotesStep } from './steps/notes-step';
 import { PreviewStep } from './steps/preview-step';
+import { QuotationSummary } from './quotation-summary';
 
 // Import types
 import { 
@@ -82,6 +82,18 @@ const formSchema = z.object({
   ]).optional(),
   pickup_date: z.date().optional(),
   pickup_time: z.string().optional(),
+  pickup_location: z.string().optional(),
+  dropoff_location: z.string().optional(),
+  flight_number: z.string().optional(),
+  terminal: z.string().optional(),
+  number_of_passengers: z.union([
+    z.coerce.number().min(1).max(50),
+    z.literal('').transform(() => null)
+  ]).optional().nullable(),
+  number_of_bags: z.union([
+    z.coerce.number().min(0).max(20),
+    z.literal('').transform(() => null)
+  ]).optional().nullable(),
   duration_hours: z.union([
     z.coerce.number().min(1).max(24),
     z.literal('none').transform(() => 1),
@@ -109,6 +121,8 @@ const formSchema = z.object({
   ]).optional().default(0),
   merchant_notes: z.string().optional(),
   customer_notes: z.string().optional(),
+  internal_notes: z.string().optional(),
+  general_notes: z.string().optional(),
   passenger_count: z.union([
     z.coerce.number().int().nullable(),
     z.literal('none').transform(() => null),
@@ -131,10 +145,9 @@ interface QuotationFormProps {
 
 // Define steps (names will be translated in the component)
 const steps = [
+  { id: 'routes', nameKey: 'quotations.form.stepTitles.routesServices', icon: Car },
   { id: 'customer', nameKey: 'quotations.form.stepTitles.customerDetails', icon: User },
-  { id: 'service', nameKey: 'quotations.form.stepTitles.serviceVehicle', icon: Car },
   { id: 'pricing', nameKey: 'quotations.form.stepTitles.pricingOptions', icon: DollarSign },
-  { id: 'notes', nameKey: 'quotations.form.stepTitles.notes', icon: FileText },
   { id: 'preview', nameKey: 'quotations.form.stepTitles.previewSend', icon: Eye },
 ];
 
@@ -264,6 +277,12 @@ export default function QuotationFormRefactored({
       vehicle_type: initialData?.vehicle_type || '',
       pickup_date: initialData?.pickup_date ? parseISO(initialData.pickup_date) : undefined,
       pickup_time: initialData?.pickup_time || '',
+      pickup_location: initialData?.pickup_location || '',
+      dropoff_location: initialData?.dropoff_location || '',
+      flight_number: initialData?.flight_number || '',
+      terminal: initialData?.terminal || '',
+      number_of_passengers: initialData?.number_of_passengers || null,
+      number_of_bags: initialData?.number_of_bags || null,
       duration_hours: initialData?.duration_hours || 1,
       service_days: initialData?.service_days || 1,
       hours_per_day: initialData?.hours_per_day || null,
@@ -271,6 +290,8 @@ export default function QuotationFormRefactored({
       tax_percentage: initialData?.tax_percentage || 0,
       merchant_notes: initialData?.merchant_notes || '',
       customer_notes: initialData?.customer_notes || '',
+      internal_notes: initialData?.internal_notes || '',
+      general_notes: initialData?.general_notes || '',
       passenger_count: initialData?.passenger_count || null,
       display_currency: initialData?.display_currency || 'JPY',
       team_location: initialData?.team_location || 'thailand',
@@ -296,6 +317,11 @@ export default function QuotationFormRefactored({
         is_service_item: item.is_service_item ?? true,
         pickup_date: item.pickup_date || undefined,
         pickup_time: item.pickup_time || undefined,
+        pickup_location: (item as any).pickup_location || '',
+        dropoff_location: (item as any).dropoff_location || '',
+        number_of_passengers: (item as any).number_of_passengers || null,
+        number_of_bags: (item as any).number_of_bags || null,
+        flight_number: (item as any).flight_number || '',
         time_based_adjustment: (item as any).time_based_adjustment || undefined,
         time_based_rule_name: (item as any).time_based_rule_name || undefined,
       }));
@@ -336,17 +362,12 @@ export default function QuotationFormRefactored({
       return;
     }
     try {
-      // Progress overlay setup
+      // Progress overlay setup - will be started just before API calls
       setProgressOpen(true);
       setProgressTitle(sendToCustomer ? (initialData?.id ? 'Updating & Sending' : 'Sending Quotation') : (initialData?.id ? 'Updating Draft' : 'Saving Draft'));
       
-      // Start progress animation for draft saving
+      // Progress animation will be started just before API calls
       let progressPromise: Promise<void> | null = null;
-      if (!sendToCustomer) {
-        const progressConfig = initialData?.id ? progressConfigs.updateDraft : progressConfigs.saveDraft;
-        setProgressSteps(progressConfig.steps);
-        progressPromise = startProgress(progressConfig);
-      }
       
       const formData = {
         ...data,
@@ -464,8 +485,9 @@ export default function QuotationFormRefactored({
         service_days: primaryServiceItem?.service_days || formData.service_days,
         hours_per_day: primaryServiceItem?.hours_per_day || formData.hours_per_day || undefined,
         passenger_count: formData.passenger_count || undefined,
-        merchant_notes: formData.merchant_notes || undefined,
+        merchant_notes: formData.internal_notes || formData.merchant_notes || undefined,
         customer_notes: formData.customer_notes || undefined,
+        general_notes: formData.general_notes || undefined,
         discount_percentage: formData.discount_percentage,
         tax_percentage: formData.tax_percentage,
         status: sendToCustomer ? 'sent' as QuotationStatus : 'draft' as QuotationStatus,
@@ -505,6 +527,13 @@ export default function QuotationFormRefactored({
           ...item,
           total_price: item.total_price || (item.unit_price * (item.quantity || 1))
         }));
+
+        // Start progress animation just before API calls for save as draft
+        if (!sendToCustomer) {
+          const progressConfig = initialData?.id ? progressConfigs.updateDraft : progressConfigs.saveDraft;
+          setProgressSteps(progressConfig.steps);
+          progressPromise = startProgress(progressConfig);
+        }
 
         if (initialData?.id) {
           result = await updateQuotation(initialData.id, input);
@@ -642,6 +671,13 @@ export default function QuotationFormRefactored({
           }
         }
       } else {
+        // Start progress animation just before API calls for save as draft (no service items)
+        if (!sendToCustomer) {
+          const progressConfig = initialData?.id ? progressConfigs.updateDraft : progressConfigs.saveDraft;
+          setProgressSteps(progressConfig.steps);
+          progressPromise = startProgress(progressConfig);
+        }
+
         if (initialData?.id) {
           result = await updateQuotation(initialData.id, input);
           advance('Quotation record saved');
@@ -763,12 +799,26 @@ export default function QuotationFormRefactored({
 
       // Redirection is now handled immediately after email sending
       
-      // Wait for progress animation to complete for draft saving
-      if (progressPromise) {
-        await progressPromise;
+      // For save as draft, redirect to quotations list after successful save
+      if (!sendToCustomer && result?.id) {
+        // Wait for progress animation to complete for draft saving
+        if (progressPromise) {
+          await progressPromise;
+        }
+        
+        setTimeout(() => {
+          setProgressOpen(false);
+          // Redirect to quotations list
+          router.push('/quotations');
+        }, 200);
+      } else {
+        // Wait for progress animation to complete for draft saving
+        if (progressPromise) {
+          await progressPromise;
+        }
+        
+        setTimeout(() => setProgressOpen(false), 200);
       }
-      
-      setTimeout(() => setProgressOpen(false), 200);
     } catch (error) {
       console.error('Error in form submission:', error);
       toast({
@@ -825,8 +875,11 @@ export default function QuotationFormRefactored({
   const [sendLanguage, setSendLanguage] = useState<'en' | 'ja'>('en');
 
   return (
-    <Card className="w-full border shadow-md dark:border-gray-800 relative pb-16 md:pb-0">
-      <CardHeader className="bg-muted/30 rounded-t-lg border-b px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+    <div className="flex flex-col lg:flex-row gap-6 w-full mx-auto">
+      {/* Main Form Content */}
+      <div className="flex-1 space-y-6">
+        <Card className="w-full border shadow-md dark:border-gray-800 relative pb-16 md:pb-0">
+      <CardHeader className="bg-muted/30 rounded-t-lg border-b px-4 sm:px-6 md:px-8 py-4 sm:py-6">
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 text-sm sm:text-base md:text-lg">
@@ -834,7 +887,7 @@ export default function QuotationFormRefactored({
               {initialData ? t('quotations.form.update') : t('quotations.form.create')}
             </CardTitle>
             {!isMobile && (
-              <CardDescription className="text-xs sm:text-sm">
+              <CardDescription className="text-sm sm:text-base mt-1">
                 Step {currentStep + 1} of {steps.length}: {t(steps[currentStep].nameKey)}
               </CardDescription>
             )}
@@ -851,7 +904,7 @@ export default function QuotationFormRefactored({
       <Tabs value={steps[currentStep].id} className="w-full">
         {/* Desktop/Tablet Tabs */}
         <div className="hidden md:block w-full border-b">
-          <TabsList className="w-full grid grid-cols-5 p-0 h-auto bg-muted/30 dark:bg-muted/10">
+          <TabsList className="w-full grid grid-cols-4 p-0 h-auto bg-muted/30 dark:bg-muted/10">
             {steps.map((step, index) => (
               <TabsTrigger
                 key={step.id}
@@ -859,8 +912,8 @@ export default function QuotationFormRefactored({
                 disabled={index > currentStep}
                 onClick={() => setCurrentStep(index)}
                 className={cn(
-                  "flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 md:py-4 px-1 sm:px-2 md:px-3 rounded-none border-b-2",
-                  "text-foreground dark:text-foreground text-xs sm:text-sm whitespace-nowrap data-[state=active]:bg-muted/50 dark:data-[state=active]:bg-muted/20",
+                  "flex items-center justify-center gap-2 py-3 px-4 rounded-none border-b-2",
+                  "text-foreground dark:text-foreground text-sm whitespace-nowrap data-[state=active]:bg-muted/50 dark:data-[state=active]:bg-muted/20",
                   currentStep === index 
                     ? "border-primary data-[state=active]:border-primary" 
                     : "border-transparent hover:border-gray-600",
@@ -877,7 +930,7 @@ export default function QuotationFormRefactored({
         
         {/* Bottom Fixed Mobile Nav */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-muted/95 dark:bg-muted/95 backdrop-blur-sm border-t z-50">
-          <TabsList className="w-full grid grid-cols-5 p-0 h-auto bg-transparent">
+          <TabsList className="w-full grid grid-cols-4 p-0 h-auto bg-transparent">
             {steps.map((step, index) => (
               <TabsTrigger
                 key={step.id}
@@ -885,7 +938,7 @@ export default function QuotationFormRefactored({
                 disabled={index > currentStep}
                 onClick={() => setCurrentStep(index)}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-none border-t-2",
+                  "flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-none border-t-2",
                   "text-foreground dark:text-foreground data-[state=active]:bg-muted/50 dark:data-[state=active]:bg-muted/20",
                   currentStep === index 
                     ? "border-primary data-[state=active]:border-primary" 
@@ -914,14 +967,10 @@ export default function QuotationFormRefactored({
             e.preventDefault();
             setIsBccDialogOpen(true);
           }}
-          className="p-3 sm:p-4 md:p-6 pb-20 md:pb-6 space-y-6 sm:space-y-8"
+          className="p-4 sm:p-6 md:p-8 pb-20 md:pb-8 space-y-8 sm:space-y-10"
         >
           {/* Step Content */}
           {currentStep === 0 && (
-            <CustomerDetailsStep form={form} />
-          )}
-
-          {currentStep === 1 && (
             <ServiceSelectionStep 
               form={form}
               serviceItems={serviceItems}
@@ -935,6 +984,10 @@ export default function QuotationFormRefactored({
               formData={quotationFormData}
               calculateQuotationAmount={calculateQuotationAmount}
             />
+          )}
+
+          {currentStep === 1 && (
+            <CustomerDetailsStep form={form} />
           )}
 
           {currentStep === 2 && (
@@ -951,10 +1004,6 @@ export default function QuotationFormRefactored({
           )}
 
           {currentStep === 3 && (
-            <NotesStep form={form} />
-          )}
-
-          {currentStep === 4 && (
             <PreviewStep 
               form={form}
               serviceItems={serviceItems}
@@ -965,7 +1014,7 @@ export default function QuotationFormRefactored({
           )}
 
           {/* Navigation - Optimized for mobile/tablet */}
-          <div className="flex flex-col sm:flex-row justify-between items-center mt-6 sm:mt-8 pt-4 border-t gap-3 sm:gap-4 relative">
+          <div className="flex flex-col sm:flex-row justify-between items-center mt-8 sm:mt-10 pt-6 border-t gap-4 sm:gap-6 relative">
             <Button
               type="button"
               variant="outline"
@@ -1150,6 +1199,77 @@ export default function QuotationFormRefactored({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+        </Card>
+      </div>
+
+      {/* Quotation Summary Sidebar */}
+      <div className="lg:w-80 w-full">
+        <QuotationSummary
+          formData={form.watch()}
+          serviceItems={serviceItems}
+          calculatedPrice={(() => {
+            // Calculate in JPY first
+            const baseAmountJPY = serviceItems.reduce((total, item) => {
+              const basePrice = (item.unit_price || 0) * (item.service_days || 1);
+              const timeAdjustment = item.time_based_adjustment ? basePrice * (item.time_based_adjustment / 100) : 0;
+              return total + basePrice + timeAdjustment;
+            }, 0);
+            
+            const discountPercentage = form.watch('discount_percentage') || 0;
+            const discountAmountJPY = baseAmountJPY * (discountPercentage / 100);
+            
+            const promotionDiscountJPY = selectedPromotion ? (
+              selectedPromotion.discount_type === 'percentage' 
+                ? baseAmountJPY * (selectedPromotion.discount_value / 100)
+                : selectedPromotion.discount_value
+            ) : 0;
+            
+            const totalDiscountAmountJPY = discountAmountJPY + promotionDiscountJPY;
+            const afterDiscountsJPY = baseAmountJPY - totalDiscountAmountJPY;
+            
+            const taxPercentage = form.watch('tax_percentage') || 0;
+            const taxAmountJPY = afterDiscountsJPY * (taxPercentage / 100);
+            const totalAmountJPY = afterDiscountsJPY + taxAmountJPY;
+            
+            // Convert to selected currency if needed
+            const selectedCurrency = form.watch('display_currency') || 'JPY';
+            if (selectedCurrency === 'JPY') {
+              return {
+                baseAmount: baseAmountJPY,
+                discountAmount: totalDiscountAmountJPY,
+                taxAmount: taxAmountJPY,
+                totalAmount: totalAmountJPY,
+                currency: selectedCurrency
+              };
+            }
+            
+            // For now, return JPY amounts - the quotation summary will handle conversion
+            return {
+              baseAmount: baseAmountJPY,
+              discountAmount: totalDiscountAmountJPY,
+              taxAmount: taxAmountJPY,
+              totalAmount: totalAmountJPY,
+              currency: 'JPY' // Always pass JPY, let quotation summary convert
+            };
+          })()}
+          selectedPackage={selectedPackage}
+          selectedPromotion={selectedPromotion}
+          setActiveTab={(tab) => {
+            // Map tab names to step indices
+            const tabMap: { [key: string]: number } = {
+              'routes': 0,
+              'customer': 1,
+              'pricing': 2,
+              'preview': 3
+            };
+            const stepIndex = tabMap[tab];
+            if (stepIndex !== undefined) {
+              setCurrentStep(stepIndex);
+            }
+          }}
+          selectedCurrency={form.watch('display_currency') || 'JPY'}
+        />
+      </div>
+    </div>
   );
 } 

@@ -2182,7 +2182,7 @@ export const en: TranslationValue = {
         bookingStatus: "Booking Status",
         created: "Created",
         lastUpdated: "Last Updated",
-        status: "Status",
+
         notesComments: "Notes & Comments",
         internalNotes: "Internal Notes",
         internalNotesDescription: "Internal notes and communication",
@@ -3075,6 +3075,7 @@ export const en: TranslationValue = {
         date: "Date",
         time: "Time",
         pickDate: "Pick date",
+        selectTime: "Select time",
         days: "Days",
         hours: "Hours",
         duration: "Duration",
@@ -3117,7 +3118,32 @@ export const en: TranslationValue = {
         pickupDate: "Pickup Date",
         pickupTime: "Pickup Time",
         vehicle: "Vehicle",
-        unitPrice: "Unit Price"
+        unitPrice: "Unit Price",
+        locationAndFlight: "Location & Flight Information",
+        pickupLocation: "Pickup Location",
+        dropoffLocation: "Drop-off Location",
+        enterPickupLocation: "Enter pickup location",
+        enterDropoffLocation: "Enter drop-off location",
+        flightNumber: "Flight Number",
+        terminal: "Terminal",
+        enterFlightNumber: "Enter flight number",
+        enterTerminal: "Enter terminal",
+        numberOfPassengers: "Number of Passengers",
+        numberOfBags: "Number of Bags",
+        enterPassengerCount: "Enter passenger count",
+        enterBagCount: "Enter bag count"
+      },
+      vehicles: {
+        title: "Vehicle Selection & Upgrades",
+        noServices: "No Services Added",
+        addServicesFirst: "Please add services first to configure vehicles",
+        currentVehicle: "Current Vehicle",
+        availableVehicles: "Available Vehicles",
+        noVehiclesAvailable: "No vehicles available for this category",
+        upgradeDowngrade: "Upgrade/Downgrade Options",
+        vehicleUpdated: "Vehicle Updated",
+        updateError: "Update Failed",
+        updateErrorDescription: "Failed to update vehicle. Please try again."
       },
       pricingTabs: {
         basic: "Basic Pricing",
@@ -3142,6 +3168,7 @@ export const en: TranslationValue = {
         applyJapanTax: "Apply 10% (Japan)",
         applyThailandTax: "Apply 7% (Thailand)",
         noTax: "No Tax (0%)",
+        selectedServices: "Selected Services",
         packageBasePrice: "Package Base Price",
         includedServices: "Included Services:",
         afterDiscounts: "After Discounts",
@@ -3256,10 +3283,10 @@ export const en: TranslationValue = {
         previewSend: "Preview & Send"
       },
       stepTitles: {
+        routesServices: "Routes & Services",
         customerDetails: "Customer Details",
-        serviceVehicle: "Service & Vehicle", 
-        pricingOptions: "Pricing & Options",
         notes: "Notes",
+        pricingOptions: "Pricing & Options",
         previewSend: "Preview & Send"
       },
       billing: {
@@ -3313,8 +3340,17 @@ export const en: TranslationValue = {
         customerNotes: "Notes visible to the customer on the quotation."
       },
       notes: {
+        title: "Additional Information",
         private: "Private",
-        public: "Public"
+        public: "Public",
+        customerNotes: "Customer Notes",
+        internalNotes: "Internal Notes",
+        generalNotes: "General Notes",
+        customerNotesPlaceholder: "Customer requirements, special instructions, or notes...",
+        internalNotesPlaceholder: "Internal notes, driver instructions, or administrative notes...",
+        generalNotesPlaceholder: "Any other special requirements, pickup instructions, or additional information...",
+        customerNotesDescription: "Notes visible to the customer on the quotation.",
+        internalNotesDescription: "Internal notes, not visible to the customer."
       },
       previewDescription: "Please review all details carefully before sending the quotation to the customer.",
       preview: {
@@ -3336,6 +3372,7 @@ export const en: TranslationValue = {
         readyToSend: "Ready to Send",
         reviewMessage: "Please review all information above before sending this quotation to the customer. Once sent, they will receive an email with the quotation details and a link to view or respond.",
         pricingSummary: "Pricing Summary",
+        pricingBreakdown: "Price Breakdown",
         appliedPromotion: "Applied Promotion",
         afterDiscount: "After Discount",
         finalReview: "Final Review",

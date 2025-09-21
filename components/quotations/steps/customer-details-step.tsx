@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
-import { User, Mail, Phone, Home, Building, Receipt } from 'lucide-react';
+import { User, Mail, Phone, Home, Building, Receipt, FileText, Eye, Lock } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import {
   FormControl,
@@ -12,7 +12,9 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import {
   Select,
@@ -591,6 +593,103 @@ export function CustomerDetailsStep({ form }: CustomerDetailsStepProps) {
           </FormItem>
         )}
       />
+
+      {/* Additional Information Section */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <FileText className="h-5 w-5 text-muted-foreground" />
+          <h3 className="text-lg font-semibold">{t('quotations.form.notes.title')}</h3>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Customer Notes (Public) */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-medium">{t('quotations.form.notes.customerNotes')}</Label>
+              <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+                <Eye className="h-3 w-3" />
+                <span>{t('quotations.form.notes.public')}</span>
+              </div>
+            </div>
+            <FormField
+              control={form.control}
+              name="customer_notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <div className="relative">
+                      <Textarea
+                        {...field}
+                        placeholder={t('quotations.form.notes.customerNotesPlaceholder')}
+                        className="min-h-[120px] resize-none border-l-4 border-l-blue-500 pr-8"
+                      />
+                      <Eye className="absolute top-3 right-3 h-4 w-4 text-blue-500" />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('quotations.form.notes.customerNotesDescription')}
+            </p>
+          </div>
+
+          {/* Internal Notes (Private) */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-medium">{t('quotations.form.notes.internalNotes')}</Label>
+              <div className="flex items-center gap-1 px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs rounded-full">
+                <Lock className="h-3 w-3" />
+                <span>{t('quotations.form.notes.private')}</span>
+              </div>
+            </div>
+            <FormField
+              control={form.control}
+              name="internal_notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <div className="relative">
+                      <Textarea
+                        {...field}
+                        placeholder={t('quotations.form.notes.internalNotesPlaceholder')}
+                        className="min-h-[120px] resize-none border-l-4 border-l-orange-500 pr-8"
+                      />
+                      <Lock className="absolute top-3 right-3 h-4 w-4 text-orange-500" />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('quotations.form.notes.internalNotesDescription')}
+            </p>
+          </div>
+        </div>
+
+        {/* General Notes */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">{t('quotations.form.notes.generalNotes')}</Label>
+          <FormField
+            control={form.control}
+            name="general_notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Textarea
+                    {...field}
+                    placeholder={t('quotations.form.notes.generalNotesPlaceholder')}
+                    className="min-h-[100px] resize-none"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </div>
     </div>
   );
 } 

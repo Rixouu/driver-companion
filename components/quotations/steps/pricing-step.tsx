@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { format } from 'date-fns';
-import { DollarSign, Globe, Gift, Timer, Package, X, CheckCircle, Tag, Percent, Calculator, TrendingUp, Clock, Info, RefreshCw, AlertCircle } from 'lucide-react';
+import { DollarSign, Globe, Gift, Timer, Package, X, CheckCircle, Tag, Percent, Calculator, TrendingUp, Clock, Info, RefreshCw, AlertCircle, Eye } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/lib/services/currency-service';
@@ -24,12 +24,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { ServiceItemInput, PricingPackage, PricingPromotion } from '@/types/quotations';
 import { ServiceCard } from '@/components/quotations/service-card';
 
@@ -55,35 +55,44 @@ export function PricingStep({
   setSelectedPromotion
 }: PricingStepProps) {
   const { t } = useI18n();
-  const [currentPricingTab, setCurrentPricingTab] = useState<string>('basic');
   const [selectedCurrency, setSelectedCurrency] = useState<string>(form.watch('display_currency') || 'JPY');
   const [promotionCode, setPromotionCode] = useState<string>('');
   const [promotionError, setPromotionError] = useState<string>('');
   const [timeBasedPricingEnabled, setTimeBasedPricingEnabled] = useState<boolean>(true);
+  const [isTaxModalOpen, setIsTaxModalOpen] = useState(false);
+  const [isTimeRulesModalOpen, setIsTimeRulesModalOpen] = useState(false);
   
   // Use the same currency service as quotation-details.tsx
-  const { currencyData, isLoading: currencyLoading, formatCurrency: dynamicFormatCurrency, convertCurrency } = useCurrency('JPY');
+  const { currencyData, isLoading: currencyLoading, formatCurrency: dynamicFormatCurrency, convertCurrency } = useCurrency(selectedCurrency);
 
-  const discountPercentage = form.watch('discount_percentage');
-  const taxPercentage = form.watch('tax_percentage');
-
-  // Sync currency selection with form
-  const handleCurrencyChange = (newCurrency: string) => {
-    setSelectedCurrency(newCurrency);
-    form.setValue('display_currency', newCurrency);
+  const handleCurrencyChange = (currency: string) => {
+    setSelectedCurrency(currency);
+    form.setValue('display_currency', currency);
   };
 
-  // Sync with form changes
-  useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      if (name === 'display_currency' && value.display_currency) {
-        setSelectedCurrency(value.display_currency);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
+  const handleApplyPromotion = async () => {
+    if (!promotionCode.trim()) {
+      setPromotionError('Please enter a promotion code');
+      return;
+    }
 
-  // Enhanced currency formatting using the same logic as quotation-details.tsx
+    // Find promotion by code
+    const promotion = promotions.find(p => p.code.toLowerCase() === promotionCode.toLowerCase());
+    if (promotion) {
+      setSelectedPromotion(promotion);
+      setPromotionError('');
+      setPromotionCode('');
+    } else {
+      setPromotionError('Invalid promotion code');
+    }
+  };
+
+  const handleRemovePromotion = () => {
+    setSelectedPromotion(null);
+    setPromotionCode('');
+    setPromotionError('');
+  };
+
   const formatCurrency = (amount: number) => {
     if (amount === undefined) return dynamicFormatCurrency(0, selectedCurrency);
     
@@ -121,147 +130,103 @@ export function PricingStep({
     }
   };
 
-  const calculateTotalServiceAmount = () => {
-    if (serviceItems.length === 0) return 0;
-    
+  const calculateTotal = () => {
     return serviceItems.reduce((total, item) => {
-      // For Charter Services, calculate as unit_price × service_days
-      if (item.service_type_name?.toLowerCase().includes('charter')) {
-        const itemTotal = item.unit_price * (item.service_days || 1);
-        return total + itemTotal;
-      }
-      // For other services, use existing logic
-      const itemTotal = item.total_price || (item.unit_price * (item.quantity || 1) * (item.service_days || 1));
-      return total + itemTotal;
+      const basePrice = (item.unit_price || 0) * (item.service_days || 1);
+      const timeAdjustment = item.time_based_adjustment ? basePrice * (item.time_based_adjustment / 100) : 0;
+      return total + basePrice + timeAdjustment;
     }, 0);
   };
 
-  const validatePromotionCode = async (code: string) => {
-    if (!code.trim()) {
-      setPromotionError('');
-      setSelectedPromotion(null);
-      return;
-    }
-
-    const promotion = promotions.find(p => 
-      p.code.toLowerCase() === code.toLowerCase() && 
-      p.is_active
-    );
-
-    if (!promotion) {
-      setPromotionError(t('quotations.form.promotions.invalid'));
-      setSelectedPromotion(null);
-      return;
-    }
-
-    const now = new Date();
-    if (promotion.start_date && new Date(promotion.start_date) > now) {
-      setPromotionError(t('quotations.form.promotions.notActive'));
-      setSelectedPromotion(null);
-      return;
-    }
-
-    if (promotion.end_date && new Date(promotion.end_date) < now) {
-      setPromotionError(t('quotations.form.promotions.expired'));
-      setSelectedPromotion(null);
-      return;
-    }
-
-    if (promotion.usage_limit && promotion.times_used >= promotion.usage_limit) {
-      setPromotionError(t('quotations.form.promotions.usageLimitReached'));
-      setSelectedPromotion(null);
-      return;
-    }
-
-    const baseTotal = calculateTotalServiceAmount();
-    if (promotion.minimum_amount && baseTotal < promotion.minimum_amount) {
-      setPromotionError(`${t('quotations.form.promotions.minimumAmount')} ${formatCurrency(promotion.minimum_amount)}`);
-      setSelectedPromotion(null);
-      return;
-    }
-
-    setPromotionError('');
-    setSelectedPromotion(promotion);
-  };
-
-  const calculatePromotionDiscount = (baseAmount: number) => {
-    if (!selectedPromotion) return 0;
-
-    if (selectedPromotion.discount_type === 'percentage') {
-      let discount = baseAmount * (selectedPromotion.discount_value / 100);
-      
-      if (selectedPromotion.maximum_discount && discount > selectedPromotion.maximum_discount) {
-        discount = selectedPromotion.maximum_discount;
-      }
-      
-      return discount;
-    } else {
-      return Math.min(selectedPromotion.discount_value, baseAmount);
-    }
-  };
-
-  const calculateFinalAmounts = () => {
-    let serviceTotal = calculateTotalServiceAmount();
-    let packageTotal = selectedPackage ? selectedPackage.base_price : 0;
-    
-    const baseTotal = serviceTotal + packageTotal;
-    const discountPercentageValue = discountPercentage || 0;
-    const taxPercentageValue = taxPercentage || 0;
-    
-    const promotionDiscount = calculatePromotionDiscount(baseTotal);
-    const regularDiscountAmount = baseTotal * (discountPercentageValue / 100);
-    const totalDiscountAmount = promotionDiscount + regularDiscountAmount;
-    
-    const subtotal = Math.max(0, baseTotal - totalDiscountAmount);
-    const taxAmount = subtotal * (taxPercentageValue / 100);
-    const finalTotal = subtotal + taxAmount;
-    
-    return {
-      serviceTotal,
-      packageTotal,
-      baseTotal,
-      promotionDiscount,
-      regularDiscountAmount,
-      totalDiscountAmount,
-      subtotal,
-      taxAmount,
-      finalTotal
-    };
-  };
+  const totalAmount = calculateTotal();
 
   return (
-          <div className="space-y-6 sm:space-y-8">
-      <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2">
-        <DollarSign className="h-5 w-5" /> 
-        {t('quotations.form.pricingSection')}
-      </h2>
-      
-      <Tabs value={currentPricingTab} onValueChange={setCurrentPricingTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-4 sm:mb-6 h-auto p-1 bg-muted">
-          <TabsTrigger 
-            value="basic" 
-            className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 sm:py-3 rounded-md transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm hover:bg-muted-foreground/10"
-          >
-            <DollarSign className="h-4 w-4" />
-            <span className="text-xs sm:text-sm font-medium">{t('quotations.form.pricingTabs.basic')}</span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="promotions" 
-            className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 sm:py-3 rounded-md transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm hover:bg-muted-foreground/10"
-          >
-            <Gift className="h-4 w-4" />
-            <span className="text-xs sm:text-sm font-medium">{t('quotations.form.pricingTabs.promotions')}</span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="timepricing" 
-            className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 sm:py-3 rounded-md transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm hover:bg-muted-foreground/10"
-          >
-            <Timer className="h-4 w-4" />
-            <span className="text-xs sm:text-sm font-medium">{t('quotations.form.pricingTabs.timepricing')}</span>
-          </TabsTrigger>
-        </TabsList>
+    <div className="space-y-6">
+      <div className="w-full space-y-8">
+        {/* Pricing Configuration & Promotions Section */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold">Pricing & Promotions</h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">{t('quotations.form.timePricing.title')}</span>
+              <Switch
+                checked={timeBasedPricingEnabled}
+                onCheckedChange={setTimeBasedPricingEnabled}
+              />
+              <Dialog open={isTimeRulesModalOpen} onOpenChange={setIsTimeRulesModalOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                    <Info className="h-3 w-3" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle>Time-based Pricing Rules</DialogTitle>
+                    <DialogDescription>
+                      View the complete list of time-based pricing rules and how they affect your quotation pricing.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                        <h4 className="font-semibold text-orange-900 dark:text-orange-100 mb-2">Peak Hour Surcharges</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Morning Rush (07:00-09:00)</span>
+                            <span className="font-medium text-orange-600">+20%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Evening Rush (17:00-19:00)</span>
+                            <span className="font-medium text-orange-600">+15%</span>
+                          </div>
+                        </div>
+                      </div>
 
-        <TabsContent value="basic" className="space-y-6 mt-0">
+                      <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                        <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2">Discount Periods</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Early Morning (05:00-07:00)</span>
+                            <span className="font-medium text-green-600">-25%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Late Night (22:00-06:00)</span>
+                            <span className="font-medium text-green-600">+25%</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Special Adjustments</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Weekend Pricing</span>
+                            <span className="font-medium text-blue-600">+10%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Holiday Pricing</span>
+                            <span className="font-medium text-blue-600">+30%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                      <h4 className="font-semibold mb-2">How Time-based Pricing Works</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Pricing automatically adjusts based on pickup time and date according to predefined rules. 
+                        The system calculates the appropriate adjustment percentage and applies it to the base service price.
+                      </p>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+          
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Left Column - Configuration */}
             <div className="space-y-6">
@@ -273,42 +238,16 @@ export function PricingStep({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center">
+                  {/* Currency Settings */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-muted-foreground">{t('quotations.form.currencySettings')}</h3>
-                    <div className="flex items-center space-x-2">
-                      <Globe className="h-4 w-4 text-muted-foreground" />
-                      <Select 
-                        value={selectedCurrency}
-                        onValueChange={handleCurrencyChange}
-                      >
-                        <SelectTrigger className="w-[120px] h-8">
-                          <SelectValue placeholder="Currency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="JPY">JPY (¥)</SelectItem>
-                          <SelectItem value="USD">USD ($)</SelectItem>
-                          <SelectItem value="EUR">EUR (€)</SelectItem>
-                          <SelectItem value="THB">THB (฿)</SelectItem>
-                          <SelectItem value="CNY">CNY (¥)</SelectItem>
-                          <SelectItem value="SGD">SGD ($)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </div>
 
-                  {/* Enhanced Currency Tooltip - Same as quotation details */}
+                    {/* Exchange Rate Status with Tooltip and Currency Dropdown */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">{t('quotations.form.pricing.liveExchangeRates')}</span>
-                      {currencyLoading ? (
-                        <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
-                      ) : currencyData ? (
-                        <CheckCircle className="h-3 w-3 text-green-500" />
-                      ) : (
-                        <AlertCircle className="h-3 w-3 text-orange-500" />
-                      )}
-                    </div>
-                    
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -383,42 +322,43 @@ export function PricingStep({
                     </TooltipProvider>
                   </div>
 
-                  <Separator />
-                   
-                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+                      <Select 
+                        value={selectedCurrency}
+                        onValueChange={handleCurrencyChange}
+                      >
+                        <SelectTrigger className="w-[120px] h-8">
+                          <SelectValue placeholder="Currency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="JPY">JPY (¥)</SelectItem>
+                          <SelectItem value="USD">USD ($)</SelectItem>
+                          <SelectItem value="EUR">EUR (€)</SelectItem>
+                          <SelectItem value="THB">THB (฿)</SelectItem>
+                          <SelectItem value="CNY">CNY (¥)</SelectItem>
+                          <SelectItem value="SGD">SGD ($)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Discount and Tax */}
+                  <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="discount_percentage"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2 text-sm font-medium">
-                            <div className="p-1 bg-red-100 dark:bg-red-900/20 rounded">
-                              <Tag className="h-3 w-3 text-red-600" />
-                            </div>
-                            {t('quotations.form.discountPercentage')}
-                          </FormLabel>
+                          <FormLabel className="text-sm">{t('quotations.form.discountPercentage')}</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Input
-                                type="number"
-                                min={0}
-                                max={100}
-                                step={1}
-                                placeholder="0"
-                                className="text-base pr-8 h-10"
                                 {...field}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  if (value === '') {
-                                    field.onChange(0);
-                                  } else {
-                                    const numValue = parseInt(value, 10);
-                                    if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                                      field.onChange(numValue);
-                                    }
-                                  }
-                                }}
-                                value={field.value || ''}
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                className="pr-8"
+                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                               />
                               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                                 <span className="text-muted-foreground text-sm font-medium">%</span>
@@ -435,365 +375,100 @@ export function PricingStep({
                       name="tax_percentage"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2 text-sm font-medium">
-                            <div className="p-1 bg-blue-100 dark:bg-blue-900/20 rounded">
-                              <Percent className="h-3 w-3 text-blue-600" />
-                            </div>
-                            {t('quotations.form.taxPercentage')}
-                          </FormLabel>
+                          <FormLabel className="text-sm">{t('quotations.form.taxPercentage')}</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Input
-                                type="number"
-                                min={0}
-                                max={100}
-                                step={1}
-                                placeholder="0"
-                                className="text-base pr-8 h-10"
                                 {...field}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  if (value === '') {
-                                    field.onChange(0);
-                                  } else {
-                                    const numValue = parseInt(value, 10);
-                                    if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                                      field.onChange(numValue);
-                                    }
-                                  }
-                                }}
-                                value={field.value || ''}
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                className="pr-8"
+                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                               />
                               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                                 <span className="text-muted-foreground text-sm font-medium">%</span>
                               </div>
                             </div>
                           </FormControl>
-                          {/* Enhanced Tax Guidelines - Better styling and information */}
-                          <div className="mt-3 rounded-lg border bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-4">
-                            <div className="flex items-start gap-3">
-                              <div className="space-y-3 flex-1">
-                                <div className="space-y-2">
-                                  <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
-                                    <Info className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                                    {t('quotations.form.pricing.taxGuidelines')}
-                                  </h4>
-                                  <div className="space-y-2 text-xs text-blue-800 dark:text-blue-200">
-                                    <div className="p-2 bg-white/60 dark:bg-blue-900/20 rounded border-l-4 border-l-blue-500">
-                                      <p className="font-medium">🇯🇵 {t('quotations.form.pricing.japanConsumptionTax')}</p>
-                                      <p className="text-xs">{t('quotations.form.pricing.standardRate')}: <span className="font-semibold">10%</span> ({t('quotations.form.pricing.reducedRate')})</p>
-                                      <p className="text-xs">{t('quotations.form.pricing.transportationServices')}: <span className="font-semibold">10%</span></p>
-                                    </div>
-                                    <div className="p-2 bg-white/60 dark:bg-blue-900/20 rounded border-l-4 border-l-green-500">
-                                      <p className="font-medium">🇹🇭 {t('quotations.form.pricing.thailandVAT')}</p>
-                                      <p className="text-xs">{t('quotations.form.pricing.standardRate')}: <span className="font-semibold">7%</span></p>
-                                      <p className="text-xs">{t('quotations.form.pricing.tourismServices')}: <span className="font-semibold">7%</span></p>
-                                    </div>
-                                    <div className="p-2 bg-white/60 dark:bg-blue-900/20 rounded border-l-4 border-l-purple-500">
-                                      <p className="font-medium">🌍 {t('quotations.form.pricing.internationalServices')}</p>
-                                      <p className="text-xs">{t('quotations.form.pricing.crossBorderServices')}</p>
-                                      <p className="text-xs">{t('quotations.form.pricing.consultTaxProfessionals')}</p>
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                <div className="pt-2 border-t border-blue-200 dark:border-blue-800">
-                                  <p className="text-xs text-blue-700 dark:text-blue-300 mb-2 font-medium">
-                                    {t('quotations.form.pricing.quickApply')}
-                                  </p>
-                                  <div className="flex flex-wrap gap-2">
-                                    <Button 
-                                      type="button" 
-                                      variant="outline" 
-                                      size="sm" 
-                                      onClick={() => field.onChange(10)}
-                                      className="text-xs h-7 px-3 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-900/30"
-                                    >
-                                      {t('quotations.form.pricing.applyJapanTax')}
-                                    </Button>
-                                    <Button 
-                                      type="button" 
-                                      variant="outline" 
-                                      size="sm" 
-                                      onClick={() => field.onChange(7)}
-                                      className="text-xs h-7 px-3 border-green-300 text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-300 dark:hover:bg-green-900/30"
-                                    >
-                                      {t('quotations.form.pricing.applyThailandTax')}
-                                    </Button>
-                                    <Button 
-                                      type="button" 
-                                      variant="outline" 
-                                      size="sm" 
-                                      onClick={() => field.onChange(0)}
-                                      className="text-xs h-7 px-3 border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-900/30"
-                                    >
-                                      {t('quotations.form.pricing.noTax')}
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Display selected package or promotion info */}
-              {selectedPackage && (
-                <Card className="border-l-4 border-l-purple-500 bg-background">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Package className="h-4 w-4 text-purple-600" />
-                        <span className="font-medium text-purple-600">
-                          {t('quotations.form.packages.selected')}: <span className="text-purple-600">{selectedPackage.name}</span>
-                        </span>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => setSelectedPackage(null)}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    
-                    {selectedPackage.description && (
-                      <p className="text-sm text-purple-600 mt-1">{selectedPackage.description}</p>
-                    )}
-                    
-                    {selectedPackage.items && selectedPackage.items.length > 0 && (
-                      <div className="mt-2">
-                        <p className="text-xs font-medium text-purple-600 mb-1">{t('quotations.form.pricing.includedServices')}</p>
-                        <div className="grid gap-1">
-                          {selectedPackage.items.map((item, index) => (
-                            <div key={index} className="text-xs text-purple-600">
-                              • {item.name} ({item.vehicle_type})
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    <p className="text-sm font-medium text-purple-600 mt-2">
-                      {t('quotations.form.packages.packagePrice')}: {formatCurrency(selectedPackage.base_price)}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {selectedPromotion && (
-                <Card className="border-l-4 border-l-green-500 bg-background">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Gift className="h-4 w-4 text-green-600" />
-                        <span className="font-medium text-foreground">
-                          {t('quotations.form.promotions.applied')}: {selectedPromotion.name}
-                        </span>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => {
-                          setSelectedPromotion(null);
-                          setPromotionCode('');
-                        }}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">{selectedPromotion.description}</p>
-                    <p className="text-sm font-medium text-foreground mt-2">
-                      {t('quotations.form.promotions.discount')}: {selectedPromotion.discount_type === 'percentage' 
-                        ? `${selectedPromotion.discount_value}%` 
-                        : formatCurrency(selectedPromotion.discount_value)}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-
-            {/* Right Column - Pricing Summary */}
-            <div className="space-y-6">
-              <Card className="lg:sticky lg:top-4">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-primary" />
-                    {t('quotations.form.estimatedPricing')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                                <div className="space-y-4">
-                    {serviceItems.length > 0 || selectedPackage ? (
-                      (() => {
-                        const { 
-                          serviceTotal,
-                          packageTotal,
-                          baseTotal, 
-                          promotionDiscount, 
-                          regularDiscountAmount, 
-                          totalDiscountAmount, 
-                          subtotal, 
-                          taxAmount, 
-                          finalTotal 
-                        } = calculateFinalAmounts();
-                        
-                        return (
-                          <>
-                            {/* Individual Services Breakdown */}
-                            {serviceItems.length > 0 && (
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-center text-sm font-medium text-foreground border-b pb-2">
-                                  <span>{t('quotations.form.services.selectedServices')} ({serviceItems.length})</span>
-                                  <span className="font-semibold">{formatCurrency(serviceTotal)}</span>
-                                </div>
-                                {serviceItems.map((item, index) => (
-                                  <ServiceCard
-                                    key={index}
-                                    item={item}
-                                    index={index}
-                                    formatCurrency={formatCurrency}
-                                    packages={packages}
-                                    selectedPackage={selectedPackage}
-                                    showActions={false}
-                                    className="bg-muted/30"
-                                  />
-                                ))}
-                              </div>
-                            )}
-                            
-                            {/* Package Breakdown */}
-                            {selectedPackage && (
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-center text-sm font-medium text-purple-600 border-b border-purple-200 pb-2">
-                                  <span>{t('quotations.form.packages.title')}: {selectedPackage.name}</span>
-                                  <span className="font-semibold">{formatCurrency(packageTotal)}</span>
-                                </div>
-                                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
-                                  <div className="flex justify-between text-sm text-purple-600 mb-2">
-                                    <span>{t('quotations.form.pricing.packageBasePrice')}</span>
-                                    <span className="font-medium">{formatCurrency(selectedPackage.base_price)}</span>
-                                  </div>
-                                  {selectedPackage.items && selectedPackage.items.length > 0 && (
-                                    <div>
-                                      <p className="text-xs font-medium text-purple-600 mb-2">{t('quotations.form.pricing.includedServices')}</p>
-                                      <div className="space-y-1">
-                                        {selectedPackage.items.map((item, index) => (
-                                          <div key={index} className="text-xs text-purple-600 flex justify-between">
-                                            <span>• {item.name} - {item.vehicle_type}</span>
-                                            <span>{formatCurrency(item.price)}</span>
-                                          </div>
-                                        ))}
-                                      </div>
                                     </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                            
-                            <Separator className="my-4" />
-                            
-                            <div className="flex justify-between text-base font-semibold bg-muted/50 p-3 rounded">
-                              <span>{t('quotations.pricing.subtotal')}</span>
-                              <span>{formatCurrency(baseTotal)}</span>
-                            </div>
-                            
-                            {/* Discount Breakdown */}
-                            {(promotionDiscount > 0 || regularDiscountAmount > 0) && (
-                              <div className="space-y-2">
-                                {promotionDiscount > 0 && (
-                                  <div className="flex justify-between text-sm text-green-600 bg-green-50 dark:bg-green-900/20 p-2 rounded">
-                                    <span className="flex items-center gap-2">
-                                      <Gift className="h-4 w-4" />
-                                      {t('quotations.form.promotions.discount')} ({selectedPromotion?.name})
-                                    </span>
-                                    <span className="font-medium">-{formatCurrency(promotionDiscount)}</span>
+
+                  {/* Tax Guidelines Modal */}
+                  <Dialog open={isTaxModalOpen} onOpenChange={setIsTaxModalOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full">
+                        <Info className="h-4 w-4 mr-2" />
+                        Tax Guidelines & Quick Apply
+                      </Button>
+                    </DialogTrigger>
+                     <DialogContent className="max-w-2xl">
+                       <DialogHeader>
+                         <DialogTitle>Tax Guidelines & Quick Apply</DialogTitle>
+                         <DialogDescription>
+                           Select the appropriate tax rate based on your service location and apply it quickly to your quotation.
+                         </DialogDescription>
+                       </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-3">
+                          <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border-l-4 border-l-blue-500">
+                            <p className="font-medium">🇯🇵 Japan Consumption Tax</p>
+                            <p className="text-sm">Standard Rate: <span className="font-semibold">10%</span> (Reduced Rate: 8%)</p>
+                            <p className="text-sm">Transportation Services: <span className="font-semibold">10%</span></p>
+                                    </div>
+                          <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded border-l-4 border-l-green-500">
+                            <p className="font-medium">🇹🇭 Thailand VAT</p>
+                            <p className="text-sm">Standard Rate: <span className="font-semibold">7%</span></p>
+                            <p className="text-sm">Tourism Services: <span className="font-semibold">7%</span></p>
+                                    </div>
+                          <div className="p-3 bg-purple-50 dark:bg-purple-950/20 rounded border-l-4 border-l-purple-500">
+                            <p className="font-medium">🌍 International Services</p>
+                            <p className="text-sm">Cross-border tax implications may apply. Consult with tax professionals for specific cases.</p>
                                   </div>
-                                )}
-                                
-                                {regularDiscountAmount > 0 && (
-                                  <div className="flex justify-between text-sm text-red-600 bg-red-50 dark:bg-red-900/20 p-2 rounded">
-                                    <span className="flex items-center gap-2">
-                                      <Tag className="h-4 w-4" />
-                                      {t('quotations.pricing.discount')} ({discountPercentage || 0}%)
-                                    </span>
-                                    <span className="font-medium">-{formatCurrency(regularDiscountAmount)}</span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            
-                            {totalDiscountAmount > 0 && (
-                              <>
-                                <Separator />
-                                <div className="flex justify-between text-sm font-medium">
-                                  <span>{t('quotations.form.pricing.afterDiscounts')}</span>
-                                  <span>{formatCurrency(subtotal)}</span>
                                 </div>
-                              </>
-                            )}
-                            
-                            {(taxPercentage || 0) > 0 && (
-                              <div className="flex justify-between text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
-                                <span className="flex items-center gap-2">
-                                  <Percent className="h-4 w-4" />
-                                  {t('quotations.pricing.tax')} ({taxPercentage || 0}%)
-                                </span>
-                                <span className="font-medium">+{formatCurrency(taxAmount)}</span>
-                              </div>
-                            )}
-                            
-                            <Separator className="my-4" />
-                            
-                            {/* Total Savings Progress */}
-                            {totalDiscountAmount > 0 && (
-                              <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
-                                <div className="flex justify-between items-center mb-2">
-                                  <span className="text-sm font-medium text-green-700 dark:text-green-300">{t('quotations.form.pricing.totalSavings')}</span>
-                                  <span className="text-sm font-bold text-green-700 dark:text-green-300">{formatCurrency(totalDiscountAmount)}</span>
-                                </div>
-                                <Progress 
-                                  value={Math.min((totalDiscountAmount / baseTotal) * 100, 100)} 
-                                  className="h-2"
-                                />
-                                <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                  {((totalDiscountAmount / baseTotal) * 100).toFixed(1)}% {t('quotations.form.pricing.savings')}
-                                </div>
-                              </div>
-                            )}
-                            
-                            <div className="bg-primary text-primary-foreground p-4 rounded-lg">
-                              <div className="flex justify-between items-center">
-                                <span className="text-lg font-bold">{t('quotations.pricing.total')}</span>
-                                <span className="text-2xl font-bold">{formatCurrency(finalTotal)}</span>
-                              </div>
-                            </div>
-                          </>
-                        );
-                      })()
-                    ) : (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <Calculator className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p className="text-sm">{t('quotations.form.packages.selectToSeePricing')}</p>
-                      </div>
-                    )}
-                  </div>
+                        <div className="flex gap-2 pt-4">
+                                    <Button 
+                            onClick={() => {
+                              form.setValue('tax_percentage', 10);
+                              setIsTaxModalOpen(false);
+                            }}
+                                      size="sm" 
+                                    >
+                            Apply 10% (Japan)
+                                    </Button>
+                                    <Button 
+                            onClick={() => {
+                              form.setValue('tax_percentage', 7);
+                              setIsTaxModalOpen(false);
+                            }}
+                                      size="sm" 
+                                      variant="outline" 
+                                    >
+                            Apply 7% (Thailand)
+                                    </Button>
+                      <Button 
+                        onClick={() => {
+                              form.setValue('tax_percentage', 0);
+                              setIsTaxModalOpen(false);
+                        }}
+                            size="sm"
+                            variant="outline"
+                      >
+                            No Tax (0%)
+                      </Button>
+                    </div>
+            </div>
+                    </DialogContent>
+                  </Dialog>
                 </CardContent>
               </Card>
             </div>
-          </div>
-        </TabsContent>
 
-        <TabsContent value="promotions" className="space-y-6 mt-0">
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Left Column - Promotion Entry */}
+            {/* Right Column - Promotions */}
             <div className="space-y-6">
               <Card>
                 <CardHeader className="pb-4">
@@ -803,7 +478,8 @@ export function PricingStep({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex flex-col sm:flex-row gap-3">
+                  {/* Promotion Code Entry */}
+                  <div className="flex gap-2">
                     <Input
                       placeholder={t('quotations.form.promotions.enterCode')}
                       value={promotionCode}
@@ -816,257 +492,239 @@ export function PricingStep({
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
-                          validatePromotionCode(promotionCode);
+                          handleApplyPromotion();
                         }
                       }}
-                      className={cn(
-                        "flex-1 text-base",
-                        promotionError && "border-red-500",
-                        selectedPromotion && "border-green-500"
-                      )}
                     />
-                    <Button 
-                      type="button"
-                      variant="outline"
-                      onClick={() => validatePromotionCode(promotionCode)}
-                      disabled={!promotionCode.trim()}
-                      className="w-full sm:w-auto"
-                    >
-                      {t('quotations.form.promotions.apply')}
+                    <Button onClick={handleApplyPromotion} size="sm">
+                      Apply
                     </Button>
                   </div>
                   
                   {promotionError && (
-                    <p className="text-sm text-red-600">{promotionError}</p>
+                    <p className="text-sm text-red-500">{promotionError}</p>
                   )}
-                  
-                  {selectedPromotion && (
-                    <Card className="border-l-4 border-l-green-500 bg-background">
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-2 text-green-600">
-                          <CheckCircle className="h-4 w-4" />
-                          <span className="font-medium">{t('quotations.form.promotions.promotionApplied')}</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {selectedPromotion.description}
-                        </p>
-                        <div className="mt-2 text-sm">
-                          <span className="font-medium text-foreground">
-                            {t('quotations.form.promotions.discount')}: {selectedPromotion.discount_type === 'percentage' 
-                              ? `${selectedPromotion.discount_value}%` 
-                              : formatCurrency(selectedPromotion.discount_value)}
-                          </span>
-                          {selectedPromotion.maximum_discount && selectedPromotion.discount_type === 'percentage' && (
-                            <span className="text-muted-foreground">
-                              {' '}({t('quotations.form.promotions.maxDiscount', { amount: formatCurrency(selectedPromotion.maximum_discount) })})
-                            </span>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
 
-            {/* Right Column - Available Promotions */}
-            <div className="space-y-6">
-              <Card>
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Tag className="h-4 w-4 text-primary" />
-                    {t('quotations.form.promotions.availablePromotions')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {promotions.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Gift className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-50" />
-                      <p className="text-muted-foreground">{t('quotations.form.promotions.noPromotions')}</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {promotions.filter(p => p.is_active).map((promotion) => (
-                        <Card 
-                          key={promotion.id} 
-                          className="cursor-pointer hover:shadow-md hover:border-primary/50 transition-all hover:scale-[1.02]"
-                          onClick={() => {
-                            setPromotionCode(promotion.code);
-                            validatePromotionCode(promotion.code);
-                          }}
+                  {/* Tier Buttons */}
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground">Quick Apply Tiers:</p>
+                    <div className="grid grid-cols-3 gap-2">
+                       <Button
+                         type="button"
+                         variant="outline"
+                         size="sm"
+                         onClick={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                           const tierAPromo = promotions.find(p => p.code === 'TIERA');
+                           if (tierAPromo) {
+                             setSelectedPromotion(tierAPromo);
+                             setPromotionCode('');
+                             setPromotionError('');
+                           }
+                         }}
+                         className="text-xs"
+                       >
+                         Tier A
+                       </Button>
+                       <Button
+                         type="button"
+                         variant="outline"
+                         size="sm"
+                         onClick={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                           const tierBPromo = promotions.find(p => p.code === 'TIERB');
+                           if (tierBPromo) {
+                             setSelectedPromotion(tierBPromo);
+                             setPromotionCode('');
+                             setPromotionError('');
+                           }
+                         }}
+                         className="text-xs"
+                       >
+                         Tier B
+                       </Button>
+                       <Button
+                         type="button"
+                         variant="outline"
+                         size="sm"
+                         onClick={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                           const tierCPromo = promotions.find(p => p.code === 'TIERC');
+                           if (tierCPromo) {
+                             setSelectedPromotion(tierCPromo);
+                             setPromotionCode('');
+                             setPromotionError('');
+                           }
+                         }}
+                         className="text-xs"
+                       >
+                         Tier C
+                       </Button>
+                                </div>
+                  </div>
+
+                  {/* Applied Promotion */}
+                  {selectedPromotion && (
+                    <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-green-900 dark:text-green-100">
+                            {selectedPromotion.name}
+                          </p>
+                          <p className="text-sm text-green-700 dark:text-green-300">
+                            {selectedPromotion.discount_type === 'percentage' 
+                              ? `${selectedPromotion.discount_value}% Discount`
+                              : `${formatCurrency(selectedPromotion.discount_value)} Discount`}
+                          </p>
+                              </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRemovePromotion}
+                          className="text-green-600 hover:text-green-700"
                         >
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="font-medium text-sm text-foreground">{promotion.name}</span>
-                                  <Badge variant="secondary" className="text-xs">{promotion.code}</Badge>
+                          <X className="h-4 w-4" />
+                        </Button>
                                 </div>
-                                {promotion.description && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {promotion.description}
-                                  </p>
-                                )}
-                                {promotion.minimum_amount && (
-                                  <p className="text-xs text-blue-600 mt-1">
-                                    Min order: {formatCurrency(promotion.minimum_amount)}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="text-right ml-3">
-                                <div className="bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-2 py-1 rounded text-sm font-medium">
-                                  {promotion.discount_type === 'percentage' 
-                                    ? `${promotion.discount_value}%` 
-                                    : formatCurrency(promotion.discount_value)}
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
                     </div>
                   )}
                 </CardContent>
               </Card>
             </div>
           </div>
-        </TabsContent>
+        </div>
 
-        <TabsContent value="timepricing" className="space-y-6 mt-0">
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Left Column - Time Pricing Settings */}
+        {/* Simplified Price Breakdown */}
             <div className="space-y-6">
               <Card>
                 <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
                     <CardTitle className="text-base flex items-center gap-2">
-                      <Timer className="h-4 w-4 text-primary" />
-                      {t('quotations.form.timePricing.title')}
+                <Calculator className="h-4 w-4 text-primary" />
+                Price Breakdown
                     </CardTitle>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-muted-foreground">{t('quotations.form.pricing.enable')}</span>
-                      <Switch
-                        checked={timeBasedPricingEnabled}
-                        onCheckedChange={setTimeBasedPricingEnabled}
-                      />
-                    </div>
-                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-                    <div className={cn(
-                      "h-3 w-3 rounded-full",
-                      timeBasedPricingEnabled ? "bg-green-600" : "bg-gray-400"
-                    )} />
-                    <span className="text-sm font-medium">
-                      {timeBasedPricingEnabled ? t('quotations.form.pricing.timeBasedActive') : t('quotations.form.pricing.timeBasedDisabled')}
-                    </span>
-                  </div>
+              <div className="space-y-3">
+                {/* Services Breakdown */}
+                {serviceItems.map((item, index) => {
+                  const basePrice = (item.unit_price || 0) * (item.service_days || 1);
+                  const timeAdjustment = item.time_based_adjustment ? basePrice * (item.time_based_adjustment / 100) : 0;
+                  const itemTotal = basePrice + timeAdjustment;
                   
-                  <p className="text-sm text-muted-foreground">
-                    {timeBasedPricingEnabled 
-                      ? t('quotations.form.pricing.timeBasedDescriptionActive')
-                      : t('quotations.form.pricing.timeBasedDescriptionDisabled')
-                    }
-                  </p>
-                  
-                  <div className="pt-3 border-t">
-                    <div className="text-sm">
-                      <strong>{t('quotations.form.pricing.currentStatus')}</strong> {' '}
-                      {timeBasedPricingEnabled ? (
-                        form.watch('pickup_date') && form.watch('pickup_time') ? (
-                          <Badge variant="default" className="bg-green-600">
-                            {t('quotations.form.pricing.activeAdjustments')}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="border-amber-500 text-amber-600">
-                            {t('quotations.form.pricing.readyAwaiting')}
-                          </Badge>
-                        )
-                      ) : (
-                        <Badge variant="secondary">
-                          {t('quotations.form.pricing.disabledNoTime')}
-                        </Badge>
-                      )}
+                  return (
+                    <div key={index} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">{item.service_type_name || 'Service'}</span>
+                        <span className="font-medium">{formatCurrency(itemTotal)}</span>
                     </div>
+                      <div className="ml-4 space-y-1 text-xs text-muted-foreground">
+                        <div className="flex justify-between">
+                          <span>Unit Price: {formatCurrency(item.unit_price || 0)} × {item.service_days || 1} days</span>
                   </div>
-                </CardContent>
-              </Card>
+                        {timeAdjustment > 0 && (
+                          <div className="flex justify-between text-orange-400">
+                            <span>Time Adjustment: +{item.time_based_adjustment}%</span>
+                            <span>+{formatCurrency(timeAdjustment)}</span>
             </div>
-
-            {/* Right Column - Pricing Rules */}
-            <div className="space-y-6">
-              <Card>
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-primary" />
-                    {t('quotations.form.pricing.pricingRules')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {timeBasedPricingEnabled ? (
-                    <div className="space-y-3">
-                      <div className="p-3 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-900/20">
-                        <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300 font-medium text-sm">
-                          <TrendingUp className="h-4 w-4" />
-                          {t('quotations.form.pricing.peakHourSurcharges')}
+                        )}
                         </div>
-                        <ul className="text-xs text-orange-600 dark:text-orange-400 mt-2 space-y-1">
-                          <li>• {t('quotations.form.pricing.morningRush')}</li>
-                          <li>• {t('quotations.form.pricing.eveningRush')}</li>
-                          <li>• {t('quotations.form.pricing.nightService')}</li>
-                        </ul>
                       </div>
-
-                      <div className="p-3 rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20">
-                        <div className="flex items-center gap-2 text-green-700 dark:text-green-300 font-medium text-sm">
-                          <Tag className="h-4 w-4" />
-                          {t('quotations.form.pricing.discountPeriods')}
+                  );
+                })}
+                
+                {/* Services Subtotal */}
+                <div className="flex justify-between items-center border-t pt-2">
+                  <span className="text-sm font-medium">Services Subtotal</span>
+                  <span className="font-semibold">{formatCurrency(totalAmount)}</span>
                         </div>
-                        <ul className="text-xs text-green-600 dark:text-green-400 mt-2 space-y-1">
-                          <li>• {t('quotations.form.pricing.earlyMorning')}</li>
-                          <li>• {t('quotations.form.pricing.offPeakHours')}</li>
-                        </ul>
-                      </div>
 
-                      <div className="p-3 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-900/20">
-                        <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-medium text-sm">
-                          <Package className="h-4 w-4" />
-                          {t('quotations.form.pricing.specialAdjustments')}
-                        </div>
-                        <ul className="text-xs text-blue-600 dark:text-blue-400 mt-2 space-y-1">
-                          <li>• {t('quotations.form.pricing.weekendPricing')}</li>
-                          <li>• {t('quotations.form.pricing.holidaySpecial')}</li>
-                          <li>• {t('quotations.form.pricing.seasonalRate')}</li>
-                        </ul>
+                {/* Discount */}
+                {form.watch('discount_percentage') > 0 && (
+                  <div className="flex justify-between items-center text-green-600">
+                    <span className="text-sm">Discount ({form.watch('discount_percentage')}%)</span>
+                    <span className="font-medium">
+                      -{formatCurrency(totalAmount * (form.watch('discount_percentage') / 100))}
+                    </span>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p className="text-sm">{t('quotations.form.pricing.enableTimeBased')}</p>
+                )}
+
+                {/* Promotion Discount */}
+                {selectedPromotion && (
+                  <div className="flex justify-between items-center text-green-600">
+                    <span className="text-sm">Promotion ({selectedPromotion.name})</span>
+                    <span className="font-medium">
+                      -{formatCurrency(
+                        selectedPromotion.discount_type === 'percentage' 
+                          ? totalAmount * (selectedPromotion.discount_value / 100)
+                          : selectedPromotion.discount_value
+                      )}
+                    </span>
+                        </div>
+                )}
+
+                {/* After Discounts */}
+                {(form.watch('discount_percentage') > 0 || selectedPromotion) && (
+                  <div className="flex justify-between items-center border-t pt-2">
+                    <span className="text-sm font-medium">After Discounts</span>
+                    <span className="font-semibold">
+                      {formatCurrency(
+                        totalAmount - 
+                        (form.watch('discount_percentage') > 0 ? totalAmount * (form.watch('discount_percentage') / 100) : 0) -
+                        (selectedPromotion ? (
+                          selectedPromotion.discount_type === 'percentage' 
+                            ? totalAmount * (selectedPromotion.discount_value / 100)
+                            : selectedPromotion.discount_value
+                        ) : 0)
+                      )}
+                    </span>
+                      </div>
+                )}
+
+                {/* Tax */}
+                {form.watch('tax_percentage') > 0 && (
+                  <div className="flex justify-between items-center text-blue-600">
+                    <span className="text-sm">Tax ({form.watch('tax_percentage')}%)</span>
+                    <span className="font-medium">
+                      +{formatCurrency(
+                        (totalAmount - 
+                          (form.watch('discount_percentage') > 0 ? totalAmount * (form.watch('discount_percentage') / 100) : 0) -
+                          (selectedPromotion ? (
+                            selectedPromotion.discount_type === 'percentage' 
+                              ? totalAmount * (selectedPromotion.discount_value / 100)
+                              : selectedPromotion.discount_value
+                          ) : 0)
+                        ) * (form.watch('tax_percentage') / 100)
+                      )}
+                    </span>
                     </div>
                   )}
-                </CardContent>
-              </Card>
 
-              <Card className="border-l-4 border-l-blue-500 bg-background">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <Timer className="h-5 w-5 text-blue-600 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-foreground mb-2">{t('quotations.form.pricing.howTimeBasedWorks')}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {t('quotations.form.pricing.timeBasedDescription')}
-                      </p>
+                {/* Total */}
+                <div className="flex justify-between items-center border-t pt-3">
+                  <span className="text-lg font-semibold">Total Amount</span>
+                  <span className="text-xl font-bold text-primary">
+                    {formatCurrency(
+                      (totalAmount - 
+                        (form.watch('discount_percentage') > 0 ? totalAmount * (form.watch('discount_percentage') / 100) : 0) -
+                        (selectedPromotion ? (
+                          selectedPromotion.discount_type === 'percentage' 
+                            ? totalAmount * (selectedPromotion.discount_value / 100)
+                            : selectedPromotion.discount_value
+                        ) : 0)
+                      ) * (1 + (form.watch('tax_percentage') || 0) / 100)
+                    )}
+                  </span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
+
+
           </div>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 } 

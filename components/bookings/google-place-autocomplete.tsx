@@ -46,14 +46,12 @@ export function GooglePlaceAutocomplete({
         // Add place_changed event listener
         autocomplete.addListener('place_changed', () => {
           const place = autocomplete.getPlace()
-          console.log("Place selected:", place)
           if (place?.formatted_address) {
             onChange(name, place.formatted_address)
           }
         })
         
         autocompleteRef.current = autocomplete
-        console.log("Google Maps Autocomplete initialized successfully")
       } catch (error) {
         console.error('Error initializing Google Maps Autocomplete:', error)
       }

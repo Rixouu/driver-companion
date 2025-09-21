@@ -72,9 +72,14 @@ export default function QuotationFormClient({
   }, []);
 
   const handleSuccess = (quotation: Quotation) => {
+    // Use beautiful URL format if quote_number is available, otherwise fallback to UUID
+    const beautifulUrl = quotation.quote_number 
+      ? `/quotations/QUO-JPDR-${quotation.quote_number.toString().padStart(6, '0')}`
+      : `/quotations/${quotation.id}`;
+    
     // Use a simple string for Next.js 14+ router.push
     // Type assertion to any to bypass strict typing
-    router.push(`/quotations/${quotation.id}` as any);
+    router.push(beautifulUrl as any);
     
     toast({
       title: t(

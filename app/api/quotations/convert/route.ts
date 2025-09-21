@@ -104,13 +104,53 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Find a matching vehicle for the quotation
+    // Find a matching vehicle for the quotation using the proper vehicle category relationship
     let assignedVehicleId = null;
+    const vehicleCategoryId = quotation.vehicle_category || quotationItems[0]?.vehicle_category;
     const vehicleType = quotation.vehicle_type || quotationItems[0]?.vehicle_type;
-    if (vehicleType) {
-      console.log(`Looking for vehicle matching type: ${vehicleType}`);
+    
+    if (vehicleCategoryId) {
+      console.log(`Looking for vehicle in category: ${vehicleCategoryId}`);
       
-      // First try to find exact model match
+      // First try to find vehicle by category and exact model match
+      const { data: categoryMatches, error: categoryError } = await supabase
+        .from('pricing_category_vehicles')
+        .select(`
+          vehicle_id,
+          vehicles!inner(id, brand, model, plate_number, status)
+        `)
+        .eq('category_id', vehicleCategoryId)
+        .eq('vehicles.status', 'active')
+        .ilike('vehicles.model', `%${vehicleType}%`);
+      
+      if (!categoryError && categoryMatches && categoryMatches.length > 0) {
+        assignedVehicleId = categoryMatches[0].vehicle_id;
+        const vehicle = categoryMatches[0].vehicles;
+        console.log(`Found exact model match in category: ${vehicle.brand} ${vehicle.model} (${vehicle.plate_number})`);
+      } else {
+        // Fallback to any vehicle in the category
+        const { data: anyCategoryVehicle, error: anyCategoryError } = await supabase
+          .from('pricing_category_vehicles')
+          .select(`
+            vehicle_id,
+            vehicles!inner(id, brand, model, plate_number, status)
+          `)
+          .eq('category_id', vehicleCategoryId)
+          .eq('vehicles.status', 'active')
+          .limit(1);
+        
+        if (!anyCategoryError && anyCategoryVehicle && anyCategoryVehicle.length > 0) {
+          assignedVehicleId = anyCategoryVehicle[0].vehicle_id;
+          const vehicle = anyCategoryVehicle[0].vehicles;
+          console.log(`Found category vehicle: ${vehicle.brand} ${vehicle.model} (${vehicle.plate_number})`);
+        } else {
+          console.log(`No vehicles found in category: ${vehicleCategoryId}`);
+        }
+      }
+    } else if (vehicleType) {
+      // Fallback to text-based matching if no category
+      console.log(`No vehicle category, falling back to text matching for: ${vehicleType}`);
+      
       const { data: exactMatches, error: exactError } = await supabase
         .from('vehicles')
         .select('id, brand, model, plate_number, status')
@@ -119,22 +159,7 @@ export async function POST(request: NextRequest) {
       
       if (!exactError && exactMatches && exactMatches.length > 0) {
         assignedVehicleId = exactMatches[0].id;
-        console.log(`Found exact model match: ${exactMatches[0].brand} ${exactMatches[0].model} (${exactMatches[0].plate_number})`);
-      } else {
-        // Fallback to brand matching if no exact model match
-        const brand = vehicleType.split(' ')[0];
-        const { data: brandMatches, error: brandError } = await supabase
-          .from('vehicles')
-          .select('id, brand, model, plate_number, status')
-          .eq('status', 'active')
-          .ilike('brand', `%${brand}%`);
-        
-        if (!brandError && brandMatches && brandMatches.length > 0) {
-          assignedVehicleId = brandMatches[0].id;
-          console.log(`Found brand match: ${brandMatches[0].brand} ${brandMatches[0].model} (${brandMatches[0].plate_number})`);
-        } else {
-          console.log(`No matching vehicle found for type: ${vehicleType}`);
-        }
+        console.log(`Found text match: ${exactMatches[0].brand} ${exactMatches[0].model} (${exactMatches[0].plate_number})`);
       }
     }
 

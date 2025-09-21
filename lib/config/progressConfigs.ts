@@ -31,8 +31,8 @@ export const progressConfigs: Record<string, ProgressConfig> = {
       { label: 'Sending email', value: 60 },
       { label: 'Finalizing', value: 90 }
     ],
-    totalDuration: 15000, // More realistic duration for actual API timing
-    stepDelays: [1000, 3000, 2000, 1000] // More realistic timing based on actual API performance
+    totalDuration: 5000, // Based on actual API testing: ~4 seconds average
+    stepDelays: [800, 1500, 1200, 500] // Realistic timing based on measured performance
   },
   
   sendReminder: {

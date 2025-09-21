@@ -70,12 +70,13 @@ export const progressConfigs: Record<string, ProgressConfig> = {
   convertToBooking: {
     steps: [
       { label: 'Validating data', value: 0 },
-      { label: 'Creating booking', value: 30 },
-      { label: 'Sending confirmation', value: 60 },
+      { label: 'Creating booking', value: 25 },
+      { label: 'Assigning vehicle', value: 50 },
+      { label: 'Sending confirmation', value: 75 },
       { label: 'Finalizing', value: 90 }
     ],
-    totalDuration: 2000,
-    stepDelays: [400, 500, 400, 300]
+    totalDuration: 10000, // Based on actual API testing: ~9.9 seconds
+    stepDelays: [1000, 2000, 3000, 2500, 1500] // Realistic timing for conversion process
   },
   
   saveDraft: {

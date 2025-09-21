@@ -113,6 +113,10 @@ export async function POST(request: NextRequest) {
       console.log(`Looking for vehicle in category: ${vehicleCategoryId}`);
       
       // First try to find vehicle by category and exact model match
+      // Clean the vehicle type for better matching
+      const cleanVehicleType = vehicleType?.trim().replace(/\s+/g, ' ');
+      console.log(`Looking for vehicle type: "${vehicleType}" -> cleaned: "${cleanVehicleType}"`);
+      
       const { data: categoryMatches, error: categoryError } = await supabase
         .from('pricing_category_vehicles')
         .select(`
@@ -121,7 +125,7 @@ export async function POST(request: NextRequest) {
         `)
         .eq('category_id', vehicleCategoryId)
         .eq('vehicles.status', 'active')
-        .ilike('vehicles.model', `%${vehicleType}%`);
+        .or(`vehicles.model.ilike.%${cleanVehicleType}%,vehicles.model.ilike.%${cleanVehicleType.trim()}%`);
       
       if (!categoryError && categoryMatches && categoryMatches.length > 0) {
         assignedVehicleId = categoryMatches[0].vehicle_id;
@@ -317,6 +321,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       booking_ids: createdBookings.map(b => b.id),
+      booking_wp_ids: createdBookings.map(b => b.wp_id),
       total_bookings: createdBookings.length,
       message: `Quotation successfully converted to ${createdBookings.length} booking${createdBookings.length > 1 ? 's' : ''}`
     });

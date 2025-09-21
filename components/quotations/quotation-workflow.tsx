@@ -861,8 +861,11 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                       });
                     }
                     
-                    // Redirect to the first booking page
-                    if (result.booking_ids && result.booking_ids.length > 0) {
+                    // Redirect to the first booking page using beautiful URL
+                    if (result.booking_wp_ids && result.booking_wp_ids.length > 0) {
+                      window.location.href = `/bookings/${result.booking_wp_ids[0]}`;
+                    } else if (result.booking_ids && result.booking_ids.length > 0) {
+                      // Fallback to UUID if wp_id not available
                       window.location.href = `/bookings/${result.booking_ids[0]}`;
                     } else {
                       // Fallback: refresh the page to show updated status

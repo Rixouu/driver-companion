@@ -53,3 +53,16 @@ export function getQuotationMagicLinkUrl(quotation: { id: string; quote_number?:
   // Fallback to UUID if quote_number is not available
   return `/quote-access/${quotation.id}`;
 }
+
+/**
+ * Generate a beautiful booking URL using wp_id instead of UUID
+ * @param booking - The booking object with id and wp_id
+ * @returns The beautiful booking URL path
+ */
+export function getBookingUrl(booking: { id: string; wp_id?: string }): string {
+  if (booking.wp_id) {
+    return `/bookings/${booking.wp_id}`;
+  }
+  // Fallback to UUID if wp_id is not available
+  return `/bookings/${booking.id}`;
+}

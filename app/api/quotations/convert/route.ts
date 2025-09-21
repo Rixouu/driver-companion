@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
       
       // First try to find vehicle by category and exact model match
       // Clean the vehicle type for better matching
-      const cleanVehicleType = vehicleType?.trim().replace(/\s+/g, ' ');
+      const cleanVehicleType = vehicleType?.trim().replace(/\s+/g, ' ') || '';
       console.log(`Looking for vehicle type: "${vehicleType}" -> cleaned: "${cleanVehicleType}"`);
       
       const { data: categoryMatches, error: categoryError } = await supabase

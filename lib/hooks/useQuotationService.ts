@@ -1503,7 +1503,8 @@ export const useQuotationService = () => {
       // Cast database results to match TypeScript interface
       const typedPromotions = (data || []).map(promo => ({
         ...promo,
-        discount_type: promo.discount_type as 'percentage' | 'fixed_amount'
+        discount_type: promo.discount_type as 'percentage' | 'fixed_amount',
+        is_featured: promo.is_featured ?? false // Handle null values
       }));
       
       // Cache the results

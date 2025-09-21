@@ -44,16 +44,34 @@ export default async function EditQuotationPage({ params: paramsPromise }: PageP
     redirect('/auth/login');
   }
 
-  // Fetch the quotation and setup data in parallel
-  const [quotationResult, serviceTypes, pricingCategories, pricingItems] = await Promise.all([
-    supabase
+  // Handle both UUID and beautiful format IDs (QUO-JPDR-XXXXXX)
+  let quotationQuery;
+  if (id.startsWith('QUO-JPDR-')) {
+    // Extract quote number from beautiful format
+    const quoteNumber = parseInt(id.replace('QUO-JPDR-', ''));
+    quotationQuery = supabase
+      .from('quotations')
+      .select(`
+        *,
+        quotation_items (*)
+      `)
+      .eq('quote_number', quoteNumber)
+      .single();
+  } else {
+    // Use UUID directly
+    quotationQuery = supabase
       .from('quotations')
       .select(`
         *,
         quotation_items (*)
       `)
       .eq('id', id)
-      .single(),
+      .single();
+  }
+
+  // Fetch the quotation and setup data in parallel
+  const [quotationResult, serviceTypes, pricingCategories, pricingItems] = await Promise.all([
+    quotationQuery,
     getServerServiceTypes(),
     getServerPricingCategories(),
     getServerPricingItems()

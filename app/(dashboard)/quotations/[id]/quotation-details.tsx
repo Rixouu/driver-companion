@@ -528,7 +528,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               {/* Share and Edit buttons moved to top right */}
               <div className="flex flex-col sm:flex-row flex-wrap gap-2 flex-shrink-0">
                 <QuotationShareButtons quotation={quotation} />
-                {isOrganizationMember && !['approved', 'rejected', 'converted', 'paid'].includes(quotation.status) && (
+                {isOrganizationMember && !['approved', 'rejected', 'converted', 'paid'].includes(quotation.status) && !(quotation as any).converted_to_booking_id && !(quotation as any).payment_completed_at && (
                   <Button variant="outline" asChild className="w-full sm:w-auto gap-2">
                     <Link href={getQuotationEditUrl(quotation) as any}>
                       <Edit className="h-4 w-4" />

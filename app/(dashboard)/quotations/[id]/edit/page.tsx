@@ -83,8 +83,8 @@ export default async function EditQuotationPage({ params: paramsPromise }: PageP
     notFound();
   }
   
-  // Only allow editing of draft or sent quotations
-  if (!['draft', 'sent'].includes(data.status)) {
+  // Only allow editing of draft or sent quotations that haven't been paid or converted
+  if (!['draft', 'sent'].includes(data.status) || (data as any).converted_to_booking_id || (data as any).payment_completed_at) {
     // Redirect to view page if not editable
     return (
       <div className="space-y-6">

@@ -2801,6 +2801,7 @@ export const en: TranslationValue = {
       vehicles: "Vehicles",
       drivers: "Drivers",
       bookings: "Bookings",
+      paylinks: "Payment Links",
       maintenance: "Maintenance",
       inspections: "Inspections",
       templates: "Templates",

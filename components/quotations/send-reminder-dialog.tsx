@@ -52,9 +52,9 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          id: quotation.id,
+          quotation_id: quotation.id,
+          email: customerEmail,
           language,
-          includeQuotation,
           bcc_emails: bccEmails
         }),
       })

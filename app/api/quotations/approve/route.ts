@@ -205,6 +205,9 @@ export async function POST(request: NextRequest) {
       payment_required: '', // Empty string evaluates to false in {{#if}} conditionals
       payment_link: '', // Empty for quotations
       
+      // Quotation items for template looping
+      quotation_items: quotation.quotation_items || [],
+      
       // Localization
       language,
       team_location: quotation.team_location || 'japan',

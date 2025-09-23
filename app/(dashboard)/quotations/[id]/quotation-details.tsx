@@ -52,6 +52,7 @@ import { useQuotationService } from "@/lib/hooks/useQuotationService";
 import LoadingSpinner from '@/components/shared/loading-spinner';
 import { QuotationPdfButton } from '@/components/quotations/quotation-pdf-button';
 import { QuotationInvoiceButton } from '@/components/quotations/quotation-invoice-button';
+import { SendReminderDialog } from '@/components/quotations/send-reminder-dialog';
 
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -140,6 +141,9 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
   const [magicLinkLanguage, setMagicLinkLanguage] = useState<'en' | 'ja'>('en');
   const [magicLinkBccEmails, setMagicLinkBccEmails] = useState<string>("booking@japandriver.com");
   const [magicLinkCustomerEmail, setMagicLinkCustomerEmail] = useState(quotation?.customer_email || '');
+  
+  // Send Reminder Dialog State
+  const [isReminderDialogOpen, setIsReminderDialogOpen] = useState(false);
   
   // Progress modal state
   const [progressOpen, setProgressOpen] = useState(false);
@@ -1177,49 +1181,9 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               receipt_url: (quotation as any).receipt_url,
             }}
             onRefresh={() => router.refresh()}
-            onSendReminder={async () => {
-              setIsLoading(true);
-              setProgressOpen(true);
-              setProgressVariant('reminder');
-              setProgressTitle('Sending Reminder');
-              
-              try {
-                // Start progress simulation and API call in parallel
-                const progressPromise = startProgress(progressConfigs.sendReminder);
-                
-                const response = await fetch('/api/quotations/send-reminder', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ 
-                    id: quotation.id, 
-                    language: 'en',
-                    includeQuotation: true 
-                  })
-                });
-                
-                // Wait for both to complete
-                await Promise.all([progressPromise, response]);
-                
-                if (response.ok) {
-                  // Toast removed - SendReminderDialog handles its own toast
-                  setTimeout(() => {
-                    setProgressOpen(false);
-                    router.refresh();
-                  }, 500);
-                } else {
-                  throw new Error('Failed to send reminder');
-                }
-              } catch (error) {
-                console.error('Error sending reminder:', error);
-                toast({
-                  title: "Failed to send reminder",
-                  description: "Please try again later",
-                  variant: 'destructive',
-                });
-                setTimeout(() => setProgressOpen(false), 1000);
-              } finally {
-                setIsLoading(false);
-              }
+            onSendReminder={() => {
+              // Open the send reminder dialog instead of directly calling API
+              setIsReminderDialogOpen(true);
             }}
             onGenerateInvoice={async () => {
               setIsLoading(true);
@@ -1613,6 +1577,15 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
         steps={progressSteps}
         onOpenChange={setProgressOpen}
       />
+
+      {/* Send Reminder Dialog */}
+      {quotation && (
+        <SendReminderDialog
+          quotation={quotation}
+          open={isReminderDialogOpen}
+          onOpenChange={setIsReminderDialogOpen}
+        />
+      )}
     </div>
   );
 } 

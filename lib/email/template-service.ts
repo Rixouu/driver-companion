@@ -17,7 +17,32 @@ interface EmailTemplate {
 }
 
 interface TemplateVariables {
-  [key: string]: string | number
+  [key: string]: string | number | any[]
+}
+
+// Helper functions for template processing
+function formatCurrency(amount: number | string, currency: string = 'JPY'): string {
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount
+  if (isNaN(numAmount)) return '0'
+  
+  const formatter = new Intl.NumberFormat('ja-JP', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  })
+  
+  return formatter.format(numAmount)
+}
+
+function formatDate(date: string | Date, language: string = 'en'): string {
+  if (!date) return ''
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date
+  if (isNaN(dateObj.getTime())) return ''
+  
+  const locale = language === 'ja' ? 'ja-JP' : 'en-US'
+  return dateObj.toLocaleDateString(locale)
 }
 
 export class EmailTemplateService {
@@ -81,11 +106,16 @@ export class EmailTemplateService {
         ...variables,
         language,
         team,
-        primary_color: appSettings.primary_color || '#E03E2D',
+        primary_color: appSettings.primary_color || '#FF2800',
+        secondary_color: appSettings.secondary_color,
         company_name: teamCompanyName,
         from_name: appSettings.from_name || teamCompanyName,
         support_email: appSettings.support_email || 'booking@japandriver.com',
-        logo_url: appSettings.logo_url || 'https://japandriver.com/img/driver-invoice-logo.png'
+        logo_url: appSettings.logo_url || 'https://japandriver.com/img/driver-invoice-logo.png',
+        custom_css: appSettings.email_css_styling,
+        custom_header_template: appSettings.email_header_template,
+        custom_footer_template: appSettings.email_footer_template,
+        custom_css_template: appSettings.email_css_template
       }
 
       // Enhanced template variable replacement with Handlebars-like processing
@@ -101,37 +131,17 @@ export class EmailTemplateService {
           }
         })
 
-        // Handle {{#each}} blocks
-        processedContent = processedContent.replace(/\{\{#each\s+([^}]+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (match, arrayName, blockContent) => {
+        // Handle {{#unless}} blocks
+        processedContent = processedContent.replace(/\{\{#unless\s+([^}]+)\}\}([\s\S]*?)\{\{\/unless\}\}/g, (match, condition, blockContent) => {
           try {
-            const array = (allVariables as any)[arrayName.trim()]
-            if (!Array.isArray(array) || array.length === 0) {
-              return ''
-            }
-            
-            return array.map((item: any) => {
-              let itemContent = blockContent
-              // Replace variables within the each block with item properties
-              itemContent = itemContent.replace(/\{\{([^}]+)\}\}/g, (varMatch: string, expression: string) => {
-                const expr = expression.trim()
-                // Handle nested properties like item.property
-                if (expr.includes('.')) {
-                  const parts = expr.split('.')
-                  let value = item
-                  for (const part of parts) {
-                    value = value?.[part]
-                  }
-                  return value !== undefined ? String(value) : ''
-                }
-                return item[expr] !== undefined ? String(item[expr]) : ''
-              })
-              return itemContent
-            }).join('')
+            const conditionResult = evalCondition(condition.trim(), allVariables)
+            return !conditionResult ? blockContent : ''
           } catch (error) {
-            console.warn('Handlebars each block error:', error, 'for array:', arrayName)
+            console.warn('Handlebars unless block condition error:', error, 'for condition:', condition)
             return ''
           }
         })
+
 
         // Then handle simple variable replacement
         return processedContent.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
@@ -184,10 +194,44 @@ export class EmailTemplateService {
             return vars[varName] === value
           }
           
+          // Handle comparison operators like: time_based_discount > 0
+          const comparisonMatch = condition.match(/(\w+)\s*([><=!]+)\s*(\d+)/)
+          if (comparisonMatch) {
+            const [, varName, operator, value] = comparisonMatch
+            const varValue = parseFloat(vars[varName]) || 0
+            const compareValue = parseFloat(value)
+            const result = (() => {
+              switch (operator) {
+                case '>': return varValue > compareValue
+                case '>=': return varValue >= compareValue
+                case '<': return varValue < compareValue
+                case '<=': return varValue <= compareValue
+                case '==': return varValue === compareValue
+                case '!=': return varValue !== compareValue
+                default: return false
+              }
+            })()
+            console.log('🔍 [TEMPLATE] Comparison:', varName, operator, value, 'varValue:', vars[varName], 'parsed:', varValue, 'result:', result)
+            return result
+          }
+          
+          // Handle contains function like: contains service_type_name "Charter"
+          const containsMatch = condition.match(/contains\s+(\w+)\s+"([^"]+)"/)
+          if (containsMatch) {
+            const [, varName, searchValue] = containsMatch
+            const varValue = vars[varName]
+            return varValue && varValue.toString().toLowerCase().includes(searchValue.toLowerCase())
+          }
+          
           // Handle truthy checks like: service_days
           if (condition.match(/^\w+$/)) {
             const varName = condition.trim()
-            return Boolean(vars[varName])
+            const varValue = vars[varName]
+            // Properly handle null, undefined, empty string, and 0
+            if (varValue === null || varValue === undefined || varValue === '' || varValue === 0 || varValue === false) {
+              return false
+            }
+            return Boolean(varValue)
           }
           
           // Handle complex conditions like: service_days && service_type_charter
@@ -257,8 +301,82 @@ export class EmailTemplateService {
         })
       }
 
-      // Process conditionals first, then replace variables
-      let processedHtml = processConditionals(coreHtml)
+      // Process {{#each}} blocks first, then conditionals, then replace variables
+      const processEachBlocks = (content: string, vars: any): string => {
+        return content.replace(/\{\{#each\s+([^}]+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (match, arrayName, blockContent) => {
+          try {
+            const array = vars[arrayName.trim()]
+            if (!Array.isArray(array) || array.length === 0) {
+              return ''
+            }
+            
+            return array.map((item: any) => {
+              let itemContent = blockContent
+              
+              // First, handle nested {{#if}} blocks within the each block
+              itemContent = itemContent.replace(/\{\{#if\s+([^}]+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (ifMatch, condition, ifBlockContent) => {
+                try {
+                  const conditionResult = evalCondition(condition.trim(), { ...vars, ...item })
+                  return conditionResult ? ifBlockContent : ''
+                } catch (error) {
+                  console.warn('Handlebars nested if condition error:', error, 'for condition:', condition)
+                  return ''
+                }
+              })
+              
+              // Replace variables within the each block with item properties
+              itemContent = itemContent.replace(/\{\{([^}]+)\}\}/g, (varMatch: string, expression: string) => {
+                const expr = expression.trim()
+                
+                // Handle ternary conditionals: {{language == "ja" ? "text1" : "text2"}}
+                if (expr.includes('?') && expr.includes(':')) {
+                  const ternaryMatch = expr.match(/(.+?)\s*\?\s*"([^"]+)"\s*:\s*"([^"]+)"/)
+                  if (ternaryMatch) {
+                    const [, condition, trueValue, falseValue] = ternaryMatch
+                    const conditionResult = evalCondition(condition, { ...vars, ...item })
+                    return conditionResult ? trueValue : falseValue
+                  }
+                }
+                
+                // Handle function calls: {{formatCurrency total_price currency}}
+                if (expr.includes(' ')) {
+                  const parts = expr.split(/\s+/)
+                  const funcName = parts[0]
+                  if (funcName === 'formatCurrency' && parts.length >= 3) {
+                    const amount = item[parts[1]] || 0
+                    const currency = vars[parts[2]] || 'JPY'
+                    return formatCurrency(amount, currency)
+                  }
+                  if (funcName === 'formatDate' && parts.length >= 2) {
+                    const date = item[parts[1]]
+                    const lang = parts[2] ? vars[parts[2]] : language
+                    return formatDate(date, lang)
+                  }
+                }
+                
+                // Handle nested properties like item.property
+                if (expr.includes('.')) {
+                  const parts = expr.split('.')
+                  let value = item
+                  for (const part of parts) {
+                    value = value?.[part]
+                  }
+                  return value !== undefined ? String(value) : ''
+                }
+                return item[expr] !== undefined ? String(item[expr]) : ''
+              })
+              return itemContent
+            }).join('')
+          } catch (error) {
+            console.warn('Handlebars each block error:', error, 'for array:', arrayName)
+            return ''
+          }
+        })
+      }
+
+      let processedHtml = coreHtml
+      processedHtml = processEachBlocks(processedHtml, allVariables)
+      processedHtml = processConditionals(processedHtml)
       processedHtml = replaceVariables(processedHtml)
       
       // Handle square bracket placeholders: [MAGIC_LINK], [VARIABLE_NAME]
@@ -289,6 +407,12 @@ export class EmailTemplateService {
         language: language as 'en' | 'ja',
         team: team as 'japan' | 'thailand',
         logoUrl: (allVariables as any).logo_url,
+        primaryColor: (allVariables as any).primary_color || '#FF2800',
+        secondaryColor: (allVariables as any).secondary_color,
+        customCSS: (allVariables as any).custom_css,
+        customHeaderTemplate: (allVariables as any).custom_header_template,
+        customFooterTemplate: (allVariables as any).custom_footer_template,
+        customCSSTemplate: (allVariables as any).custom_css_template,
         title: processedSubject, // Use processed subject for proper header rendering
         content: renderedCoreHtml
       })

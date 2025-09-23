@@ -98,6 +98,7 @@ export class EmailAPIWrapper {
         time: quotation.time || 'N/A',
         pickup_location: quotation.pickup_location || 'Pick up location',
         dropoff_location: quotation.dropoff_location || 'Drop off location',
+        quotation_items: quotation.quotation_items || [],
         greeting_text: isUpdated ? 'Thank you for your interest in our services. Please find your updated quotation below.' : 'Thank you for your interest in our services. Please find your quotation below.'
       }
       

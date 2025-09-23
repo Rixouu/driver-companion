@@ -45,6 +45,8 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('✅ [UNIFIED-EMAIL-API] Quotation found:', !!quotation, 'Keys:', Object.keys(quotation || {}).length)
+    console.log('🔍 [UNIFIED-EMAIL-API] Quotation items:', quotation.quotation_items?.length || 0, 'items')
+    console.log('🔍 [UNIFIED-EMAIL-API] Quotation items data:', JSON.stringify(quotation.quotation_items, null, 2))
 
     // Get selected package if exists
     let selectedPackage: PricingPackage | null = null
@@ -222,6 +224,9 @@ export async function POST(request: NextRequest) {
       payment_required: '', // Empty string evaluates to false in {{#if}} conditionals
       payment_link: '', // Empty for quotations
       
+      // Quotation items for template looping
+      quotation_items: quotation.quotation_items || [],
+      
       // Localization
       language,
       team_location: quotation.team_location || 'japan',
@@ -231,6 +236,9 @@ export async function POST(request: NextRequest) {
         ? 'Thank you for your interest in our services. Please find your updated quotation below.'
         : 'Thank you for your interest in our services. Please find your quotation below.'
     }
+
+    console.log('🔍 [UNIFIED-EMAIL-API] Template variables quotation_items:', templateVariables.quotation_items?.length || 0, 'items')
+    console.log('🔍 [UNIFIED-EMAIL-API] Template variables quotation_items data:', JSON.stringify(templateVariables.quotation_items, null, 2))
 
     console.log('🔄 [UNIFIED-EMAIL-API] Using direct template service')
     

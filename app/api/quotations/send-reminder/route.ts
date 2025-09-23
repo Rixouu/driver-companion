@@ -48,11 +48,11 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔄 [UNIFIED-EMAIL-API] Processing quotation ${quotationId} for ${email}`)
 
-    // Get quotation data
+    // Get quotation data with quotation_items
     const supabase = createServiceClient()
     const { data: quotation, error: quotationError } = await supabase
       .from('quotations')
-      .select('*')
+      .select('*, quotation_items (*)')
       .eq('id', quotationId)
       .single()
 
@@ -62,6 +62,8 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('✅ [UNIFIED-EMAIL-API] Quotation found:', !!quotation, 'Keys:', Object.keys(quotation || {}).length)
+    console.log('🔍 [UNIFIED-EMAIL-API] Quotation items:', quotation.quotation_items?.length || 0, 'items')
+    console.log('🔍 [UNIFIED-EMAIL-API] Quotation items data:', JSON.stringify(quotation.quotation_items, null, 2))
 
     // Get selected package if exists
     let selectedPackage: PricingPackage | null = null
@@ -182,6 +184,38 @@ export async function POST(request: NextRequest) {
 
     console.log('🔄 [UNIFIED-EMAIL-API] Starting template variable creation')
     
+    // Process quotation items for template
+    const processedQuotationItems = (quotation.quotation_items || []).map((item: any) => {
+      // Add time adjustment logic similar to send-email route
+      const timeAdjustmentHtml = item.show_time_adjustment === 'yes' && item.time_based_adjustment 
+        ? `
+                <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #e2e8f0;">
+                  <div style="color: #f97316; font-weight: 600; margin-bottom: 2px;">Time Adjustment (${item.time_based_adjustment}%): +¥${item.time_based_discount?.toLocaleString() || 0}</div>
+                  <div style="color: #6b7280; font-size: 10px;">${item.time_based_rule_name || 'Time-based adjustment'}</div>
+                </div>
+              `
+        : ''
+
+      return {
+        ...item,
+        time_adjustment_html: timeAdjustmentHtml,
+        time_adjustment_percentage: item.time_based_adjustment || 0,
+        time_adjustment_amount: item.time_based_discount || 0,
+        time_adjustment_rule_name: item.time_based_rule_name || null,
+        debug_time_values: {
+          service_type_name: item.service_type_name,
+          isCharter: item.service_type_charter || false,
+          isAirport: item.service_type_airport || false,
+          time_based_discount: item.time_based_discount,
+          time_based_discount_percentage: item.time_based_discount_percentage,
+          time_based_rule_name: item.time_based_rule_name,
+          show_time_adjustment: item.show_time_adjustment
+        }
+      }
+    })
+
+    console.log('🔍 [UNIFIED-EMAIL-API] Final quotation_items:', JSON.stringify(processedQuotationItems, null, 2))
+    
     // Complete template variables with all required data  
     const templateVariables = {
       // Basic identifiers
@@ -194,6 +228,11 @@ export async function POST(request: NextRequest) {
       service_name: quotation.service_type || 'Transportation Service',
       vehicle_type: quotation.vehicle_type || 'Standard Vehicle',
       duration_hours: quotation.duration_hours || 1,
+      
+      // Charter Services specific fields
+      service_days: quotation.service_days || 1,
+      hours_per_day: quotation.hours_per_day || 8,
+      service_type_charter: (quotation.service_type?.toLowerCase().includes('charter') || false) ? 'true' : 'false',
       
       // Location and timing
       pickup_location: quotation.pickup_location || quotation.customer_notes || 'Pick up location',
@@ -222,6 +261,9 @@ export async function POST(request: NextRequest) {
       payment_required: '', // Empty string evaluates to false in {{#if}} conditionals
       payment_link: '', // Empty for quotations
       
+      // Quotation items for template looping
+      quotation_items: processedQuotationItems,
+      
       // Localization
       language,
       team_location: quotation.team_location || 'japan',
@@ -236,7 +278,7 @@ export async function POST(request: NextRequest) {
     
     // Render the template using emailTemplateService directly
     const rendered = await emailTemplateService.renderTemplate(
-      'Quotation Sent',
+      'Quotation Reminder',
       templateVariables,
       'japan',
       language as 'en' | 'ja'

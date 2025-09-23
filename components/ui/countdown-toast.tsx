@@ -47,7 +47,7 @@ export function CountdownToast({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
       <div className={cn(
-        "bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-8 max-w-md mx-4 transform transition-all duration-500",
+        "bg-white dark:bg-black rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-8 max-w-md mx-4 transform transition-all duration-500",
         isAnimating ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"
       )}>
         <div className="text-center space-y-6">

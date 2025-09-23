@@ -13,8 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import LoadingModal from '@/components/ui/loading-modal';
 import { useProgressSteps } from '@/lib/hooks/useProgressSteps'
-import { useCountdownToast } from '@/lib/hooks/useCountdownToast'
-import { CountdownToast } from '@/components/ui/countdown-toast';
+// Removed countdown toast imports - using simple toast instead
 import { progressConfigs } from '@/lib/config/progressConfigs';
 import { useI18n } from '@/lib/i18n/context';
 import { cn } from '@/lib/utils';
@@ -211,11 +210,11 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       setProgressOpen(false);
       setIsSendQuotationDialogOpen(false);
       
-      // Show countdown toast for redirection
-      showCountdownToast({
-        message: "Quotation sent successfully!",
-        redirectUrl: `/quotations/${quotation.id}`,
-        duration: 3
+      // Always show success toast, never show countdown toast
+      toast({
+        title: "Quotation Sent",
+        description: "Quotation has been sent successfully",
+        variant: "default",
       });
       
       // Refresh the page to show updated status
@@ -248,12 +247,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
   const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice'>('default');
   const { progressValue, progressLabel, progressSteps, startProgress, resetProgress } = useProgressSteps();
   
-  const { 
-    isVisible: isCountdownVisible, 
-    toastConfig, 
-    showCountdownToast, 
-    handleComplete: handleCountdownComplete 
-  } = useCountdownToast();
+  // Removed countdown toast - using simple toast instead
 
   // Handle sending payment link
   const handleSendPaymentLink = async () => {
@@ -1420,14 +1414,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         showSteps={true}
       />
 
-      {/* Countdown Toast for Redirection */}
-      <CountdownToast
-        isVisible={isCountdownVisible}
-        onComplete={handleCountdownComplete}
-        message={toastConfig.message}
-        redirectUrl={toastConfig.redirectUrl}
-        duration={toastConfig.duration}
-      />
+      {/* Countdown Toast removed - using simple toast instead */}
 
       {/* Mark As Paid Dialog */}
       <Dialog open={isMarkAsPaidDialogOpen} onOpenChange={setIsMarkAsPaidDialogOpen}>

@@ -9,8 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button'
 import LoadingModal from '@/components/ui/loading-modal'
 import { useProgressSteps } from '@/lib/hooks/useProgressSteps'
-import { useCountdownToast } from '@/lib/hooks/useCountdownToast'
-import { CountdownToast } from '@/components/ui/countdown-toast'
+// Removed countdown toast imports
 import { progressConfigs } from '@/lib/config/progressConfigs'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -242,12 +241,7 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
   const { progressValue, progressLabel, progressSteps, startProgress, resetProgress } = useProgressSteps()
   
-  const { 
-    isVisible: isCountdownVisible, 
-    toastConfig, 
-    showCountdownToast, 
-    handleComplete: handleCountdownComplete 
-  } = useCountdownToast()
+  // Removed countdown toast
   const [progressOpen, setProgressOpen] = useState(false)
   const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice'>('default')
   
@@ -373,11 +367,11 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
         throw new Error(errorData.error || 'Failed to send email');
       }
       
-      // Show countdown toast for redirection
-      showCountdownToast({
-        message: t('quotations.notifications.sendSuccess') || 'Quotation sent successfully',
-        redirectUrl: `/quotations/${quotation.id}`,
-        duration: 3
+      // Show success toast instead of countdown
+      toast({
+        title: 'Quotation Sent',
+        description: 'Quotation has been sent successfully',
+        variant: 'default',
       });
       
       setTimeout(() => setProgressOpen(false), 200)
@@ -505,13 +499,7 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
       />
 
       {/* Countdown Toast for Redirection */}
-      <CountdownToast
-        isVisible={isCountdownVisible}
-        onComplete={handleCountdownComplete}
-        message={toastConfig.message}
-        redirectUrl={toastConfig.redirectUrl}
-        duration={toastConfig.duration}
-      />
+      {/* Countdown toast removed */}
     </>
   )
 } 

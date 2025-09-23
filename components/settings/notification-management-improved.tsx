@@ -60,6 +60,28 @@ export function NotificationManagementImproved() {
   const [itemsPerPage, setItemsPerPage] = useState(6);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
+  const [appSettings, setAppSettings] = useState<any>({});
+
+  // Load app settings for preview
+  const loadAppSettings = async () => {
+    try {
+      const response = await fetch('/api/admin/app-settings');
+      if (response.ok) {
+        const settings = await response.json();
+        const settingsMap = settings.reduce((acc: any, item: any) => {
+          try {
+            acc[item.key] = JSON.parse(item.value);
+          } catch (e) {
+            acc[item.key] = item.value;
+          }
+          return acc;
+        }, {});
+        setAppSettings(settingsMap);
+      }
+    } catch (error) {
+      console.error('Failed to load app settings:', error);
+    }
+  };
 
   // Process language conditionals in template content
   const processLanguageConditionals = (content: string, language: 'en' | 'ja'): string => {
@@ -102,8 +124,8 @@ export function NotificationManagementImproved() {
           }
         ],
         magic_link: 'https://example.com/quote/123',
-        primary_color: '#E03E2D',
-        from_name: team === 'japan' ? 'Driver Japan Team' : 'Driver Thailand Team',
+        primary_color: appSettings.primary_color || '#FF2800', // Use actual app settings
+        from_name: appSettings.from_name || (team === 'japan' ? 'Driver Japan Team' : 'Driver Thailand Team'),
         quotation_title: 'Airport Transfer Service',
         total_amount: '15,000',
         currency: team === 'japan' ? 'JPY' : 'THB',
@@ -160,6 +182,7 @@ export function NotificationManagementImproved() {
   // Load templates from database
   useEffect(() => {
     loadTemplates();
+    loadAppSettings();
   }, []);
 
   // Update preview when HTML content changes (with debounce)

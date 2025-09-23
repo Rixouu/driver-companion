@@ -36,11 +36,12 @@ export function BrandingManagement() {
     email_header_template: '',
     email_footer_template: '',
     email_css_styling: '',
-    primary_color: '#E03E2D',
+    email_css_template: '',
+    primary_color: '#FF2800',
     secondary_color: '#F45C4C',
     text_color: '#32325D',
     background_color: '#F2F4F6',
-    button_color: '#E03E2D',
+    button_color: '#FF2800',
     border_color: '#e2e8f0',
     selected_team: 'japan',
     selected_language: 'en'
@@ -65,6 +66,35 @@ export function BrandingManagement() {
           return acc
         }, {})
         
+        // Check if email templates are empty and initialize defaults
+        const needsInitialization = !settingsMap.email_header_template || 
+                                   !settingsMap.email_footer_template || 
+                                   !settingsMap.email_css_template
+        
+        if (needsInitialization) {
+          try {
+            const initResponse = await fetch('/api/admin/email-templates/initialize-defaults', {
+              method: 'POST'
+            })
+            if (initResponse.ok) {
+              // Reload settings after initialization
+              const reloadResponse = await fetch('/api/admin/app-settings')
+              if (reloadResponse.ok) {
+                const reloadData = await reloadResponse.json()
+                const reloadSettingsMap = reloadData.reduce((acc: any, setting: AppSetting) => {
+                  acc[setting.key] = setting.value
+                  return acc
+                }, {})
+                settingsMap.email_header_template = reloadSettingsMap.email_header_template
+                settingsMap.email_footer_template = reloadSettingsMap.email_footer_template
+                settingsMap.email_css_template = reloadSettingsMap.email_css_template
+              }
+            }
+          } catch (initError) {
+            console.warn('Failed to initialize default templates:', initError)
+          }
+        }
+        
         setFormData({
           company_name: settingsMap.company_name || 'Driver Japan',
           company_logo: settingsMap.company_logo || 'https://japandriver.com/img/driver-invoice-logo.png',
@@ -73,11 +103,12 @@ export function BrandingManagement() {
           email_header_template: settingsMap.email_header_template || '',
           email_footer_template: settingsMap.email_footer_template || '',
           email_css_styling: settingsMap.email_css_styling || '',
-          primary_color: settingsMap.primary_color || '#E03E2D',
+          email_css_template: settingsMap.email_css_template || '',
+          primary_color: settingsMap.primary_color || '#FF2800',
           secondary_color: settingsMap.secondary_color || '#F45C4C',
           text_color: settingsMap.text_color || '#32325D',
           background_color: settingsMap.background_color || '#F2F4F6',
-          button_color: settingsMap.button_color || '#E03E2D',
+          button_color: settingsMap.button_color || '#FF2800',
           border_color: settingsMap.border_color || '#e2e8f0',
           selected_team: settingsMap.selected_team || 'japan',
           selected_language: settingsMap.selected_language || 'en'
@@ -904,8 +935,8 @@ export function BrandingManagement() {
                   <MonacoEditor
                     height="400px"
                     language="css"
-                    value={formData.email_css_styling}
-                    onChange={(value) => setFormData(prev => ({ ...prev, email_css_styling: value || '' }))}
+                    value={formData.email_css_template}
+                    onChange={(value) => setFormData(prev => ({ ...prev, email_css_template: value || '' }))}
                     options={{
                       minimap: { enabled: false },
                       scrollBeyondLastLine: false,

@@ -106,17 +106,39 @@ export async function POST(request: NextRequest) {
       // Booking information
       booking_id: booking.wp_id || booking.id.slice(-6).toUpperCase(),
       booking_number: booking.wp_id || booking.id.slice(-6).toUpperCase(),
+      issue_date: new Date().toLocaleDateString(language === 'ja' ? 'ja-JP' : 'en-US'),
+      
+      // Service information (single service structure)
       service_name: booking.service_name || booking.service_type || 'Service',
+      service_type: booking.service_type || 'Transportation Service',
+      service_type_name: booking.service_type || 'Transportation Service',
+      vehicle_type: `${booking.vehicle_make || ''} ${booking.vehicle_model || ''}`.trim() || 'Standard Vehicle',
       vehicle_make: booking.vehicle_make || '',
       vehicle_model: booking.vehicle_model || '',
       vehicle_capacity: booking.vehicle_capacity || 4,
+      
+      // Location and timing
       pickup_location: booking.pickup_location || '',
       dropoff_location: booking.dropoff_location || '',
+      pickup_date: booking.date ? new Date(booking.date).toLocaleDateString(language === 'ja' ? 'ja-JP' : 'en-US') : '',
+      pickup_time: booking.time || '',
       date: booking.date ? new Date(booking.date).toLocaleDateString(language === 'ja' ? 'ja-JP' : 'en-US') : '',
       time: booking.time || '',
+      
+      // Passenger and bag details
+      number_of_passengers: booking.number_of_passengers || 1,
+      number_of_bags: booking.number_of_bags || null,
       passenger_count: booking.number_of_passengers || 1,
+      
+      // Service duration
       duration_hours: booking.duration_hours || 1,
       service_days: booking.service_days || 1,
+      hours_per_day: booking.hours_per_day || 8,
+      service_days_display: booking.service_days > 1 ? ` (${booking.service_days} days)` : '',
+      
+      // Flight details
+      flight_number: booking.flight_number || null,
+      terminal: booking.terminal || null,
       
       // Driver information (if available)
       driver_name: booking.driver_id ? 'Driver Name' : '', // Will be populated when driver is assigned

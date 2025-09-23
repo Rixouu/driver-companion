@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Progress } from "@/components/ui/progress"
 import { useI18n } from '@/lib/i18n/context'
 import { toast } from '@/components/ui/use-toast'
 import { Quotation } from '@/types/quotations'
 import { Loader2, RefreshCw } from 'lucide-react'
+import { useProgressSteps } from '@/lib/hooks/useProgressSteps'
+import { progressConfigs } from '@/lib/config/progressConfigs'
+import LoadingModal from '@/components/ui/loading-modal'
 
 interface SendReminderDialogProps {
   quotation: Quotation
@@ -22,16 +24,15 @@ interface SendReminderDialogProps {
 export function SendReminderDialog({ quotation, open, onOpenChange }: SendReminderDialogProps) {
   const { t } = useI18n()
   const [language, setLanguage] = useState<'en' | 'ja'>('en')
-  const [includeQuotation, setIncludeQuotation] = useState(true)
-  const [bccEmails, setBccEmails] = useState<string>("booking@japandriver.com")
+  const [bccEmails, setBccEmails] = useState<string>("admin.rixou@gmail.com")
   const [customerEmail, setCustomerEmail] = useState(quotation?.customer_email || '')
   const [isLoading, setIsLoading] = useState(false)
   
   // Progress modal state
   const [progressOpen, setProgressOpen] = useState(false)
-  const [progressValue, setProgressValue] = useState(0)
-  const [progressTitle, setProgressTitle] = useState('Processing')
-  const [progressLabel, setProgressLabel] = useState('Starting...')
+  const [progressTitle, setProgressTitle] = useState('Sending Reminder')
+  const [progressVariant, setProgressVariant] = useState<'reminder'>('reminder')
+  const { progressValue, progressLabel, progressSteps, startProgress, resetProgress } = useProgressSteps()
 
   const handleSendReminder = async () => {
     if (!quotation?.id) return
@@ -39,14 +40,11 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
     setIsLoading(true)
     setProgressOpen(true)
     setProgressTitle('Sending Reminder')
-    setProgressLabel('Preparing...')
-    setProgressValue(10)
+    setProgressVariant('reminder')
     
     try {
-      setProgressLabel('Generating content...')
-      setProgressValue(40)
-      
-      const response = await fetch(`/api/quotations/send-reminder`, {
+      // Start API call first
+      const apiCall = fetch(`/api/quotations/send-reminder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,18 +57,16 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
         }),
       })
       
+      // Start progress simulation synchronized with API call
+      const progressPromise = startProgress(progressConfigs.sendReminder, apiCall)
+      
+      // Wait for both to complete
+      const response = await apiCall
+      await progressPromise
+      
       if (!response.ok) {
         throw new Error('Failed to send reminder')
       }
-      
-      setProgressLabel('Sending email...')
-      setProgressValue(80)
-      
-      // Wait for the actual email to be sent
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setProgressValue(100)
-      setProgressLabel('Completed')
       
       // Show success toast only after completion
       toast({
@@ -81,7 +77,7 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
       setTimeout(() => {
         setProgressOpen(false)
         onOpenChange(false)
-      }, 400)
+      }, 500)
       
     } catch (error) {
       console.error('Error sending reminder:', error)
@@ -136,7 +132,7 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
               className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Default: booking@japandriver.com. Add more emails separated by commas.
+              Default: admin.rixou@gmail.com. Add more emails separated by commas.
             </p>
           </div>
           
@@ -153,26 +149,15 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
             </Select>
           </div>
           
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="include-quotation" 
-              checked={includeQuotation}
-              onCheckedChange={(checked) => setIncludeQuotation(!!checked)}
-            />
-            <Label htmlFor="include-quotation">
-              {t('quotations.includeDetails')}
-            </Label>
-          </div>
           
-          <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md">
-            <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100 mb-2">
+          <div className="bg-orange-50 dark:bg-orange-950/20 p-3 rounded-md border border-orange-200 dark:border-orange-800">
+            <h4 className="font-medium text-sm text-orange-900 dark:text-orange-100 mb-2">
               📧 What's included in the email:
             </h4>
-            <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+            <ul className="text-xs text-orange-800 dark:text-orange-200 space-y-1">
               <li>• Reminder about quotation expiration</li>
               <li>• Customer information and contact details</li>
               <li>• Quotation reference and details</li>
-              <li>• Quotation PDF attachment (if enabled)</li>
               <li>• Company branding and contact information</li>
               <li>• Call-to-action for customer response</li>
             </ul>
@@ -186,6 +171,7 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
           <Button 
             onClick={handleSendReminder}
             disabled={isLoading}
+            className="bg-orange-600 hover:bg-orange-700 text-white"
           >
             {isLoading ? (
               <>
@@ -198,22 +184,17 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
       </DialogContent>
     </Dialog>
     
-    {/* Progress Modal */}
-    <Dialog open={progressOpen}>
-      <DialogContent className="sm:max-w-md max-w-[95vw] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{progressTitle}</DialogTitle>
-          <DialogDescription className="sr-only">Processing</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3 py-2">
-          <Progress value={progressValue} />
-          <div className="text-sm text-muted-foreground flex items-center justify-between">
-            <span>{progressLabel}</span>
-            <span className="font-medium text-foreground">{progressValue}%</span>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+    {/* Enhanced Progress Modal */}
+    <LoadingModal
+      open={progressOpen}
+      title={progressTitle}
+      label={progressLabel}
+      value={progressValue}
+      variant={progressVariant}
+      showSteps={progressSteps.length > 0}
+      steps={progressSteps}
+      onOpenChange={setProgressOpen}
+    />
     </>
   )
 } 

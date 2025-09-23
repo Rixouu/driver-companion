@@ -328,6 +328,11 @@ export default function QuotationList({
   };
 
   const getFinalStatus = (quotation: Quotation): QuotationStatus => {
+    // Check for rejected status if the quotation is actually rejected but status field wasn't updated
+    if ((quotation.status === 'sent' || quotation.status === 'draft') && (quotation as any).rejected_at) {
+      return 'rejected';
+    }
+    
     // Only override status for 'sent' quotations that have payment completed but status wasn't updated
     if (quotation.status === 'sent' && (quotation as any).payment_completed_at) {
       return 'paid';

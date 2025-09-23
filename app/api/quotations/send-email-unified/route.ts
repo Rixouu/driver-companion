@@ -270,10 +270,10 @@ export async function POST(request: NextRequest) {
       discount_percentage: quotation.discount_percentage || 0,
       regular_discount: quotation.amount * ((quotation.discount_percentage || 0) / 100),
       promotion_discount: quotation.promotion_discount || 0,
-      time_based_discount: quotation.time_based_discount || 0,
-      promo_code_discount: quotation.promo_code_discount || 0,
-      promo_code: quotation.promo_code || '',
-      refund_amount: quotation.refund_amount || 0,
+      time_based_discount: (quotation as any).time_based_discount || 0,
+      promo_code_discount: (quotation as any).promo_code_discount || 0,
+      promo_code: (quotation as any).promo_code || '',
+      refund_amount: (quotation as any).refund_amount || 0,
       
       // Package and promotion details
       selected_package: selectedPackage,
@@ -312,7 +312,7 @@ export async function POST(request: NextRequest) {
       
       // Add quotation_items array for template loops
       quotation_items: quotation.quotation_items || []
-    }
+    } as any
 
     // Add service_type_charter field to each quotation item for template labels
     if (templateVariables.quotation_items && Array.isArray(templateVariables.quotation_items)) {
@@ -360,7 +360,7 @@ export async function POST(request: NextRequest) {
           time_based_rule_name: isCharter ? null : (isAirport && item.time_based_rule_name ? item.time_based_rule_name : null),
           time_based_rules: item.time_based_rules || [],
           // Pre-computed display flags to avoid template condition issues
-          show_time_adjustment: (isAirport && item.time_based_adjustment && item.time_based_adjustment > 0) ? 'yes' : 'no',
+          show_time_adjustment_flag: (isAirport && item.time_based_adjustment && item.time_based_adjustment > 0) ? 'yes' : 'no',
           
           // DEBUG: Log the final values being sent to template
           debug_time_values: {

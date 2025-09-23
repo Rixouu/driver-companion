@@ -611,6 +611,15 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     onSendPaymentLink={() => workflowRef.current?.openPaymentLinkDialog()}
                   />
                 </>
+              ) : (quotation.status === 'rejected' || (quotation as any).rejected_at) ? (
+                <>
+                  <QuotationPdfButton 
+                    quotation={quotation} 
+                    selectedPackage={selectedPackage} 
+                    selectedPromotion={selectedPromotion} 
+                    onSuccess={() => router.refresh()} 
+                  />
+                </>
               ) : (
                 <>
                   <QuotationPdfButton 

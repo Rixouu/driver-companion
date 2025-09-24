@@ -199,16 +199,16 @@ export async function POST(request: NextRequest) {
         (itemTotal / totalQuotationAmount) * totalQuotationAmount : totalQuotationAmount;
 
       // Get pickup and dropoff locations from quotation item (preferred) or quotation
-      const pickupLocation = item.pickup_location || quotation.pickup_location || 'Location to be confirmed - Please edit booking details';
-      const dropoffLocation = item.dropoff_location || quotation.dropoff_location || 'Location to be confirmed - Please edit booking details';
+      const pickupLocation = (item as any).pickup_location || quotation.pickup_location || 'Location to be confirmed - Please edit booking details';
+      const dropoffLocation = (item as any).dropoff_location || quotation.dropoff_location || 'Location to be confirmed - Please edit booking details';
       
       // Get passenger and bag counts from quotation item
-      const numberOfPassengers = item.number_of_passengers || quotation.passenger_count || null;
-      const numberOfBags = item.number_of_bags || null;
+      const numberOfPassengers = (item as any).number_of_passengers || quotation.passenger_count || null;
+      const numberOfBags = (item as any).number_of_bags || null;
       
       // Get flight information from quotation item
-      const flightNumber = item.flight_number || null;
-      const terminal = item.terminal || null;
+      const flightNumber = (item as any).flight_number || null;
+      const terminal = (item as any).terminal || null;
 
       // Create booking for this service
       const { data: booking, error: bookingError } = await supabase
@@ -241,9 +241,14 @@ export async function POST(request: NextRequest) {
           terminal: terminal,
           distance: '0', // Default distance as string
           duration: `${item.duration_hours || quotation.duration_hours || 1}h`,
+          // Service duration fields - CRITICAL for Charter Services display
+          service_days: item.service_days || quotation.service_days || null,
+          duration_hours: item.duration_hours || quotation.duration_hours || null,
+          hours_per_day: item.hours_per_day || quotation.hours_per_day || null,
           notes: `Converted from quotation #${quotation.quote_number || quotation.id} - Service ${i + 1} of ${quotationItems.length}.${numberOfPassengers ? ` Passengers: ${numberOfPassengers}` : ''}${numberOfBags ? ` Bags: ${numberOfBags}` : ''}${flightNumber ? ` Flight: ${flightNumber}` : ''}${terminal ? ` Terminal: ${terminal}` : ''}`,
           customer_notes: quotation.customer_notes || null,
           merchant_notes: quotation.merchant_notes || null,
+          general_notes: (quotation as any).general_notes || null,
           billing_company_name: quotation.billing_company_name,
           billing_tax_number: quotation.billing_tax_number,
           billing_street_name: quotation.billing_street_name,

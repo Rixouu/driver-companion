@@ -106,6 +106,8 @@ export default function BookingDetailsPage() {
     try {
       setLoading(true);
       const bookingData = await getBookingById(id);
+      
+      
       setBooking(bookingData.booking);
       
       // Load assigned driver and vehicle if they exist
@@ -1208,8 +1210,9 @@ export default function BookingDetailsPage() {
             />
 
 
-          {/* Notes & Comments Section - Following Quotation Details Pattern */}
-          {(booking.notes || booking.meta?.chbs_comment) && (
+
+          {/* Notes & Comments Section - Enhanced with Customer, Merchant, and General Notes */}
+          {(booking.notes || booking.customer_notes || booking.merchant_notes || booking.general_notes || booking.meta?.chbs_comment) && (
             <Card>
               <CardContent className="pt-6">
                 <div className="space-y-4">
@@ -1220,24 +1223,65 @@ export default function BookingDetailsPage() {
                     </div>
                     <div>
                       <h2 className="text-xl font-semibold">{t('bookings.details.fields.notesComments')}</h2>
-                      <p className="text-sm text-muted-foreground">{t('bookings.details.fields.internalNotesDescription')}</p>
+                      <p className="text-sm text-muted-foreground">Notes and comments from the quotation</p>
                     </div>
                   </div>
                   
-                  {/* Internal Notes Section */}
-                  <div>
-                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <StickyNote className="h-3 w-3 text-muted-foreground" />
-{t('bookings.details.fields.internalNotes')}
-                    </h4>
-                    <div 
-                      className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-orange-500 whitespace-pre-wrap break-words"
-                    >
-                      {booking.notes || booking.meta?.chbs_comment || t('bookings.details.fields.noInternalNotes')}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-{t('bookings.details.fields.internalNotesNote')}
-                    </p>
+                  {/* Notes Layout - All in ONE column (stacked vertically) */}
+                  <div className="space-y-4">
+                    {/* Customer Notes */}
+                    {booking.customer_notes && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium flex items-center gap-2">
+                          <User className="h-3 w-3 text-muted-foreground" />
+                          Customer Notes
+                        </h4>
+                        <div 
+                          className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-blue-500 whitespace-pre-wrap break-words min-h-[100px]"
+                        >
+                          {booking.customer_notes}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Notes from the customer on the quotation
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Merchant Notes */}
+                    {booking.merchant_notes && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium flex items-center gap-2">
+                          <StickyNote className="h-3 w-3 text-muted-foreground" />
+                          Merchant Notes
+                        </h4>
+                        <div 
+                          className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-orange-500 whitespace-pre-wrap break-words min-h-[100px]"
+                        >
+                          {booking.merchant_notes}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Internal notes from the quotation
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* System Notes */}
+                    {(booking.notes || booking.meta?.chbs_comment) && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium flex items-center gap-2">
+                          <StickyNote className="h-3 w-3 text-muted-foreground" />
+                          System Notes
+                        </h4>
+                        <div 
+                          className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-green-500 whitespace-pre-wrap break-words"
+                        >
+                          {booking.notes || booking.meta?.chbs_comment || t('bookings.details.fields.noInternalNotes')}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          System-generated notes from conversion
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>

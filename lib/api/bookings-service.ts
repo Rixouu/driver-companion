@@ -445,6 +445,7 @@ export const mapWordPressBookingToSupabase = (wpBooking: any): Omit<SupabaseBook
  * Maps a Supabase booking to the Booking type
  */
 export function mapSupabaseBookingToBooking(booking: Database['public']['Tables']['bookings']['Row'] & { vehicle?: any; creatorInfo?: { full_name?: string | null; email?: string | null } | null }): Booking {
+  
   // Extract vehicle information
   let vehicleInfo: {
     id?: string;
@@ -663,6 +664,9 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     
     // Additional metadata
     notes: booking.notes || undefined,
+    customer_notes: (booking as any).customer_notes || undefined,
+    merchant_notes: (booking as any).merchant_notes || undefined,
+    general_notes: (booking as any).general_notes || undefined,
     meta: booking.meta ? (typeof booking.meta === 'object' ? booking.meta as Record<string, any> : undefined) : 
           booking.wp_meta ? (typeof booking.wp_meta === 'object' ? booking.wp_meta as Record<string, any> : undefined) : undefined,
     

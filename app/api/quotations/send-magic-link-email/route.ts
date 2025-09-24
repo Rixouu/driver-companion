@@ -45,11 +45,11 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔄 [UNIFIED-EMAIL-API] Processing quotation ${quotationId} for ${email}`)
 
-    // Get quotation data
+    // Get quotation data with quotation_items
     const supabase = createServiceClient()
     const { data: quotation, error: quotationError } = await supabase
       .from('quotations')
-      .select('*')
+      .select('*, quotation_items (*)')
       .eq('id', quotationId)
       .single()
 
@@ -179,6 +179,79 @@ export async function POST(request: NextRequest) {
 
     console.log('🔄 [UNIFIED-EMAIL-API] Starting template variable creation')
     
+    // Process quotation_items for comprehensive template variables
+    const processedQuotationItems = (quotation.quotation_items || []).map((item: any) => {
+      // Determine service type flags
+      const isCharter = item.service_type?.toLowerCase().includes('charter') || false
+      const isAirport = item.service_type?.toLowerCase().includes('airport') || false
+      
+      // Calculate time-based pricing for Airport services
+      let timeBasedDiscount = 0
+      let timeBasedDiscountPercentage = 0
+      let timeBasedRuleName = ''
+      
+      if (isAirport && item.duration_hours) {
+        // Apply time-based pricing logic (same as send-email route)
+        if (item.duration_hours > 8) {
+          timeBasedDiscountPercentage = 15
+          timeBasedDiscount = item.unit_price * 0.15
+          timeBasedRuleName = 'Extended Hours Discount (15%)'
+        } else if (item.duration_hours > 4) {
+          timeBasedDiscountPercentage = 10
+          timeBasedDiscount = item.unit_price * 0.10
+          timeBasedRuleName = 'Extended Hours Discount (10%)'
+        }
+      }
+      
+      return {
+        ...item,
+        // Service type flags
+        service_type_charter: isCharter,
+        service_type_airport: isAirport,
+        service_type_name: item.service_type || 'Transportation Service',
+        
+        // Time-based pricing
+        time_based_discount: timeBasedDiscount,
+        time_based_discount_percentage: timeBasedDiscountPercentage,
+        time_based_rule_name: timeBasedRuleName,
+        
+        // Short description for display
+        short_description: item.description || `${item.service_type} Service`,
+        
+        // Ensure proper formatting
+        unit_price: item.unit_price || 0,
+        total_price: item.total_price || 0,
+        quantity: item.quantity || 1,
+        service_days: item.service_days || 1,
+        duration_hours: item.duration_hours || 0,
+        pickup_date: item.pickup_date || quotation.pickup_date,
+        pickup_time: item.pickup_time || quotation.pickup_time,
+        pickup_location: item.pickup_location || quotation.pickup_location,
+        dropoff_location: item.dropoff_location || quotation.dropoff_location,
+        number_of_passengers: item.number_of_passengers || (quotation as any).number_of_passengers,
+        number_of_bags: item.number_of_bags || (quotation as any).number_of_bags,
+        flight_number: item.flight_number || (quotation as any).flight_number,
+        terminal: item.terminal || (quotation as any).terminal
+      }
+    })
+    
+    // Calculate total time-based discount from all items
+    let totalTimeBasedDiscount = 0
+    let totalTimeBasedDiscountPercentage = 0
+    let timeBasedRuleName = ''
+    
+    processedQuotationItems.forEach((item: any) => {
+      if (item.service_type_airport && item.time_based_discount && item.time_based_discount > 0) {
+        totalTimeBasedDiscount += item.time_based_discount
+        if (item.time_based_discount_percentage > totalTimeBasedDiscountPercentage) {
+          totalTimeBasedDiscountPercentage = item.time_based_discount_percentage
+        }
+        if (item.time_based_rule_name && !timeBasedRuleName) {
+          timeBasedRuleName = item.time_based_rule_name
+        }
+      }
+    })
+    
     // Complete template variables with all required data  
     const templateVariables = {
       // Basic identifiers
@@ -192,6 +265,12 @@ export async function POST(request: NextRequest) {
       vehicle_type: quotation.vehicle_type || 'Standard Vehicle',
       duration_hours: quotation.duration_hours || 1,
       
+      // Charter Services specific fields
+      service_days: quotation.service_days || 1,
+      hours_per_day: quotation.hours_per_day || 8,
+      service_type_charter: (quotation.service_type?.toLowerCase().includes('charter') || false) ? 'true' : 'false',
+      service_type_airport: (quotation.service_type?.toLowerCase().includes('airport') || false) ? 'true' : 'false',
+      
       // Location and timing
       pickup_location: quotation.pickup_location || quotation.customer_notes || 'Pick up location',
       dropoff_location: quotation.dropoff_location || quotation.merchant_notes || 'Drop off location', 
@@ -203,7 +282,27 @@ export async function POST(request: NextRequest) {
       amount: quotation.total_amount || 0,
       currency: quotation.currency || 'JPY',
       service_total: quotation.total_amount || 0,
+      subtotal: quotation.total_amount || 0,
       final_total: quotation.total_amount || 0,
+      
+      // Time-based pricing (calculated from quotation_items)
+      time_based_discount: totalTimeBasedDiscount,
+      time_based_discount_percentage: totalTimeBasedDiscountPercentage,
+      time_based_rule_name: timeBasedRuleName,
+      
+      // Package and promotion information
+      selected_package: selectedPackage ? {
+        name: selectedPackage.name,
+        base_price: selectedPackage.base_price,
+        description: selectedPackage.description
+      } : null,
+      selected_promotion: selectedPromotion ? {
+        name: selectedPromotion.name,
+        discount_percentage: (selectedPromotion as any).discount_percentage || 0,
+        description: selectedPromotion.description
+      } : null,
+      selected_package_name: selectedPackage?.name,
+      selected_promotion_name: selectedPromotion?.name,
       
       // Important dates
       expiry_date: quotation.expiry_date || '2025-10-15',
@@ -218,6 +317,9 @@ export async function POST(request: NextRequest) {
       // Payment information - Quotations should NOT show payment block  
       payment_required: '', // Empty string evaluates to false in {{#if}} conditionals
       payment_link: '', // Empty for quotations
+      
+      // Quotation items for template looping
+      quotation_items: processedQuotationItems,
       
       // Localization
       language,
@@ -234,7 +336,7 @@ export async function POST(request: NextRequest) {
     // Render the template using emailTemplateService directly
     const rendered = await emailTemplateService.renderTemplate(
       'Quotation Sent',
-      templateVariables,
+      templateVariables as any,
       'japan',
       language as 'en' | 'ja'
     )

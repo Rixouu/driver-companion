@@ -297,7 +297,7 @@ export async function POST(request: NextRequest) {
       from: 'Driver Japan <booking@japandriver.com>',
       to: email,
       bcc: bccEmails.split(',').map(e => e.trim()).filter(e => e),
-      subject: language === 'ja' ? 'リマインダー: あなたの見積書' : 'Reminder: Your Quotation',
+      subject: rendered.subject,
       html: rendered.html,
       text: rendered.text
     }

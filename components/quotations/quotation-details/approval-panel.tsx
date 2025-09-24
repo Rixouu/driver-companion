@@ -85,7 +85,7 @@ export function QuotationDetailsApprovalPanel({
         )}
         
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
             {/* Approve Button */}
             <Button 
               onClick={() => setShowApproveDialog(true)}
@@ -140,7 +140,7 @@ export function QuotationDetailsApprovalPanel({
           {/* Info Notice */}
           <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
-              💡 Your decision will be recorded and the customer will be notified automatically.
+              💡 Your decision will be recorded and you will be notified of the outcome automatically.
             </p>
           </div>
         </CardContent>

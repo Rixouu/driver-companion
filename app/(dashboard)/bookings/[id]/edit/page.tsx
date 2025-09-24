@@ -237,7 +237,12 @@ export default function EditBookingPage() {
             originalVehicleId: loadedBooking.vehicle_id || undefined, // Store original vehicle ID
             coupon_code: loadedBooking.coupon_code || '',
             status: loadedBooking.status || 'pending',
-            team_location: loadedBooking.team_location || 'thailand'
+            team_location: loadedBooking.team_location || 'thailand',
+            // Notes fields - CRITICAL for edit form
+            customer_notes: loadedBooking.customer_notes || '',
+            merchant_notes: loadedBooking.merchant_notes || '',
+            general_notes: loadedBooking.general_notes || '',
+            notes: loadedBooking.notes || ''
           }
           
           // Cache the service data to prevent it from being reset by service switching logic

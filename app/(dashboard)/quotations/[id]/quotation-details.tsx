@@ -1429,7 +1429,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     // Start progress simulation and API call in parallel
                     const progressPromise = startProgress(progressConfigs.rejection);
                     
-                    const response = await fetch('/api/quotations/reject', {
+                    const response = await fetch('/api/quotations/reject-optimized', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',

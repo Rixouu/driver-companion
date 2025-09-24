@@ -3,8 +3,17 @@ import { createServiceClient } from "@/lib/supabase/service-client";
 import { Resend } from 'resend';
 import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator';
 import { getTeamFooterHtml } from '@/lib/team-addresses';
+import { emailTemplateService } from '@/lib/email/template-service';
+import { PricingPackage, PricingPromotion } from '@/types/quotations';
 
 export async function POST(req: NextRequest) {
+  console.log('==================== REJECT-MAGIC-LINK-OPTIMIZED ROUTE START ====================');
+  
+  // Set up timeout for the entire request (30 seconds)
+  const timeoutId = setTimeout(() => {
+    console.error('❌ [REJECT-MAGIC-LINK-OPTIMIZED] Request timeout after 30 seconds');
+  }, 30000);
+  
   try {
     const { quotation_id, reason, signature } = await req.json();
 
@@ -15,109 +24,140 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabase = createServiceClient();
+    // OPTIMIZATION 1: Parallel initialization
+    console.log('🔄 [REJECT-MAGIC-LINK-OPTIMIZED] Starting parallel initialization');
+    const [supabase, resend] = await Promise.all([
+      Promise.resolve(createServiceClient()),
+      Promise.resolve(new Resend(process.env.RESEND_API_KEY))
+    ]);
+    console.log('✅ [REJECT-MAGIC-LINK-OPTIMIZED] Parallel initialization complete');
 
-    // First, get the quotation details for email
-    const { data: quotation, error: fetchError } = await supabase
-      .from('quotations')
-      .select(`
-        *,
-        customers (
-          name,
-          email
-        )
-      `)
-      .eq('id', quotation_id)
-      .single();
+    // OPTIMIZATION 2: Parallel data fetching
+    console.log('🔄 [REJECT-MAGIC-LINK-OPTIMIZED] Starting parallel data fetching');
+    const [
+      quotationResult,
+      packageResult,
+      promotionResult
+    ] = await Promise.allSettled([
+      supabase
+        .from('quotations')
+        .select(`
+          *,
+          quotation_items (*),
+          customers (
+            name,
+            email
+          )
+        `)
+        .eq('id', quotation_id)
+        .single(),
+      // Package and promotion will be fetched after quotation
+      Promise.resolve(null),
+      Promise.resolve(null)
+    ]);
 
-    if (fetchError || !quotation) {
-      console.error('Error fetching quotation:', fetchError);
+    // Handle quotation result
+    if (quotationResult.status === 'rejected' || !quotationResult.value.data) {
+      console.error('❌ [REJECT-MAGIC-LINK-OPTIMIZED] Error fetching quotation:', quotationResult.status === 'rejected' ? quotationResult.reason : quotationResult.value.error);
       return NextResponse.json(
         { error: "Quotation not found" },
         { status: 404 }
       );
     }
 
-    // Update the quotation status to rejected
-    const { error: updateError } = await supabase
-      .from('quotations')
-      .update({
-        status: 'rejected',
-        rejected_at: new Date().toISOString(),
-        rejection_reason: reason,
-        rejection_signature: signature || null,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', quotation_id);
+    const quotation = quotationResult.value.data;
+    console.log('✅ [REJECT-MAGIC-LINK-OPTIMIZED] Quotation fetched successfully');
 
-    if (updateError) {
-      console.error('Error rejecting quotation:', updateError);
+    // OPTIMIZATION 3: Fetch package and promotion in parallel
+    console.log('🔄 [REJECT-MAGIC-LINK-OPTIMIZED] Fetching package and promotion data');
+    const packageId = (quotation as any).selected_package_id || (quotation as any).package_id || (quotation as any).pricing_package_id;
+    const promotionCode = (quotation as any).selected_promotion_code || (quotation as any).promotion_code;
+    
+    const [packageFetchResult, promotionFetchResult] = await Promise.allSettled([
+      packageId ? supabase.from('pricing_packages').select('*, items:pricing_package_items(*)').eq('id', packageId).single() : Promise.resolve({ data: null }),
+      promotionCode ? supabase.from('pricing_promotions').select('*').eq('code', promotionCode).single() : Promise.resolve({ data: null })
+    ]);
+    
+    const selectedPackage = packageFetchResult.status === 'fulfilled' ? packageFetchResult.value.data : null;
+    const selectedPromotion = promotionFetchResult.status === 'fulfilled' ? promotionFetchResult.value.data : null;
+    
+    console.log('✅ [REJECT-MAGIC-LINK-OPTIMIZED] Package and promotion data fetched');
+
+    // OPTIMIZATION 4: Parallel processing - Database updates and PDF generation
+    console.log('🔄 [REJECT-MAGIC-LINK-OPTIMIZED] Starting parallel processing');
+    const [
+      updateResult,
+      pdfResult,
+      activityResult
+    ] = await Promise.allSettled([
+      // Update the quotation status to rejected
+      supabase
+        .from('quotations')
+        .update({
+          status: 'rejected',
+          rejected_at: new Date().toISOString(),
+          rejection_reason: reason,
+          rejection_signature: signature || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', quotation_id),
+      // Generate PDF for attachment
+      (async () => {
+        try {
+          console.log('🔍 [REJECT-MAGIC-LINK-OPTIMIZED] Generating PDF for rejection email...');
+          
+          // Create updated quotation object with signature and notes for PDF generation
+          const updatedQuotationForPdf = {
+            ...quotation,
+            status: 'rejected',
+            rejected_at: new Date().toISOString(),
+            rejection_reason: reason,
+            rejection_signature: signature || null,
+            updated_at: new Date().toISOString()
+          };
+          
+          // Generate optimized PDF using the same generator as main reject route
+          return await generateOptimizedQuotationPDF(
+            updatedQuotationForPdf, 
+            'en', 
+            selectedPackage, 
+            selectedPromotion
+          );
+        } catch (pdfError) {
+          console.error('❌ [REJECT-MAGIC-LINK-OPTIMIZED] PDF generation failed:', pdfError);
+          return null; // Continue without PDF attachment
+        }
+      })(),
+      // Record the rejection activity
+      supabase
+        .from('quotation_activities')
+        .insert({
+          quotation_id,
+          action: 'rejected',
+          description: reason,
+          metadata: {
+            signature: signature || null,
+            rejected_via: 'magic_link'
+          },
+          created_at: new Date().toISOString()
+        })
+    ]);
+
+    // Handle update result
+    if (updateResult.status === 'rejected' || updateResult.value.error) {
+      console.error('❌ [REJECT-MAGIC-LINK-OPTIMIZED] Error rejecting quotation:', updateResult.status === 'rejected' ? updateResult.reason : updateResult.value.error);
       return NextResponse.json(
         { error: "Failed to reject quotation" },
         { status: 500 }
       );
     }
 
-    // Record the rejection activity
-    await supabase
-      .from('quotation_activities')
-      .insert({
-        quotation_id,
-        action: 'rejected',
-        description: reason,
-        metadata: {
-          signature: signature || null,
-          rejected_via: 'magic_link'
-        },
-        created_at: new Date().toISOString()
-      });
-
-    // Generate PDF for attachment with updated quotation data
-    let pdfBuffer: Buffer | null = null;
-    try {
-      console.log('🔍 [REJECT-MAGIC-LINK] Generating PDF for rejection email...');
-      
-      // Create updated quotation object with signature and notes for PDF generation
-      const updatedQuotationForPdf = {
-        ...quotation,
-        status: 'rejected',
-        rejected_at: new Date().toISOString(),
-        rejection_reason: reason,
-        rejection_signature: signature || null,
-        updated_at: new Date().toISOString()
-      };
-      
-      // Fetch associated package and promotion for the PDF (same as main reject route)
-      let selectedPackage = null;
-      const packageId = (quotation as any).selected_package_id || (quotation as any).package_id || (quotation as any).pricing_package_id;
-      if (packageId) {
-        const { data: pkg } = await supabase.from('pricing_packages').select('*, items:pricing_package_items(*)').eq('id', packageId).single();
-        selectedPackage = pkg;
-      }
-
-      let selectedPromotion = null;
-      const promotionCode = (quotation as any).selected_promotion_code || (quotation as any).promotion_code;
-      if (promotionCode) {
-        const { data: promo } = await supabase.from('pricing_promotions').select('*').eq('code', promotionCode).single();
-        selectedPromotion = promo;
-      }
-      
-      // Generate optimized PDF using the same generator as main reject route
-      pdfBuffer = await generateOptimizedQuotationPDF(
-        updatedQuotationForPdf, 
-        'en', 
-        selectedPackage, 
-        selectedPromotion
-      );
-      console.log('✅ [REJECT-MAGIC-LINK] PDF generated successfully with signature and notes');
-    } catch (pdfError) {
-      console.error('❌ [REJECT-MAGIC-LINK] PDF generation failed:', pdfError);
-      // Continue without PDF attachment
-    }
+    const pdfBuffer = pdfResult.status === 'fulfilled' ? pdfResult.value : null;
+    console.log('✅ [REJECT-MAGIC-LINK-OPTIMIZED] Parallel processing complete');
 
     // Send rejection email to customer and BCC to admin
     try {
-      const resend = new Resend(process.env.RESEND_API_KEY);
+      console.log('🔄 [REJECT-MAGIC-LINK-OPTIMIZED] Preparing email data');
       
       // Get customer email
       const customerEmail = quotation.customers?.email || quotation.customer_email;
@@ -127,201 +167,230 @@ export async function POST(req: NextRequest) {
       const formattedQuotationId = `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
       
       if (customerEmail) {
-        // Generate email HTML
-        const emailHtml = generateRejectionEmailHtml(customerName, quotation, reason);
+        // Get selected package and promotion data
+        let selectedPackage: PricingPackage | null = null;
+        let selectedPromotion: PricingPromotion | null = null;
         
-        // Send email with BCC to admin (always include booking@japandriver.com)
-        const { data: emailData, error: emailError } = await resend.emails.send({
+        if (quotation.selected_package_id) {
+          const { data: packageData } = await supabase
+            .from('pricing_packages')
+            .select('*')
+            .eq('id', quotation.selected_package_id)
+            .single();
+          selectedPackage = packageData as PricingPackage | null;
+        }
+        
+        if (quotation.selected_promotion_id) {
+          const { data: promotionData } = await supabase
+            .from('pricing_promotions')
+            .select('*')
+            .eq('id', quotation.selected_promotion_id)
+            .single();
+          selectedPromotion = promotionData as PricingPromotion | null;
+        }
+
+        // Process quotation_items for template variables (same as admin routes)
+        const processedQuotationItems = (quotation.quotation_items || []).map((item: any) => {
+          const isCharter = item.service_type_name?.toLowerCase().includes('charter') || item.service_type === 'Charter' || false;
+          const isAirport = item.service_type_name?.toLowerCase().includes('airport') || item.service_type === 'Airport' || false;
+          
+          return {
+            ...item,
+            service_type_charter: isCharter,
+            service_type_airport: isAirport,
+            service_type_name: item.service_type_name || item.service_type || 'Charter',
+            short_description: `${item.service_type_name || item.service_type} - ${item.vehicle_type}`,
+            
+            // Time-based pricing data - ONLY for Airport services (Charter Services get null)
+            time_based_discount: isCharter ? null : (isAirport && item.time_based_adjustment ? (item.unit_price * item.time_based_adjustment / 100) : null),
+            time_based_discount_percentage: isCharter ? null : (isAirport && item.time_based_adjustment ? item.time_based_adjustment : null),
+            time_based_rule_name: isCharter ? null : (isAirport && item.time_based_rule_name ? item.time_based_rule_name : null),
+            
+            // Pre-computed display flags
+            show_time_adjustment_flag: (isAirport && item.time_based_adjustment && item.time_based_adjustment > 0) ? 'yes' : 'no',
+            show_time_pricing: isAirport ? 'yes' : 'no',
+            
+            // Additional details
+            number_of_passengers: (quotation as any).number_of_passengers || 0,
+            number_of_bags: (quotation as any).number_of_bags || 0,
+            flight_number: (quotation as any).flight_number || '',
+            terminal: (quotation as any).terminal || '',
+            
+            // Pre-generated HTML for time adjustment - ONLY for Airport services
+            time_adjustment_html: (() => {
+              if (isAirport && item.time_based_adjustment && item.time_based_adjustment > 0) {
+                const amount = item.unit_price * item.time_based_adjustment / 100;
+                const percentage = item.time_based_adjustment;
+                const ruleName = item.time_based_rule_name;
+                const timeLabel = 'Time Adjustment';
+                
+                return `
+                  <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #e2e8f0;">
+                    <div style="color: #f97316; font-weight: 600; margin-bottom: 2px;">${timeLabel} (${percentage}%): +¥${amount.toLocaleString()}</div>
+                    ${ruleName ? `<div style="color: #6b7280; font-size: 10px;">${ruleName}</div>` : ''}
+                  </div>
+                `;
+              }
+              return '';
+            })()
+          };
+        });
+
+        // Calculate total time-based discount
+        let totalTimeBasedDiscount = 0;
+        let totalTimeBasedDiscountPercentage = 0;
+        let timeBasedRuleName = '';
+        
+        processedQuotationItems.forEach((item: any) => {
+          if (item.service_type_airport && item.time_based_discount && item.time_based_discount > 0) {
+            totalTimeBasedDiscount += item.time_based_discount;
+            if (item.time_based_discount_percentage > totalTimeBasedDiscountPercentage) {
+              totalTimeBasedDiscountPercentage = item.time_based_discount_percentage;
+            }
+            if (item.time_based_rule_name && !timeBasedRuleName) {
+              timeBasedRuleName = item.time_based_rule_name;
+            }
+          }
+        });
+
+        // Prepare template variables
+        const templateVariables = {
+          // Basic quotation info
+          quotation_id: `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || quotation.id.slice(-6).toUpperCase()}`,
+          customer_name: customerName,
+          customer_email: customerEmail,
+          language: 'en',
+          
+          // Service details
+          service_name: (quotation as any).service_name || 'Charter Service',
+          service_type: quotation.service_type || 'Charter',
+          vehicle_type: quotation.vehicle_type || 'Luxury Vehicle',
+          service_days_display: quotation.service_days ? `(${quotation.service_days} day(s))` : '',
+          
+          // Quotation items
+          quotation_items: processedQuotationItems,
+          
+          // Time-based pricing
+          time_based_discount: totalTimeBasedDiscount,
+          time_based_discount_percentage: totalTimeBasedDiscountPercentage,
+          time_based_rule_name: timeBasedRuleName,
+          
+          // Package and promotion
+          selected_package: selectedPackage ? {
+            name: selectedPackage.name,
+            base_price: selectedPackage.base_price,
+            description: selectedPackage.description
+          } : null,
+          selected_promotion: selectedPromotion ? {
+            name: selectedPromotion.name,
+            discount_percentage: (selectedPromotion as any).discount_percentage || 0,
+            description: selectedPromotion.description
+          } : null,
+          selected_package_name: selectedPackage?.name,
+          selected_promotion_name: selectedPromotion?.name,
+          
+          // Pricing details
+          currency: quotation.currency || 'JPY',
+          display_currency: quotation.currency || 'JPY',
+          total_amount: quotation.total_amount || 0,
+          service_total: (quotation as any).service_total || quotation.total_amount || 0,
+          subtotal: (quotation as any).subtotal || (quotation as any).service_total || quotation.total_amount || 0,
+          tax_amount: (quotation as any).tax_amount || 0,
+          tax_percentage: (quotation as any).tax_percentage || 0,
+          discount_percentage: (quotation as any).discount_percentage || 0,
+          regular_discount: (quotation as any).regular_discount || 0,
+          promotion_discount: (quotation as any).promotion_discount || 0,
+          promo_code_discount: (quotation as any).promo_code_discount || 0,
+          refund_amount: (quotation as any).refund_amount || 0,
+          final_total: (quotation as any).final_total || quotation.total_amount || 0,
+          
+          // Rejection specific
+          rejection_reason: reason || '',
+          rejection_signature: signature || '',
+          rejection_date: new Date().toISOString(),
+          
+          // Dates
+          date: quotation.pickup_date || (quotation as any).service_date || new Date().toISOString().split('T')[0],
+          time: quotation.pickup_time || (quotation as any).service_time || '09:00',
+          expiry_date: quotation.expiry_date || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          requested_date: quotation.created_at ? new Date(quotation.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          
+          // Location details
+          pickup_location: quotation.pickup_location || '',
+          dropoff_location: quotation.dropoff_location || '',
+          
+          // Additional details
+          number_of_passengers: (quotation as any).number_of_passengers || 0,
+          number_of_bags: (quotation as any).number_of_bags || 0,
+          flight_number: (quotation as any).flight_number || '',
+          terminal: (quotation as any).terminal || '',
+          
+          // Flags
+          show_time_adjustment_flag: totalTimeBasedDiscount > 0
+        };
+
+        // Render the template using emailTemplateService
+        const rendered = await emailTemplateService.renderTemplate(
+          'Quotation Rejected',
+          templateVariables as any,
+          'japan',
+          'en'
+        );
+
+        if (!rendered) {
+          console.error('❌ [REJECT-MAGIC-LINK-OPTIMIZED] Template rendering failed');
+          return NextResponse.json({ error: 'Failed to render template' }, { status: 500 });
+        }
+
+        // Send email with BCC to admin
+        console.log('🔄 [REJECT-MAGIC-LINK-OPTIMIZED] Sending rejection email via Resend...');
+        const emailSendPromise = resend.emails.send({
           from: 'Driver Japan <booking@japandriver.com>',
           to: [customerEmail],
-          bcc: ['booking@japandriver.com'],
-          subject: `Your Quotation has been Rejected - ${formattedQuotationId}`,
-          html: emailHtml,
+          bcc: ['admin.rixou@gmail.com'],
+          subject: rendered.subject || `Your Quotation has been Rejected - ${templateVariables.quotation_id}`,
+          html: rendered.html,
           attachments: pdfBuffer ? [
             {
-              filename: `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}-quotation.pdf`,
+              filename: `${templateVariables.quotation_id}-quotation.pdf`,
               content: pdfBuffer.toString('base64')
             }
           ] : undefined
         });
 
+        const { data: emailData, error: emailError } = await Promise.race([
+          emailSendPromise,
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('Email sending timeout after 20 seconds')), 20000)
+          )
+        ]);
+
         if (emailError) {
-          console.error('Error sending rejection email:', emailError);
-          // Don't fail the rejection if email fails
+          console.error('❌ [REJECT-MAGIC-LINK-OPTIMIZED] Error sending rejection email:', emailError);
         } else {
-          console.log('Rejection email sent successfully:', emailData?.id);
-          
-          // Note: last_email_sent_at update removed due to type issues
+          console.log('✅ [REJECT-MAGIC-LINK-OPTIMIZED] Rejection email sent successfully:', emailData?.id);
         }
       }
     } catch (emailError) {
-      console.error('Error in email sending process:', emailError);
+      console.error('❌ [REJECT-MAGIC-LINK-OPTIMIZED] Error in email sending process:', emailError);
       // Don't fail the rejection if email fails
     }
 
+    clearTimeout(timeoutId);
     return NextResponse.json({
       success: true,
       message: "Quotation rejected successfully and notification email sent"
     });
 
   } catch (error) {
-    console.error('Error rejecting quotation via magic link:', error);
+    console.error('❌ [REJECT-MAGIC-LINK-OPTIMIZED] Error rejecting quotation via magic link:', error);
+    clearTimeout(timeoutId);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
+  } finally {
+    console.log('==================== REJECT-MAGIC-LINK-OPTIMIZED ROUTE END ====================');
   }
 }
 
-// Helper function to generate rejection email HTML
-function generateRejectionEmailHtml(customerName: string, quotation: any, reason: string) {
-  const formattedQuotationId = `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
-  
-  return `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>Your Quotation has been Rejected</title>
-      <style>
-        body, table, td, a {
-          -webkit-text-size-adjust:100%;
-          -ms-text-size-adjust:100%;
-          font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
-        }
-        table, td { mso-table-lspace:0; mso-table-rspace:0; }
-        img {
-          border:0;
-          line-height:100%;
-          outline:none;
-          text-decoration:none;
-          -ms-interpolation-mode:bicubic;
-        }
-        table { border-collapse:collapse!important; }
-        body {
-          margin:0;
-          padding:0;
-          width:100%!important;
-          background:#F2F4F6;
-        }
-        .greeting {
-          color:#32325D;
-          margin:24px 24px 16px;
-          line-height:1.4;
-          font-size: 14px;
-        }
-        @media only screen and (max-width:600px) {
-          .container { width:100%!important; }
-          .stack { display:block!important; width:100%!important; text-align:center!important; }
-        }
-        .details-table td, .details-table th {
-          padding: 10px 0;
-          font-size: 14px;
-        }
-        .details-table th {
-           color: #8898AA;
-           text-transform: uppercase;
-           text-align: left;
-        }
-        .button {
-          background-color: #dc3545;
-          color: white;
-          padding: 12px 24px;
-          text-decoration: none;
-          border-radius: 6px;
-          display: inline-block;
-          margin: 16px 0;
-        }
-        .reason {
-          background-color: #f8d7da;
-          border-left: 4px solid #dc3545;
-          padding: 16px;
-          margin: 16px 0;
-          border-radius: 4px;
-        }
-        .contact-info {
-          background-color: #f8f9fa;
-          border-left: 4px solid #6c757d;
-          padding: 16px;
-          margin: 16px 0;
-          border-radius: 4px;
-        }
-      </style>
-    </head>
-    <body style="background:#F2F4F6; margin:0; padding:0;">
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-        <tr>
-          <td align="center" style="padding:24px;">
-            <table class="container" width="600" cellpadding="0" cellspacing="0" role="presentation"
-                   style="background:#FFFFFF; border-radius:8px; overflow:hidden; max-width: 600px;">
-              
-              <!-- Header -->
-              <tr>
-                <td style="background:linear-gradient(135deg,#E03E2D 0%,#F45C4C 100%); padding:32px 24px; text-align:center;">
-                  <table cellpadding="0" cellspacing="0" style="background:#FFFFFF; border-radius:50%; width:64px; height:64px; margin:0 auto 12px;">
-                    <tr><td align="center" valign="middle" style="text-align:center;">
-                        <img src="https://japandriver.com/img/driver-invoice-logo.png" width="48" height="48" alt="Driver logo" style="display:block; margin:0 auto;">
-                    </td></tr>
-                  </table>
-                  <h1 style="color:white; margin:0; font-size:24px; font-weight:600;">
-                    Your Quotation has been Rejected
-                  </h1>
-                  <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
-                    Quotation #${formattedQuotationId}
-                  </p>
-                </td>
-              </tr>
-              
-              <!-- Content -->
-              <tr>
-                <td style="padding:32px 24px;">
-                  <div class="greeting">
-                    <p>Hello ${customerName},</p>
-                    
-                    <p>We wanted to inform you about an update regarding your quotation.</p>
-                    
-                    <div style="background:#f8f9fa; padding:20px; border-radius:8px; margin:20px 0;">
-                      <h3 style="margin:0 0 12px 0; color:#32325D;">Quotation Details</h3>
-                      <p style="margin:0; color:#525f7f;">
-                        <strong>Quotation ID:</strong> ${formattedQuotationId}<br>
-                        <strong>Title:</strong> ${quotation.title || 'Untitled'}<br>
-                        <strong>Total Amount:</strong> ${quotation.currency || 'JPY'} ${quotation.total_amount?.toLocaleString() || '0'}<br>
-                        <strong>Status:</strong> <span style="color:#dc3545; font-weight:600;">Rejected</span><br>
-                        <strong>Date:</strong> ${new Date().toLocaleDateString()}
-                      </p>
-                    </div>
-                    
-                    <div class="reason">
-                      <h4 style="margin:0 0 8px 0; color:#525f7f;">Reason for Rejection:</h4>
-                      <p style="margin:0; color:#6c757d;">${reason}</p>
-                    </div>
-
-                    <div class="contact-info">
-                      <h4 style="margin:0 0 8px 0; color:#495057;">Need Help?</h4>
-                      <p style="margin:0; color:#6c757d;">
-                        If you have any questions about this decision or would like to discuss alternatives, 
-                        please don't hesitate to contact us. We're here to help find a solution that works for you.
-                      </p>
-                    </div>
-                    
-                    <p>We appreciate your interest in our services and hope to have the opportunity to work with you in the future.</p>
-                    
-                  </div>
-                </td>
-              </tr>
-              
-              <!-- Footer -->
-              <tr>
-                <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; font-size:12px; color:#8898AA;">
-                  ${getTeamFooterHtml(quotation.team_location || 'thailand', false)}
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </body>
-    </html>
-  `;
-}

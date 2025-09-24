@@ -27,11 +27,17 @@ import {
   CheckCircle2,
   ArrowRight,
   ArrowLeft,
-  StickyNote
+  StickyNote,
+  Plane,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ThemeProvider } from '@/components/providers/theme-provider';
+import { useTheme } from 'next-themes';
 import { formatCurrency } from '@/lib/utils/formatting';
 import { addDays } from 'date-fns';
+import { Info } from 'lucide-react';
 import { QuotationDetailsApprovalPanel } from '@/components/quotations/quotation-details/approval-panel';
 import { QuotationShareButtons } from '@/components/quotations/quotation-share-buttons';
 import { toast } from 'sonner';
@@ -56,7 +62,10 @@ interface QuotationData {
   payment_completed_at?: string;
   payment_link_sent_at?: string;
   selected_promotion_name?: string;
-  promotion_discount?: number;
+  promotion_discount?: string;
+  discount_percentage?: string;
+  package_discount?: string;
+  tax_percentage?: string;
   quotation_items: Array<{
     id: string;
     service_type_name: string;
@@ -69,6 +78,9 @@ interface QuotationData {
   unit_price: number;
   total_price: number;
   time_based_adjustment?: string;
+  number_of_passengers?: number;
+  number_of_bags?: number;
+  service_type_airport?: boolean;
   }>;
   customer_notes?: string;
   merchant_notes?: string;
@@ -84,10 +96,17 @@ export default function QuoteAccessPage() {
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
 
   const formatCurrencyWithCurrency = (amount: number, currency = selectedCurrency) => {
-    // Simple currency conversion rates (in production, these should come from an API)
-    const conversionRates: { [key: string]: number } = {
+    // Use exchange rates from API if available, fallback to static rates
+    const conversionRates = Object.keys(exchangeRates).length > 0 ? exchangeRates : {
       'JPY': 1,
       'USD': 0.0067,
       'EUR': 0.0062,
@@ -106,7 +125,7 @@ export default function QuoteAccessPage() {
       'SGD': '$'
     };
     
-    return `${currencySymbols[currency] || '¥'}${convertedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `${currencySymbols[currency] || '¥'}${convertedAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   };
 
   const getStatusBadge = (status: string) => {
@@ -197,7 +216,7 @@ export default function QuoteAccessPage() {
     
     setIsRejecting(true);
     try {
-      const response = await fetch('/api/quotations/reject-optimized', {
+      const response = await fetch('/api/quotations/reject-magic-link', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -254,6 +273,23 @@ export default function QuoteAccessPage() {
     fetchQuotation();
   }, [params?.token]);
 
+  // Fetch exchange rates
+  useEffect(() => {
+    const fetchExchangeRates = async () => {
+      try {
+        const response = await fetch('/api/currency/exchange-rates?base=JPY');
+        if (response.ok) {
+          const data = await response.json();
+          setExchangeRates(data.rates);
+        }
+      } catch (error) {
+        console.error('Error fetching exchange rates:', error);
+      }
+    };
+
+    fetchExchangeRates();
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -281,38 +317,74 @@ export default function QuoteAccessPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-card/50 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 relative">
+          {/* Desktop: Light Mode & Share - Top Right Corner */}
+          <div className="hidden sm:flex absolute top-4 right-4 z-10 items-center gap-2">
+            <Button
+              onClick={toggleTheme}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 hover:bg-primary/10 transition-colors"
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+            </Button>
+            <QuotationShareButtons quotation={quotation as any} />
+          </div>
            {/* Header with logo, title, and status */}
            <div className="space-y-4 sm:space-y-0 sm:flex sm:items-start sm:gap-4 mb-6">
-             {/* Mobile: 2x2 Grid Layout */}
-             <div className="sm:hidden space-y-4">
-               {/* Row 1: Logo + Title */}
-              <div className="flex items-center gap-3">
-                <img 
-                   src="/img/driver-quotation-logo.png" 
-                   alt="Driver Logo" 
-                   className="h-10 w-10 object-contain flex-shrink-0"
-                 />
-                 <h1 className="text-lg font-bold text-foreground flex-1 leading-tight">
-                   {quotation.title || 'Untitled Quotation'}
-                 </h1>
-               </div>
-               
-               {/* Row 2: Quote Info Grid */}
-               <div className="grid grid-cols-2 gap-3">
-                 {/* Top Left: Quote Number */}
-                 <div className="bg-muted/20 rounded-lg p-3">
-                   <div className="text-xs text-muted-foreground mb-1">Quote Number</div>
-                   <div className="text-sm font-semibold text-foreground">
-                     #{quotation.quote_number?.toString().padStart(6, '0')}
-              </div>
+             {/* Mobile: Compact Header */}
+             <div className="sm:hidden space-y-3">
+               {/* Mobile Header Card */}
+               <div className="bg-muted/20 rounded-lg p-3">
+                 {/* Logo + Title Row */}
+                 <div className="flex items-center gap-3 mb-3">
+                   <img 
+                     src="/img/driver-quotation-logo.png" 
+                     alt="Driver Logo" 
+                     className="h-8 w-8 object-contain flex-shrink-0"
+                   />
+                   <h1 className="text-base font-bold text-foreground leading-tight flex-1">
+                     {quotation.title || 'Untitled Quotation'}
+                   </h1>
                  </div>
                  
-                 {/* Top Right: Status */}
-                 <div className="bg-muted/20 rounded-lg p-3">
+                 {/* 50/50 Action Buttons */}
+                 <div className="grid grid-cols-2 gap-2">
+                   <Button
+                     onClick={toggleTheme}
+                     variant="outline"
+                     size="sm"
+                     className="flex items-center justify-center gap-2 h-9 text-xs"
+                   >
+                     {theme === 'dark' ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
+                     <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+                   </Button>
+                   <QuotationShareButtons quotation={quotation as any} />
+                 </div>
+               </div>
+               
+               {/* Quote Info - Compact Grid */}
+               <div className="grid grid-cols-2 gap-2">
+                 {/* Quote Number */}
+                 <div className="bg-muted/20 rounded-md p-2">
+                   <div className="text-xs text-muted-foreground mb-1">Quote</div>
+                   <div className="text-sm font-semibold text-foreground">
+                     #{quotation.quote_number?.toString().padStart(6, '0')}
+                   </div>
+                 </div>
+                 
+                 {/* Status */}
+                 <div className="bg-muted/20 rounded-md p-2">
                    <div className="text-xs text-muted-foreground mb-1">Status</div>
                    <div className={`text-sm font-semibold ${
                      quotation.status === 'sent' ? 'text-green-600 dark:text-green-400' :
@@ -325,28 +397,26 @@ export default function QuoteAccessPage() {
                       quotation.status === 'approved' ? 'Approved' : 
                       quotation.status === 'rejected' ? 'Rejected' : 
                       quotation.status === 'converted' ? 'Converted' : 'Draft'}
-              </div>
-            </div>
-          
-                 {/* Bottom Left: Customer */}
-                 <div className="bg-muted/20 rounded-lg p-3">
-                   <div className="text-xs text-muted-foreground mb-1">Customer</div>
-                   <div className="text-sm font-medium text-foreground truncate">
-                     {quotation.customer_name}
-            </div>
+                   </div>
                  </div>
                  
-                 {/* Bottom Right: Valid Until */}
-                 <div className="bg-muted/20 rounded-lg p-3">
+                 {/* Customer */}
+                 <div className="bg-muted/20 rounded-md p-2">
+                   <div className="text-xs text-muted-foreground mb-1">Customer</div>
+                   <div className="text-sm font-medium text-foreground truncate">{quotation.customer_name}</div>
+                 </div>
+                 
+                 {/* Valid Until */}
+                 <div className="bg-muted/20 rounded-md p-2">
                    <div className="text-xs text-muted-foreground mb-1">Valid Until</div>
                    <div className="text-sm font-medium text-foreground">
-                     {addDays(new Date(quotation.created_at), 7).toLocaleDateString()}
+                     {addDays(new Date(quotation.created_at), 7).toLocaleDateString('en-GB')}
                    </div>
                  </div>
                </div>
                
                {/* Created Date - Full Width */}
-               <div className="bg-muted/20 rounded-lg p-3">
+               <div className="bg-muted/20 rounded-md p-2">
                  <div className="text-xs text-muted-foreground mb-1">Created</div>
                  <div className="text-sm font-medium text-foreground">
                    {new Date(quotation.created_at).toLocaleDateString('en-US', {
@@ -364,7 +434,7 @@ export default function QuoteAccessPage() {
                <img 
                  src="/img/driver-quotation-logo.png" 
                  alt="Driver Logo" 
-                 className="h-10 w-auto object-contain flex-shrink-0"
+                 className="h-16 w-auto object-contain flex-shrink-0"
                />
                <div className="flex-1 min-w-0">
                  <h1 className="text-2xl lg:text-3xl font-bold mb-3 break-words">
@@ -373,9 +443,9 @@ export default function QuoteAccessPage() {
                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                    <span className="font-medium">Quote #{quotation.quote_number?.toString().padStart(6, '0')}</span>
                    <span>•</span>
-                   <span className="break-normal">{quotation.customer_name}</span>
+                   <span className="break-normal">Customer {quotation.customer_name}</span>
                    <span>•</span>
-                   <span>Created {new Date(quotation.created_at).toLocaleDateString()}</span>
+                   <span>Created {new Date(quotation.created_at).toLocaleDateString('en-GB')}</span>
                    <span>•</span>
                    <span className="font-medium text-foreground">
                      {quotation.status === 'sent' ? 'Sent' : 
@@ -384,7 +454,7 @@ export default function QuoteAccessPage() {
                       quotation.status === 'converted' ? 'Converted' : 'Draft'}
               </span>
                    <span>•</span>
-                   <span>Valid until {addDays(new Date(quotation.created_at), 7).toLocaleDateString()}</span>
+                   <span>Valid until {addDays(new Date(quotation.created_at), 7).toLocaleDateString('en-GB')}</span>
                  </div>
                </div>
             </div>
@@ -412,9 +482,8 @@ export default function QuoteAccessPage() {
                      <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></div>
                      <span className="text-blue-900 dark:text-blue-100 font-medium text-sm sm:text-base">{nextStepText}</span>
                    </div>
-                   {/* Mobile: 50/50 buttons */}
-                   <div className="sm:hidden grid grid-cols-2 gap-2">
-                     <QuotationShareButtons quotation={quotation as any} />
+                   {/* Mobile: Download button */}
+                   <div className="sm:hidden flex justify-center">
               <Button 
                        onClick={handleDownloadQuotation}
                        disabled={isDownloadingQuotation}
@@ -422,12 +491,11 @@ export default function QuoteAccessPage() {
                        className="h-8 text-xs"
                      >
                        <Download className="h-4 w-4 mr-2" />
-                       {isDownloadingQuotation ? 'Downloading...' : 'Download'}
+                       {isDownloadingQuotation ? 'Downloading...' : 'Download Quotation'}
               </Button>
                    </div>
-                   {/* Desktop: Original layout */}
+                   {/* Desktop: Download button */}
                    <div className="hidden sm:flex items-center gap-2 flex-wrap">
-                     <QuotationShareButtons quotation={quotation as any} />
               <Button 
                        onClick={handleDownloadQuotation}
                        disabled={isDownloadingQuotation}
@@ -436,7 +504,7 @@ export default function QuoteAccessPage() {
                      >
                        <Download className="h-4 w-4 mr-2" />
                        {isDownloadingQuotation ? 'Downloading...' : 'Download Quotation'}
-              </Button>
+                     </Button>
                    </div>
                  </div>
                </div>
@@ -474,11 +542,11 @@ export default function QuoteAccessPage() {
                  onClick={() => setExpandedStep(expandedStep === 'sent' ? null : 'sent')}
                >
                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 shadow-sm ${
-                   quotation?.status === 'sent' || quotation?.last_sent_at
+                   quotation?.last_sent_at
                      ? 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-500' 
                      : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
                  }`}>
-                   {quotation?.status === 'sent' || quotation?.last_sent_at ? (
+                   {quotation?.last_sent_at ? (
                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                    ) : (
                      <Mail className="h-4 w-4 text-gray-400 dark:text-gray-500" />
@@ -486,7 +554,7 @@ export default function QuoteAccessPage() {
                  </div>
                  <div className="text-center">
                    <div className={`text-xs font-semibold ${
-                     quotation?.status === 'sent' || quotation?.last_sent_at
+                     quotation?.last_sent_at
                        ? 'text-green-600 dark:text-green-400' 
                        : 'text-muted-foreground'
                    }`}>Sent</div>
@@ -608,11 +676,11 @@ export default function QuoteAccessPage() {
                 onClick={() => setExpandedStep(expandedStep === 'sent' ? null : 'sent')}
               >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 shadow-sm ${
-                  quotation?.status === 'sent' || quotation?.last_sent_at
+                  quotation?.last_sent_at
                     ? 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-500' 
                     : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
                 }`}>
-                  {quotation?.status === 'sent' || quotation?.last_sent_at ? (
+                  {quotation?.last_sent_at ? (
                     <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                   ) : (
                     <Mail className="h-4 w-4 text-gray-400 dark:text-gray-500" />
@@ -620,7 +688,7 @@ export default function QuoteAccessPage() {
                         </div>
                 <div className="flex flex-col">
                   <span className={`text-sm font-semibold ${
-                    quotation?.status === 'sent' || quotation?.last_sent_at
+                    quotation?.last_sent_at
                       ? 'text-green-600 dark:text-green-400' 
                       : 'text-muted-foreground'
                   }`}>Sent</span>
@@ -965,21 +1033,22 @@ export default function QuoteAccessPage() {
                             />
                           ) : null}
                           <div className={`w-full h-full bg-primary/10 flex items-center justify-center ${item.vehicle_type ? 'hidden' : 'flex'}`}>
-                            <Car className="h-4 w-4 text-primary" />
+                            {item.service_type_name?.toLowerCase().includes('airport') ? (
+                              <Plane className="h-4 w-4 text-primary" />
+                            ) : (
+                              <Car className="h-4 w-4 text-primary" />
+                            )}
                         </div>
                           </div>
                           
                         {/* Service Info - Compact */}
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 mb-1">
                           <h3 className="font-semibold text-base mb-1 truncate">
                             {item.service_type_name || 'Service'}
                           </h3>
                           <p className="text-sm text-muted-foreground mb-1 truncate">
                             {item.vehicle_type || 'Premium Vehicle'}
                           </p>
-                          <div className="text-xs text-muted-foreground">
-                            #{index + 1} • {item.id.slice(-8)}
-                          </div>
                         </div>
                       </div>
                       
@@ -1002,13 +1071,22 @@ export default function QuoteAccessPage() {
                         <div>
                           <div className="text-muted-foreground mb-1">Duration</div>
                           <div className="font-medium">
-                            {item.duration_hours ? `${item.duration_hours}h` : 'TBD'}
-                            {item.service_days && item.service_days > 1 && ` × ${item.service_days}d`}
+                            {item.service_type_name && item.service_type_name.toLowerCase().includes('airport')
+                              ? 'Fixed rates'
+                              : item.duration_hours 
+                                ? `${item.duration_hours}h${item.service_days && item.service_days > 1 ? ` × ${item.service_days}d` : ''}`
+                                : 'TBD'
+                            }
                           </div>
                           </div>
                         <div>
-                          <div className="text-muted-foreground mb-1">Vehicle</div>
-                          <div className="font-medium truncate">{item.vehicle_type || 'Premium'}</div>
+                          <div className="text-muted-foreground mb-1">Customers & Bags</div>
+                          <div className="font-medium">
+                            {(item as any).number_of_passengers || (item as any).number_of_bags 
+                              ? `${(item as any).number_of_passengers || 0} customers • ${(item as any).number_of_bags || 0} bags`
+                              : 'Not specified'
+                            }
+                          </div>
                         </div>
                         </div>
                         
@@ -1023,11 +1101,11 @@ export default function QuoteAccessPage() {
                                 <span className="font-medium">{item.quantity}</span>
                           </div>
                         )}
-                        {item.time_based_adjustment && parseFloat(item.time_based_adjustment) > 0 && (
+                        {parseFloat(item.time_based_adjustment || '0') > 0 && (
                               <div className="flex items-center gap-1">
                                 <Timer className="h-3 w-3 text-orange-600" />
                                 <span className="text-orange-600 font-medium">
-                                  +{item.time_based_adjustment}% overtime
+                                  +{item.time_based_adjustment}% {(item as any).time_based_rule_name ? ` ${(item as any).time_based_rule_name}` : ''}
                                 </span>
                         </div>
                         )}
@@ -1051,19 +1129,63 @@ export default function QuoteAccessPage() {
                       <CardDescription>Detailed pricing information</CardDescription>
                   </div>
                   </div>
-                    <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
-                      <SelectTrigger className="w-[120px] h-8">
-                        <SelectValue placeholder="Currency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="JPY">JPY (¥)</SelectItem>
-                        <SelectItem value="USD">USD ($)</SelectItem>
-                        <SelectItem value="EUR">EUR (€)</SelectItem>
-                        <SelectItem value="THB">THB (฿)</SelectItem>
-                        <SelectItem value="CNY">CNY (¥)</SelectItem>
-                        <SelectItem value="SGD">SGD ($)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                     <div className="flex items-center gap-2">
+                       <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+                         <SelectTrigger className="w-[120px] h-8">
+                           <SelectValue placeholder="Currency" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="JPY">JPY (¥)</SelectItem>
+                           <SelectItem value="USD">USD ($)</SelectItem>
+                           <SelectItem value="EUR">EUR (€)</SelectItem>
+                           <SelectItem value="THB">THB (฿)</SelectItem>
+                           <SelectItem value="CNY">CNY (¥)</SelectItem>
+                           <SelectItem value="SGD">SGD ($)</SelectItem>
+                         </SelectContent>
+                       </Select>
+                       <TooltipProvider>
+                         <Tooltip open={isTooltipOpen} onOpenChange={setIsTooltipOpen}>
+                           <TooltipTrigger asChild>
+                             <button
+                               onClick={() => setIsTooltipOpen(!isTooltipOpen)}
+                               className="p-1 hover:bg-muted/50 rounded transition-colors"
+                               title="View exchange rates"
+                               aria-label="View exchange rates"
+                             >
+                               <Info className="h-4 w-4 text-yellow-500" />
+                             </button>
+                           </TooltipTrigger>
+                           <TooltipContent side="top" className="w-auto bg-black border-gray-600 text-white p-4 rounded-lg shadow-lg max-w-xs">
+                             <div className="text-sm">
+                               <div className="font-semibold mb-3 text-white text-center">Exchange Rate Information</div>
+                               <div className="space-y-1 mb-3">
+                                 <div className="text-xs text-green-400 font-medium">exchangerate-api.com (v4)</div>
+                                 <div className="text-xs text-orange-400">Updated: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
+                                 <div className="text-xs text-gray-300">Base: JPY</div>
+                               </div>
+                               <div className="space-y-1">
+                                 <div className="text-xs font-medium text-white mb-2">All Rates (1 JPY):</div>
+                                 {Object.entries(exchangeRates).filter(([currency]) => currency !== 'JPY').map(([currency, rate]) => (
+                                   <div key={currency} className="text-xs flex justify-between">
+                                     <span className="font-medium">{currency}:</span>
+                                     <span className="font-mono">{rate.toFixed(4)}</span>
+                                   </div>
+                                 ))}
+                               </div>
+                               <div className="mt-3 pt-2 border-t border-gray-600">
+                                 <div className="flex items-center gap-1 text-xs text-orange-400 mb-1">
+                                   <span>⚠️</span>
+                                   <span>Rates may be outdated</span>
+                                 </div>
+                                 <div className="text-xs text-gray-300">
+                                   Rates are for reference only and may not reflect real-time market conditions.
+                                 </div>
+                               </div>
+                             </div>
+                           </TooltipContent>
+                         </Tooltip>
+                       </TooltipProvider>
+                     </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -1087,9 +1209,10 @@ export default function QuoteAccessPage() {
                                   </span>
                               )}
                             </div>
-                            {item.time_based_adjustment && parseFloat(item.time_based_adjustment) > 0 && (
-                              <div className="text-xs text-orange-600 mt-1">
-                                + Overtime ({item.time_based_adjustment}%): +{formatCurrencyWithCurrency((item.unit_price * parseFloat(item.time_based_adjustment)) / 100, selectedCurrency)}
+                            {parseFloat(item.time_based_adjustment || '0') > 0 && (
+                              <div className="text-xs text-orange-600 mt-1 flex items-center gap-1">
+                                <Timer className="h-3 w-3" />
+                                 <span>+{item.time_based_adjustment}% {(item as any).time_based_rule_name ? ` ${(item as any).time_based_rule_name}` : ''}: +{formatCurrencyWithCurrency((item.unit_price * parseFloat(item.time_based_adjustment || '0')) / 100, selectedCurrency)}</span>
                               </div>
                             )}
                           </div>
@@ -1110,21 +1233,46 @@ export default function QuoteAccessPage() {
                         <span>{formatCurrencyWithCurrency(quotation.amount, selectedCurrency)}</span>
                       </div>
                       
-                      {quotation.selected_promotion_name && (
+                      {quotation.discount_percentage && parseFloat(quotation.discount_percentage) > 0 && (
+                        <div className="flex justify-between text-sm text-green-600">
+                          <span>Discount ({quotation.discount_percentage}%)</span>
+                          <span>-{formatCurrencyWithCurrency((quotation.amount * parseFloat(quotation.discount_percentage)) / 100, selectedCurrency)}</span>
+                        </div>
+                      )}
+                      
+                      {parseFloat(quotation.package_discount || '0') > 0 && (
+                        <div className="flex justify-between text-sm text-green-600">
+                          <span>Package Discount</span>
+                          <span>-{formatCurrencyWithCurrency(parseFloat(quotation.package_discount || '0'), selectedCurrency)}</span>
+                        </div>
+                      )}
+                      
+                      {quotation.selected_promotion_name && parseFloat(quotation.promotion_discount || '0') > 0 && (
                         <div className="flex justify-between text-sm text-green-600">
                           <span>Promotion: {quotation.selected_promotion_name}</span>
-                          <span>-{formatCurrencyWithCurrency(quotation.promotion_discount || 0, selectedCurrency)}</span>
-                      </div>
-                    )}
+                          <span>-{formatCurrencyWithCurrency(parseFloat(quotation.promotion_discount || '0'), selectedCurrency)}</span>
+                        </div>
+                      )}
                     
                       <div className="flex justify-between text-sm">
                         <span>Subtotal</span>
-                        <span>{formatCurrencyWithCurrency(quotation.amount - (quotation.promotion_discount || 0), selectedCurrency)}</span>
+                        <span>{formatCurrencyWithCurrency(
+                          quotation.amount - 
+                          parseFloat(quotation.promotion_discount || '0') - 
+                          ((quotation.amount * parseFloat(quotation.discount_percentage || '0')) / 100) -
+                          parseFloat(quotation.package_discount || '0')
+                        , selectedCurrency)}</span>
                       </div>
                       
                       <div className="flex justify-between text-sm">
-                        <span>Tax (10%)</span>
-                        <span>+{formatCurrencyWithCurrency(((quotation.amount - (quotation.promotion_discount || 0)) * 10) / 100, selectedCurrency)}</span>
+                        <span>Tax ({quotation.tax_percentage || '10'}%)</span>
+                        <span>+{formatCurrencyWithCurrency((
+                          (quotation.amount - 
+                           parseFloat(quotation.promotion_discount || '0') - 
+                           ((quotation.amount * parseFloat(quotation.discount_percentage || '0')) / 100) -
+                           parseFloat(quotation.package_discount || '0')
+                          ) * parseFloat(quotation.tax_percentage || '10')
+                        ) / 100, selectedCurrency)}</span>
                       </div>
                     
                       <div className="flex justify-between text-lg font-bold border-t pt-2">
@@ -1216,5 +1364,6 @@ export default function QuoteAccessPage() {
       </div>
 
     </div>
+    </ThemeProvider>
   );
 }

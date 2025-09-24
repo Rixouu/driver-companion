@@ -111,6 +111,12 @@ export async function POST(req: NextRequest) {
           hours_per_day,
           pickup_date,
           pickup_time,
+          pickup_location,
+          dropoff_location,
+          number_of_passengers,
+          number_of_bags,
+          flight_number,
+          terminal,
           time_based_adjustment,
           time_based_rule_name
         )
@@ -123,7 +129,7 @@ export async function POST(req: NextRequest) {
     const { data: customer, error: customerError } = await supabase
       .from('customers')
       .select('address, billing_company_name, billing_street_name, billing_street_number, billing_city, billing_state, billing_postal_code, billing_country')
-      .eq('id', quotation.customer_id)
+      .eq('id', quotation?.customer_id || '')
       .single();
 
     console.log('🔍 [Validate Magic Link API] Quotation query result:', { quotation, quotationError });
@@ -182,15 +188,19 @@ export async function POST(req: NextRequest) {
                     merchant_notes: quotation.merchant_notes,
                     // Price details fields
                     tax_percentage: quotation.tax_percentage,
+                    discount_percentage: quotation.discount_percentage,
+                    package_discount: quotation.package_discount,
                     promotion_discount: quotation.promotion_discount,
                     selected_promotion_name: quotation.selected_promotion_name,
                     selected_promotion_description: quotation.selected_promotion_description,
                     selected_promotion_code: quotation.selected_promotion_code,
                     // Workflow fields
+                    last_sent_at: quotation.last_sent_at,
                     approved_at: quotation.approved_at,
                     rejected_at: quotation.rejected_at,
                     invoice_generated_at: quotation.invoice_generated_at,
                     payment_completed_at: quotation.payment_completed_at,
+                    payment_link_sent_at: quotation.payment_link_sent_at,
                     receipt_url: quotation.receipt_url,
                     updated_at: quotation.updated_at,
                     quotation_items: quotation.quotation_items || []

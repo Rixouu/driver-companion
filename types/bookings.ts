@@ -90,6 +90,7 @@ export interface Booking {
   notes?: string
   customer_notes?: string
   merchant_notes?: string
+  general_notes?: string
   created_at?: string
   updated_at?: string
   booking_status?: string

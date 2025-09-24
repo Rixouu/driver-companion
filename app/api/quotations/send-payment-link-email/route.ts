@@ -196,6 +196,79 @@ export async function POST(request: NextRequest) {
 
     console.log('🔄 [UNIFIED-EMAIL-API] Starting template variable creation')
     
+    // Process quotation_items for comprehensive template variables
+    const processedQuotationItems = (quotation.quotation_items || []).map((item: any) => {
+      // Determine service type flags
+      const isCharter = item.service_type?.toLowerCase().includes('charter') || false
+      const isAirport = item.service_type?.toLowerCase().includes('airport') || false
+      
+      // Calculate time-based pricing for Airport services
+      let timeBasedDiscount = 0
+      let timeBasedDiscountPercentage = 0
+      let timeBasedRuleName = ''
+      
+      if (isAirport && item.duration_hours) {
+        // Apply time-based pricing logic (same as send-email route)
+        if (item.duration_hours > 8) {
+          timeBasedDiscountPercentage = 15
+          timeBasedDiscount = item.unit_price * 0.15
+          timeBasedRuleName = 'Extended Hours Discount (15%)'
+        } else if (item.duration_hours > 4) {
+          timeBasedDiscountPercentage = 10
+          timeBasedDiscount = item.unit_price * 0.10
+          timeBasedRuleName = 'Extended Hours Discount (10%)'
+        }
+      }
+      
+      return {
+        ...item,
+        // Service type flags
+        service_type_charter: isCharter,
+        service_type_airport: isAirport,
+        service_type_name: item.service_type || 'Transportation Service',
+        
+        // Time-based pricing
+        time_based_discount: timeBasedDiscount,
+        time_based_discount_percentage: timeBasedDiscountPercentage,
+        time_based_rule_name: timeBasedRuleName,
+        
+        // Short description for display
+        short_description: item.description || `${item.service_type} Service`,
+        
+        // Ensure proper formatting
+        unit_price: item.unit_price || 0,
+        total_price: item.total_price || 0,
+        quantity: item.quantity || 1,
+        service_days: item.service_days || 1,
+        duration_hours: item.duration_hours || 0,
+        pickup_date: item.pickup_date || quotation.pickup_date,
+        pickup_time: item.pickup_time || quotation.pickup_time,
+        pickup_location: item.pickup_location || quotation.pickup_location,
+        dropoff_location: item.dropoff_location || quotation.dropoff_location,
+        number_of_passengers: item.number_of_passengers || (quotation as any).number_of_passengers,
+        number_of_bags: item.number_of_bags || (quotation as any).number_of_bags,
+        flight_number: item.flight_number || (quotation as any).flight_number,
+        terminal: item.terminal || (quotation as any).terminal
+      }
+    })
+    
+    // Calculate total time-based discount from all items
+    let totalTimeBasedDiscount = 0
+    let totalTimeBasedDiscountPercentage = 0
+    let timeBasedRuleName = ''
+    
+    processedQuotationItems.forEach((item: any) => {
+      if (item.service_type_airport && item.time_based_discount && item.time_based_discount > 0) {
+        totalTimeBasedDiscount += item.time_based_discount
+        if (item.time_based_discount_percentage > totalTimeBasedDiscountPercentage) {
+          totalTimeBasedDiscountPercentage = item.time_based_discount_percentage
+        }
+        if (item.time_based_rule_name && !timeBasedRuleName) {
+          timeBasedRuleName = item.time_based_rule_name
+        }
+      }
+    })
+    
     // Complete template variables with all required data  
     const templateVariables = {
       // Basic identifiers
@@ -211,6 +284,10 @@ export async function POST(request: NextRequest) {
       service_days: quotation.service_days || 1,
       hours_per_day: quotation.hours_per_day || quotation.duration_hours || 1,
       
+      // Service type flags
+      service_type_charter: (quotation.service_type?.toLowerCase().includes('charter') || false) ? 'true' : 'false',
+      service_type_airport: (quotation.service_type?.toLowerCase().includes('airport') || false) ? 'true' : 'false',
+      
       // Location and timing - only use actual locations, not notes
       pickup_location: quotation.pickup_location || '',
       dropoff_location: quotation.dropoff_location || '', 
@@ -222,6 +299,7 @@ export async function POST(request: NextRequest) {
       amount: quotation.total_amount || 0,
       currency: quotation.currency || 'JPY',
       service_total: quotation.amount || quotation.total_amount || 0,
+      subtotal: quotation.amount || quotation.total_amount || 0,
       final_total: quotation.total_amount || 0,
       
       // Tax and discount information
@@ -229,6 +307,26 @@ export async function POST(request: NextRequest) {
       tax_amount: quotation.total_amount * ((quotation.tax_percentage || 0) / 100),
       promotion_discount: quotation.promotion_discount || 0,
       discount_percentage: quotation.discount_percentage || 0,
+      regular_discount: quotation.amount * ((quotation.discount_percentage || 0) / 100),
+      
+      // Time-based pricing (calculated from quotation_items)
+      time_based_discount: totalTimeBasedDiscount,
+      time_based_discount_percentage: totalTimeBasedDiscountPercentage,
+      time_based_rule_name: timeBasedRuleName,
+      
+      // Package and promotion information
+      selected_package: selectedPackage ? {
+        name: selectedPackage.name,
+        base_price: selectedPackage.base_price,
+        description: selectedPackage.description
+      } : null,
+      selected_promotion: selectedPromotion ? {
+        name: selectedPromotion.name,
+        discount_percentage: (selectedPromotion as any).discount_percentage || 0,
+        description: selectedPromotion.description
+      } : null,
+      selected_package_name: selectedPackage?.name,
+      selected_promotion_name: selectedPromotion?.name,
       
       // Important dates
       expiry_date: quotation.expiry_date || '2025-10-15',
@@ -243,6 +341,9 @@ export async function POST(request: NextRequest) {
       // Payment information - Invoice requires payment
       payment_required: 'true', // Show payment section for invoice
       payment_link: paymentLink || '', // Payment link for customer to pay
+      
+      // Quotation items for template looping
+      quotation_items: processedQuotationItems,
       
       // Localization
       language,
@@ -269,10 +370,7 @@ export async function POST(request: NextRequest) {
       // Greeting message - Invoice specific (payment required)
       greeting_text: language === 'ja' 
         ? 'インボイスをお送りいたします。下記のリンクからお支払いをお願いいたします。'
-        : 'Please find your invoice below. You can complete your payment using the link provided.',
-      
-      // Add computed totals for PDF generation (override existing values)
-      regular_discount: quotation.amount * ((quotation.discount_percentage || 0) / 100)
+        : 'Please find your invoice below. You can complete your payment using the link provided.'
     }
 
     console.log('🔄 [UNIFIED-EMAIL-API] Using direct template service')

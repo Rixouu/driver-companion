@@ -244,11 +244,11 @@ export function ClientDetailsTab({ formData, handleInputChange }: ClientDetailsT
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="notes">General Notes</Label>
+              <Label htmlFor="general_notes">General Notes</Label>
               <Textarea
-                id="notes"
-                name="notes"
-                value={formData.notes || ''}
+                id="general_notes"
+                name="general_notes"
+                value={formData.general_notes || ''}
                 onChange={handleInputChange}
                 placeholder="Any other special requirements, pickup instructions, or additional information..."
                 className="min-h-[100px] transition-all focus:ring-2 focus:border-primary"

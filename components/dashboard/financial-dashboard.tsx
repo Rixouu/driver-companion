@@ -94,7 +94,7 @@ export function FinancialDashboard({
   return (
     <Card className="border shadow-sm">
       <CardHeader className="pb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/20">
               <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -104,7 +104,7 @@ export function FinancialDashboard({
               <CardDescription className="text-sm text-muted-foreground">{t("dashboard.financial.description")}</CardDescription>
             </div>
           </div>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
             <Link href="/reporting">
               View Full Report
               <ArrowRight className="ml-2 h-4 w-4" />

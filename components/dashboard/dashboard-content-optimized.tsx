@@ -365,7 +365,7 @@ export function DashboardContentOptimized({
       )}
       
         {/* Key Metrics - Enhanced Cards with Colors */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Revenue */}
           <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/20">
             <CardContent className="p-4">

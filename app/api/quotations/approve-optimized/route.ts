@@ -208,16 +208,16 @@ export async function POST(request: NextRequest) {
       currency: quotation.currency || 'JPY',
       display_currency: quotation.currency || 'JPY',
       total_amount: quotation.total_amount || 0,
-      service_total: quotation.total_amount || 0,
-      subtotal: quotation.total_amount || 0,
-      tax_amount: 0,
-      tax_percentage: 0,
-      discount_percentage: 0,
-      regular_discount: 0,
-      promotion_discount: 0,
-      promo_code_discount: 0,
-      refund_amount: 0,
-      final_total: quotation.total_amount || 0,
+      service_total: (quotation as any).service_total || quotation.total_amount || 0,
+      subtotal: (quotation as any).subtotal || (quotation as any).service_total || quotation.total_amount || 0,
+      tax_amount: (quotation as any).tax_amount || 0,
+      tax_percentage: (quotation as any).tax_percentage || 0,
+      discount_percentage: (quotation as any).discount_percentage || 0,
+      regular_discount: (quotation as any).regular_discount || 0,
+      promotion_discount: (quotation as any).promotion_discount || 0,
+      promo_code_discount: (quotation as any).promo_code_discount || 0,
+      refund_amount: (quotation as any).refund_amount || 0,
+      final_total: (quotation as any).final_total || quotation.total_amount || 0,
       
       // Package and promotion
       selected_package: selectedPackage ? {
@@ -251,6 +251,11 @@ export async function POST(request: NextRequest) {
       
       // Add quotation_items array for template loops
       quotation_items: quotation.quotation_items || [],
+      
+      // Time-based pricing (calculated from quotation_items)
+      time_based_discount: 0,
+      time_based_discount_percentage: 0,
+      time_based_rule_name: '',
       
       // Additional properties for template compatibility
       subject: '',
@@ -361,6 +366,34 @@ export async function POST(request: NextRequest) {
         }
       })
       console.log('🔍 [APPROVE-API] Final quotation_items:', templateVariables.quotation_items)
+      
+      // Calculate total time-based discount from all items
+      let totalTimeBasedDiscount = 0
+      let totalTimeBasedDiscountPercentage = 0
+      let timeBasedRuleName = ''
+      
+      templateVariables.quotation_items.forEach((item: any) => {
+        if (item.service_type_airport && item.time_based_discount && item.time_based_discount > 0) {
+          totalTimeBasedDiscount += item.time_based_discount
+          if (item.time_based_discount_percentage > totalTimeBasedDiscountPercentage) {
+            totalTimeBasedDiscountPercentage = item.time_based_discount_percentage
+          }
+          if (item.time_based_rule_name && !timeBasedRuleName) {
+            timeBasedRuleName = item.time_based_rule_name
+          }
+        }
+      })
+      
+      // Update template variables with calculated time-based values
+      templateVariables.time_based_discount = totalTimeBasedDiscount
+      templateVariables.time_based_discount_percentage = totalTimeBasedDiscountPercentage
+      templateVariables.time_based_rule_name = timeBasedRuleName
+      
+      console.log('🔍 [APPROVE-API] Calculated time-based values:', {
+        time_based_discount: totalTimeBasedDiscount,
+        time_based_discount_percentage: totalTimeBasedDiscountPercentage,
+        time_based_rule_name: timeBasedRuleName
+      })
     }
 
     // Override specific variables for approval email

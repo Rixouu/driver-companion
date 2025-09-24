@@ -100,11 +100,13 @@ export function UpcomingBookings({
   return (
     <Card className="h-full">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-primary" />
+        <CardTitle className="text-xl font-semibold flex items-center gap-2">
+          <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/20">
+            <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          </div>
           {t("dashboard.upcomingBookings.title")}
         </CardTitle>
-        <CardDescription>{t("dashboard.upcomingBookings.description")}</CardDescription>
+        <CardDescription className="text-sm">{t("dashboard.upcomingBookings.description")}</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoadingBookings ? (

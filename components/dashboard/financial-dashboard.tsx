@@ -4,8 +4,8 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useI18n } from "@/lib/i18n/context"
-import { BarChart3, ArrowRight, AlertTriangle } from "lucide-react"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
+import { BarChart3, ArrowRight, AlertTriangle, TrendingUp, DollarSign, Target, Users, Calendar } from "lucide-react"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts'
 import { useState, useEffect } from "react"
 
 interface FinancialDashboardProps {
@@ -92,207 +92,191 @@ export function FinancialDashboard({
   }
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-primary" />
-          {t("dashboard.financial.title")}
-        </CardTitle>
-        <CardDescription>{t("dashboard.financial.description")}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          {/* Top Row: Key Financial Metrics */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-4">
-            <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-800">
-              <div className="text-lg sm:text-xl font-bold text-green-600 dark:text-green-400 mb-2">
-                ¥{(financialData.totalRevenue / 1000000).toFixed(1)}M
-              </div>
-              <div className="text-xs text-green-600 dark:text-green-400 font-medium">
-                {t("dashboard.financial.revenueOverview")}
-              </div>
+    <Card className="border shadow-sm">
+      <CardHeader className="pb-8">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/20">
+              <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
-            <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                {financialData.totalQuotations}
-              </div>
-              <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                {t("dashboard.financial.quoteOverview")}
-              </div>
-            </div>
-            <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-purple-800">
-              <div className="text-lg sm:text-xl font-bold text-purple-600 dark:text-purple-400 mb-2">
-                {financialData.activeBookings}
-              </div>
-              <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
-                {t("dashboard.financial.activeBookings")}
-              </div>
+            <div>
+              <CardTitle className="text-xl font-semibold text-foreground">{t("dashboard.financial.title")}</CardTitle>
+              <CardDescription className="text-sm text-muted-foreground">{t("dashboard.financial.description")}</CardDescription>
             </div>
           </div>
-          
-          {/* Charts Row: Revenue + Quote Status Side by Side */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
-            {/* Revenue Trend Chart */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-muted-foreground">{t("dashboard.financial.revenueTrend")}</h4>
-              <div className="h-40">
-                {dailyRevenueData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={dailyRevenueData}>
-                      <CartesianGrid strokeDasharray="2 2" stroke="#374151" opacity={0.1} />
-                      <XAxis 
-                        dataKey="date" 
-                        tick={{ fontSize: 9 }}
-                        tickFormatter={(value) => new Date(value).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
-                      />
-                      <YAxis 
-                        tick={{ fontSize: 9 }}
-                        tickFormatter={(value) => `¥${(value / 1000).toFixed(0)}k`}
-                      />
-                      <Tooltip 
-                        content={({ active, payload, label }) => {
-                          if (active && payload && payload.length) {
-                            return (
-                              <div className="bg-background/95 backdrop-blur-sm border border-border rounded-lg p-2 shadow-xl text-xs">
-                                <p className="font-medium text-foreground">{new Date(label).toLocaleDateString()}</p>
-                                <p className="text-green-600 font-semibold">¥{payload[0].value?.toLocaleString()}</p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="revenue" 
-                        stroke="#10b981" 
-                        strokeWidth={2}
-                        dot={{ fill: '#10b981', strokeWidth: 1, r: 2.5 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                    {t("dashboard.financial.noData")}
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Quote Status Chart */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-muted-foreground">{t("dashboard.financial.quoteStatus")}</h4>
-              <div className="h-40">
-                {statusDistributionData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={statusDistributionData}>
-                      <CartesianGrid strokeDasharray="2 2" stroke="#374151" opacity={0.1} />
-                      <XAxis dataKey="name" tick={{ fontSize: 8 }} />
-                      <YAxis tick={{ fontSize: 8 }} />
-                      <Tooltip 
-                        content={({ active, payload, label }) => {
-                          if (active && payload && payload.length) {
-                            return (
-                              <div className="bg-background/95 backdrop-blur-sm border border-border rounded-lg p-2 shadow-xl text-xs">
-                                <p className="font-medium text-foreground">{label}</p>
-                                <p className="text-blue-600 font-semibold">{payload[0].value} quotes</p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Bar dataKey="value" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                    {t("dashboard.financial.noData")}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          {/* Bottom Row: Clean Metrics Display */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-4">
-            {/* Average Quote */}
-            <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-2">
-                {t("dashboard.financial.avgQuote")}
-              </div>
-              <div className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400">
-                ¥{(financialData.avgQuoteValue / 1000).toFixed(0)}k
-              </div>
-            </div>
-            
-            {/* Approval Rate */}
-            <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-800">
-              <div className="text-xs text-green-600 dark:text-green-400 font-medium mb-2">
-                {t("dashboard.financial.approvalRate")}
-              </div>
-              <div className="text-lg sm:text-xl font-bold text-green-600 dark:text-green-400">
-                {financialData.approvalRate}%
-              </div>
-            </div>
-            
-            {/* Conversion Rate */}
-            <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-purple-800">
-              <div className="text-xs text-purple-600 dark:text-purple-400 font-medium mb-2">
-                {t("dashboard.financial.conversionRate")}
-              </div>
-              <div className="text-lg sm:text-xl font-bold text-purple-600 dark:text-purple-400">
-                {financialData.conversionRate}%
-              </div>
-            </div>
-          </div>
-          
-          {/* Status Summary Grid */}
-          <div className="space-y-4">
-            {/* Divider with text */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border/40"></div>
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-background px-3 text-muted-foreground">Quotation Status Overview</span>
-              </div>
-            </div>
-            
-            {/* 2x2 Grid Layout */}
-            <div className="grid grid-cols-2 gap-3 p-3 sm:p-4 lg:p-5 bg-muted/10 rounded-lg">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full flex-shrink-0"></div>
-                <span className="text-xs sm:text-sm text-muted-foreground">{t("dashboard.financial.approved")}:</span>
-                <span className="text-xs sm:text-sm font-semibold text-green-600">{financialData.approvedQuotes}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-yellow-500 rounded-full flex-shrink-0"></div>
-                <span className="text-xs sm:text-sm text-muted-foreground">{t("dashboard.financial.pending")}:</span>
-                <span className="text-xs sm:text-sm font-semibold text-yellow-600">{financialData.pendingQuotes}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full flex-shrink-0"></div>
-                <span className="text-xs sm:text-sm text-muted-foreground">{t("dashboard.financial.rejected")}:</span>
-                <span className="text-xs sm:text-sm font-semibold text-red-600">{financialData.rejectedQuotes}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-purple-500 rounded-full flex-shrink-0"></div>
-                <span className="text-xs sm:text-sm text-muted-foreground">converted:</span>
-                <span className="text-xs sm:text-sm font-semibold text-purple-600">{financialData.convertedQuotes || 0}</span>
-              </div>
-            </div>
-          </div>
-          
-          {/* Action Button */}
-          <div className="pt-2">
-            <Link href="/sales/calendar" className="w-full">
-              <Button variant="outline" className="w-full bg-background border-border hover:bg-muted/50">
-                <span className="text-foreground">{t("dashboard.financial.viewSalesCalendar")}</span>
-                <ArrowRight className="ml-2 h-4 w-4 text-foreground" />
-              </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/reporting">
+              View Full Report
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="space-y-8">
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Revenue Trend Chart */}
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                  <div className="p-2 rounded-md bg-emerald-100 dark:bg-emerald-900/20">
+                    <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  Revenue Trend
+                </CardTitle>
+                <CardDescription className="text-sm">Daily revenue performance over time</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={dailyRevenueData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <defs>
+                      <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.05}/>
+                      </linearGradient>
+                    </defs>
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 12, fill: '#64748b' }}
+                      tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12, fill: '#64748b' }}
+                      tickFormatter={(value) => `¥${(value / 1000).toFixed(0)}k`}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => [`¥${value.toLocaleString()}`, 'Revenue']}
+                      labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                      contentStyle={{
+                        backgroundColor: '#1f2937',
+                        border: '1px solid #374151',
+                        borderRadius: '8px',
+                        color: '#f9fafb'
+                      }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="#10b981" 
+                      strokeWidth={3}
+                      dot={{ fill: '#10b981', strokeWidth: 3, r: 5, stroke: '#ffffff' }}
+                      activeDot={{ r: 8, stroke: '#10b981', strokeWidth: 3, fill: '#ffffff' }}
+                      fill="url(#revenueGradient)"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quote Status Chart */}
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                  <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/20">
+                    <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  Quote Status Distribution
+                </CardTitle>
+                <CardDescription className="text-sm">Breakdown of quotation statuses</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={statusDistributionData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <XAxis 
+                      dataKey="status" 
+                      tick={{ fontSize: 12 }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value) => value.charAt(0).toUpperCase() + value.slice(1)}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => [value, 'Count']}
+                    />
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={40}>
+                      {statusDistributionData.map((entry, index) => {
+                        // Check both 'status' and 'name' fields, and handle different case variations
+                        const status = entry.status || entry.name || '';
+                        const statusLower = status.toLowerCase();
+                        
+                        return (
+                          <Cell key={`cell-${index}`} fill={
+                            statusLower === 'approved' ? '#10b981' :      // Green for approved
+                            statusLower === 'rejected' ? '#ef4444' :      // Red for rejected  
+                            statusLower === 'pending' ? '#f59e0b' :       // Yellow for pending
+                            statusLower === 'converted' ? '#3b82f6' :     // Blue for converted
+                            statusLower === 'draft' ? '#6b7280' :         // Gray for draft
+                            statusLower === 'sent' ? '#8b5cf6' :          // Purple for sent
+                            '#64748b'                                      // Default gray
+                          } />
+                        );
+                      })}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
           </div>
+          
+          
+          {/* Status Overview */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                <div className="p-2 rounded-md bg-slate-100 dark:bg-slate-900/20">
+                  <BarChart3 className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                </div>
+                Quotation Status Overview
+              </CardTitle>
+              <CardDescription className="text-sm">Current status distribution of all quotations</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/20">
+                  <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
+                  <div>
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300">Approved</p>
+                    <p className="text-lg font-bold text-green-800 dark:text-green-200">{financialData.approvedQuotes}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full flex-shrink-0"></div>
+                  <div>
+                    <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300">Pending</p>
+                    <p className="text-lg font-bold text-yellow-800 dark:text-yellow-200">{financialData.pendingQuotes}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20">
+                  <div className="w-3 h-3 bg-red-500 rounded-full flex-shrink-0"></div>
+                  <div>
+                    <p className="text-sm font-medium text-red-700 dark:text-red-300">Rejected</p>
+                    <p className="text-lg font-bold text-red-800 dark:text-red-200">{financialData.rejectedQuotes}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0"></div>
+                  <div>
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Converted</p>
+                    <p className="text-lg font-bold text-blue-800 dark:text-blue-200">{financialData.convertedQuotes || 0}</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </CardContent>
     </Card>

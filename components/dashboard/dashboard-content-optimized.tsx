@@ -18,6 +18,7 @@ import { useState, useEffect } from "react"
 import { getBookings } from "@/app/actions/bookings"
 import { Booking } from "@/types/bookings"
 import { getQuotationUrl } from '@/lib/utils/quotation-url'
+import type { User } from "@supabase/supabase-js"
 
 // Lazy load heavy dashboard components
 import { 
@@ -50,6 +51,7 @@ interface DashboardContentProps {
     maintenance: DbMaintenanceTask[]
   }
   vehicles: DbVehicle[]
+  user: User | null
 }
 
 export function DashboardContentOptimized({
@@ -59,7 +61,8 @@ export function DashboardContentOptimized({
   recentMaintenance,
   upcomingMaintenance,
   inProgressItems,
-  vehicles
+  vehicles,
+  user
 }: DashboardContentProps) {
   const { t } = useI18n()
   
@@ -241,67 +244,73 @@ export function DashboardContentOptimized({
 
   return (
     <div className="space-y-8">
-      {/* Dashboard Header */}
-      <div>
-        <h1 className="text-3xl font-bold">{t("dashboard.title")}</h1>
+      {/* Clean Header */}
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold">
+          {user?.user_metadata?.full_name 
+            ? `Hi, ${user.user_metadata.full_name}` 
+            : user?.email 
+              ? `Hi, ${user.email.split('@')[0]}` 
+              : t("dashboard.title")
+          }
+        </h1>
         <p className="text-muted-foreground">{t("dashboard.description")}</p>
       </div>
-      
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("dashboard.quickActions.title")}</CardTitle>
-          <CardDescription>{t("dashboard.quickActions.description")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/bookings/new" className="col-span-1">
-              <Button
-                variant="outline"
-                className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 dark:hover:border-purple-800 transition-colors"
-              >
-                <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/30">
-                  <Calendar className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                </div>
-                <span className="text-center text-sm font-medium">{t("dashboard.quickActions.createBooking")}</span>
-              </Button>
-            </Link>
-            <Link href="/maintenance/schedule" className="col-span-1">
-              <Button
-                variant="outline"
-                className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 dark:hover:bg-amber-900/20 dark:hover:text-amber-400 dark:hover:border-amber-800 transition-colors"
-              >
-                <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/30">
-                  <Wrench className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-                </div>
-                <span className="text-center text-sm font-medium">{t("dashboard.quickActions.scheduleMaintenance")}</span>
-              </Button>
-            </Link>
-            <Link href="/inspections/create" className="col-span-1">
-              <Button
-                variant="outline"
-                className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-green-50 hover:text-green-600 hover:border-green-200 dark:hover:bg-green-900/20 dark:hover:text-green-400 dark:hover:border-green-800 transition-colors"
-              >
-                <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
-                  <ClipboardCheck className="h-6 w-6 text-green-600 dark:text-green-400" />
-                </div>
-                <span className="text-center text-sm font-medium">{t("dashboard.quickActions.scheduleInspection")}</span>
-              </Button>
-            </Link>
-            <Link href="/quotations/create" className="col-span-1">
-              <Button
-                variant="outline"
-                className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 dark:hover:border-blue-800 transition-colors"
-              >
-                <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
-                  <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <span className="text-center text-sm font-medium">{t("dashboard.quickActions.createQuotation")}</span>
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+
+      {/* Quick Actions - Clean Grid with Colored Icons */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Link href="/bookings/new">
+          <Card className="h-24 border hover:bg-muted/50 transition-colors">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/20">
+                <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">{t("dashboard.quickActions.createBooking")}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/maintenance/schedule">
+          <Card className="h-24 border hover:bg-muted/50 transition-colors">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-md bg-orange-100 dark:bg-orange-900/20">
+                <Wrench className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">{t("dashboard.quickActions.scheduleMaintenance")}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/inspections/create">
+          <Card className="h-24 border hover:bg-muted/50 transition-colors">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-md bg-green-100 dark:bg-green-900/20">
+                <ClipboardCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">{t("dashboard.quickActions.scheduleInspection")}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/quotations/create">
+          <Card className="h-24 border hover:bg-muted/50 transition-colors">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-md bg-purple-100 dark:bg-purple-900/20">
+                <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">{t("dashboard.quickActions.createQuotation")}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
       
       {/* Expiring Quotations Alert */}
       {!isLoadingQuotations && expiringQuotations.length > 0 && (
@@ -355,44 +364,221 @@ export function DashboardContentOptimized({
         </Card>
       )}
       
-      {/* Main Dashboard Content - Two Column Layout */}
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-        {/* Financial Dashboard - LEFT SIDE */}
-        <LazyFinancialDashboard
-          financialData={financialData}
-          dailyRevenueData={dailyRevenueData}
-          statusDistributionData={statusDistributionData}
-          monthlyRevenueData={monthlyRevenueData}
-          isLoadingFinancial={isLoadingFinancial}
-          financialError={financialError}
-        />
+        {/* Key Metrics - Enhanced Cards with Colors */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Revenue */}
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Total Revenue</p>
+                  <p className="text-2xl font-bold text-emerald-800 dark:text-emerald-200">
+                    ¥{(financialData.totalRevenue / 1000000).toFixed(1)}M
+                  </p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">+12.5% vs last month</p>
+                </div>
+                <div className="p-2 rounded-md bg-emerald-100 dark:bg-emerald-900/20">
+                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">¥</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Activity Feed - RIGHT SIDE */}
-        <LazyActivityFeed
-          recentInspections={recentInspections}
-          upcomingInspections={upcomingInspections}
-          recentMaintenance={recentMaintenance}
-          upcomingMaintenance={upcomingMaintenance}
-          recentQuotations={recentQuotations}
-          upcomingBookings={upcomingBookings}
-        />
-      </div>
-      
-      {/* Bottom Row - Two Column Layout */}
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-        {/* Upcoming Bookings */}
-        <LazyUpcomingBookings
-          upcomingBookings={upcomingBookings}
-          isLoadingBookings={isLoadingBookings}
-          bookingsError={bookingsError}
-        />
-        
-        {/* Recent Quotations */}
-        <LazyRecentQuotations
-          recentQuotations={recentQuotations}
-          isLoadingRecentQuotations={isLoadingRecentQuotations}
-          quotationsError={quotationsError}
-        />
+          {/* Total Quotations */}
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Quotations</p>
+                  <p className="text-2xl font-bold text-blue-800 dark:text-blue-200">
+                    {financialData.totalQuotations}
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">+8.2% vs last month</p>
+                </div>
+                <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/20">
+                  <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Average Quote */}
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-purple-700 dark:text-purple-300">Avg Quote Value</p>
+                  <p className="text-2xl font-bold text-purple-800 dark:text-purple-200">
+                    ¥{(financialData.avgQuoteValue / 1000).toFixed(0)}k
+                  </p>
+                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">+5.1% vs last month</p>
+                </div>
+                <div className="p-2 rounded-md bg-purple-100 dark:bg-purple-900/20">
+                  <span className="text-sm font-bold text-purple-600 dark:text-purple-400">¥</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Conversion Rate */}
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-900/20 dark:to-orange-800/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-orange-700 dark:text-orange-300">Conversion Rate</p>
+                  <p className="text-2xl font-bold text-orange-800 dark:text-orange-200">
+                    {financialData.conversionRate.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">+2.3% vs last month</p>
+                </div>
+                <div className="p-2 rounded-md bg-orange-100 dark:bg-orange-900/20">
+                  <span className="text-sm font-bold text-orange-600 dark:text-orange-400">%</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Section */}
+        <div className="space-y-8">
+          {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Financial Dashboard - Takes 2 columns */}
+          <div className="lg:col-span-2">
+            <LazyFinancialDashboard
+              financialData={financialData}
+              dailyRevenueData={dailyRevenueData}
+              statusDistributionData={statusDistributionData}
+              monthlyRevenueData={monthlyRevenueData}
+              isLoadingFinancial={isLoadingFinancial}
+              financialError={financialError}
+            />
+          </div>
+
+          {/* Activity Feed - Takes 1 column */}
+          <div className="space-y-6">
+            <LazyActivityFeed
+              recentInspections={recentInspections}
+              upcomingInspections={upcomingInspections}
+              recentMaintenance={recentMaintenance}
+              upcomingMaintenance={upcomingMaintenance}
+              recentQuotations={recentQuotations}
+              upcomingBookings={upcomingBookings}
+            />
+          </div>
+        </div>
+
+        {/* Bottom Row - Upcoming Bookings & Quotations */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/20">
+                <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              Upcoming Bookings & Quotations
+            </CardTitle>
+            <CardDescription className="text-sm">Latest bookings and quotations</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Upcoming Bookings Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-1 rounded bg-blue-100 dark:bg-blue-900/20">
+                    <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h3 className="font-semibold">Upcoming Bookings</h3>
+                </div>
+                <div className="space-y-0">
+                  {isLoadingBookings ? (
+                    <div className="space-y-2">
+                      <div className="h-16 bg-muted animate-pulse rounded"></div>
+                      <div className="h-16 bg-muted animate-pulse rounded"></div>
+                    </div>
+                  ) : bookingsError ? (
+                    <p className="text-sm text-muted-foreground">{bookingsError}</p>
+                  ) : upcomingBookings.length > 0 ? (
+                    upcomingBookings.slice(0, 3).map((booking) => (
+                      <div key={booking.id} className="py-4 border-b border-border/50 hover:bg-muted/30 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/20">
+                            <Calendar className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                                BOOKING
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {booking.date ? new Date(booking.date).toLocaleDateString() : 'No date'}
+                              </span>
+                            </div>
+                            <p className="text-sm font-medium text-foreground">
+                              {booking.customer_name || 'Unnamed'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {booking.pickup_location}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No upcoming bookings</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Recent Quotations Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-1 rounded bg-purple-100 dark:bg-purple-900/20">
+                    <FileText className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <h3 className="font-semibold">Recent Quotations</h3>
+                </div>
+                <div className="space-y-0">
+                  {isLoadingRecentQuotations ? (
+                    <div className="space-y-2">
+                      <div className="h-16 bg-muted animate-pulse rounded"></div>
+                      <div className="h-16 bg-muted animate-pulse rounded"></div>
+                    </div>
+                  ) : quotationsError ? (
+                    <p className="text-sm text-muted-foreground">{quotationsError}</p>
+                  ) : recentQuotations.length > 0 ? (
+                    recentQuotations.slice(0, 3).map((quotation) => (
+                      <div key={quotation.id} className="py-4 border-b border-border/50 hover:bg-muted/30 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="p-1.5 rounded-md bg-purple-100 dark:bg-purple-900/20">
+                            <FileText className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+                                QUOTATION
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {quotation.created_at ? new Date(quotation.created_at).toLocaleDateString() : 'No date'}
+                              </span>
+                            </div>
+                            <p className="text-sm font-medium text-foreground">
+                              {quotation.customer_name || 'Unnamed'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              ¥{quotation.total_amount?.toLocaleString() || '0'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No recent quotations</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

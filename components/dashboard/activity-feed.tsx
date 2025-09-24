@@ -192,33 +192,24 @@ function InspectionCard({ inspection }: { inspection: DbInspection }) {
   
   return (
     <Link href={`/inspections/${inspection.id}`} className="block">
-      <div className="p-3 sm:p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex-shrink-0">
-              <ClipboardCheck className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
-                <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded w-fit">
-                  INSPECTION
-                </span>
-                <h4 className="font-semibold text-sm text-muted-foreground truncate">
-                  {getFullTypeName(inspection.type)}
-                </h4>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground truncate">
-                  {inspection.vehicle?.name}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {inspection.status === 'completed' ? t('common.status.completed') : t('inspections.details.scheduledFor', { date: formatDate(inspection.date) })}
-                </p>
-              </div>
-            </div>
+      <div className="py-4 border-b border-border/50 hover:bg-muted/30 transition-colors">
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 rounded-md bg-green-100 dark:bg-green-900/20">
+            <ClipboardCheck className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
           </div>
-          <div className="flex-shrink-0">
-            {getInspectionStatusBadge(inspection.status, t)}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                INSPECTION
+              </span>
+              {getInspectionStatusBadge(inspection.status, t)}
+            </div>
+            <p className="text-sm font-medium text-foreground">
+              {getFullTypeName(inspection.type)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {inspection.vehicle?.name || t("common.noVehicle")}
+            </p>
           </div>
         </div>
       </div>
@@ -234,39 +225,24 @@ function BookingCard({ booking }: { booking: Booking }) {
       href={`/bookings/${booking.id}`}
       className="block"
     >
-      <div className="p-3 sm:p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
-              <User className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
-                <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded w-fit">
-                  BOOKING
-                </span>
-                <h4 className="font-semibold text-sm text-muted-foreground truncate">
-                  {booking.customer_name || t("bookings.unnamed", { defaultValue: "Unnamed Customer" })}
-                </h4>
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3 flex-shrink-0" />
-                  <span className="truncate">{formatDate(booking.date)} • {booking.time || '00:00'}</span>
-                </div>
-                {booking.pickup_location && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <MapPin className="h-3 w-3 flex-shrink-0" />
-                    <span className="truncate max-w-[150px] sm:max-w-[200px]">
-                      {booking.pickup_location}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
+      <div className="py-4 border-b border-border/50 hover:bg-muted/30 transition-colors">
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/20">
+            <User className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
           </div>
-          <div className="flex-shrink-0">
-            {getBookingStatusBadge(booking.status, t)}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                BOOKING
+              </span>
+              {getBookingStatusBadge(booking.status, t)}
+            </div>
+            <p className="text-sm font-medium text-foreground">
+              {booking.customer_name || t("bookings.unnamed", { defaultValue: "Unnamed Customer" })}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {formatDate(booking.date)} • {booking.time || '00:00'}
+            </p>
           </div>
         </div>
       </div>
@@ -278,40 +254,24 @@ function QuotationCard({ quotation }: { quotation: any }) {
   const { t } = useI18n()
   return (
     <Link href={getQuotationUrl(quotation)} className="block">
-      <div className="p-3 sm:p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
-        <div className="flex items-start gap-3">
-          <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
-            <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
+      <div className="py-4 border-b border-border/50 hover:bg-muted/30 transition-colors">
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 rounded-md bg-purple-100 dark:bg-purple-900/20">
+            <FileText className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
           </div>
           <div className="flex-1 min-w-0">
-            {/* Top row: Status badge and quotation type */}
-            <div className="flex items-start justify-between gap-2 mb-2">
-              <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded w-fit">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
                 QUOTATION
               </span>
-              <div className="flex-shrink-0">
-                {getQuotationStatusBadge(quotation.status, t)}
-              </div>
+              {getQuotationStatusBadge(quotation.status, t)}
             </div>
-            
-            {/* Quotation title */}
-            <h4 className="font-semibold text-sm text-muted-foreground truncate mb-1">
-              {quotation.title || t('quotations.details.untitled', { defaultValue: 'Untitled' })}
-            </h4>
-            
-            {/* Customer name */}
-            <p className="text-xs text-muted-foreground mb-2 truncate">
+            <p className="text-sm font-medium text-foreground">
               {quotation.customer_name || t('bookings.unnamed')}
             </p>
-            
-            {/* Amount */}
-            {quotation.total_amount && (
-              <div className="flex items-center gap-1">
-                <span className="text-xs font-medium text-muted-foreground">
-                  {quotation.currency || 'JPY'} {Number(quotation.total_amount).toLocaleString()}
-                </span>
-              </div>
-            )}
+            <p className="text-xs text-muted-foreground">
+              {quotation.currency || 'JPY'} {Number(quotation.total_amount || 0).toLocaleString()}
+            </p>
           </div>
         </div>
       </div>
@@ -332,20 +292,22 @@ export function ActivityFeed({
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Bell className="h-5 w-5 text-primary" />
+        <CardTitle className="text-xl font-semibold flex items-center gap-2">
+          <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/20">
+            <Bell className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          </div>
           {t("dashboard.activityFeed.title")}
         </CardTitle>
-        <CardDescription>{t("dashboard.activityFeed.description")}</CardDescription>
+        <CardDescription className="text-sm">{t("dashboard.activityFeed.description")}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="recent" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="recent">
+        <Tabs defaultValue="recent" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 bg-muted/30 p-1">
+            <TabsTrigger value="recent" className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground">
               <History className="mr-2 h-4 w-4" />
               {t("common.status.recent")}
             </TabsTrigger>
-            <TabsTrigger value="upcoming">
+            <TabsTrigger value="upcoming" className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground">
               <Calendar className="mr-2 h-4 w-4" />
               {t("common.status.upcoming")}
             </TabsTrigger>
@@ -357,7 +319,7 @@ export function ActivityFeed({
             ) : (
               <div className="space-y-4">
                 {/* Show mix of recent activities - prioritize quotations, then inspections, then maintenance */}
-                {recentQuotations.slice(0, 2).map((quotation: any) => (
+                {recentQuotations.slice(0, 3).map((quotation: any) => (
                   <QuotationCard key={quotation.id} quotation={quotation} />
                 ))}
                 {recentInspections.slice(0, 2).map((inspection) => (

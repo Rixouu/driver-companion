@@ -156,11 +156,13 @@ export function RecentQuotations({
   return (
     <Card className="h-full">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <History className="h-5 w-5 text-primary" />
+        <CardTitle className="text-xl font-semibold flex items-center gap-2">
+          <div className="p-2 rounded-md bg-purple-100 dark:bg-purple-900/20">
+            <History className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+          </div>
           {t('quotations.title')}
         </CardTitle>
-        <CardDescription>{t('quotations.listDescription')}</CardDescription>
+        <CardDescription className="text-sm">{t('quotations.listDescription')}</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoadingRecentQuotations ? (

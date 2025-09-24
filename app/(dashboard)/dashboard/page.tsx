@@ -2,6 +2,7 @@ import { Metadata } from "next"
 import { getDictionary } from "@/lib/i18n/server"
 import { DashboardContentOptimized } from "@/components/dashboard/dashboard-content-optimized"
 import { getDashboardData } from "@/app/actions/dashboard"
+import { getCurrentUser } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
 
@@ -16,6 +17,9 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function DashboardPage() {
   // Get translations
   const { t } = await getDictionary()
+  
+  // Get current user for greeting
+  const { user } = await getCurrentUser()
   
   // Fetch all necessary data for the dashboard using our server action
   const { 
@@ -37,6 +41,7 @@ export default async function DashboardPage() {
       upcomingMaintenance={upcomingMaintenance}
       inProgressItems={inProgressItems}
       vehicles={vehicles}
+      user={user}
     />
   )
 } 

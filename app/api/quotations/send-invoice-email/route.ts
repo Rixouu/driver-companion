@@ -212,6 +212,14 @@ export async function POST(request: NextRequest) {
       amount: quotation.total_amount || 0,
       currency: quotation.currency || 'JPY',
       service_total: quotation.total_amount || 0,
+      subtotal: quotation.total_amount || 0,
+      tax_amount: (quotation as any).tax_amount || 0,
+      tax_percentage: (quotation as any).tax_percentage || 0,
+      discount_percentage: (quotation as any).discount_percentage || 0,
+      regular_discount: (quotation as any).regular_discount || 0,
+      promotion_discount: (quotation as any).promotion_discount || 0,
+      promo_code_discount: (quotation as any).promo_code_discount || 0,
+      refund_amount: (quotation as any).refund_amount || 0,
       final_total: quotation.total_amount || 0,
       
       // Important dates
@@ -244,7 +252,26 @@ export async function POST(request: NextRequest) {
         : 'Please find your invoice below. You can complete your payment using the link provided.',
       
       // Add quotation_items array for template loops
-      quotation_items: quotation.quotation_items || []
+      quotation_items: quotation.quotation_items || [],
+      
+      // Time-based pricing (calculated from quotation_items)
+      time_based_discount: 0,
+      time_based_discount_percentage: 0,
+      time_based_rule_name: '',
+      
+      // Package and promotion information
+      selected_package: selectedPackage ? {
+        name: selectedPackage.name,
+        base_price: selectedPackage.base_price,
+        description: selectedPackage.description
+      } : null,
+      selected_promotion: selectedPromotion ? {
+        name: selectedPromotion.name,
+        discount_percentage: (selectedPromotion as any).discount_percentage || 0,
+        description: selectedPromotion.description
+      } : null,
+      selected_package_name: selectedPackage?.name,
+      selected_promotion_name: selectedPromotion?.name
     } as any
 
     // Add service_type_charter field to each quotation item for template labels (same as unified route)
@@ -349,6 +376,34 @@ export async function POST(request: NextRequest) {
         }
       })
       console.log('🔍 [INVOICE-API] Final quotation_items:', templateVariables.quotation_items)
+      
+      // Calculate total time-based discount from all items
+      let totalTimeBasedDiscount = 0
+      let totalTimeBasedDiscountPercentage = 0
+      let timeBasedRuleName = ''
+      
+      templateVariables.quotation_items.forEach((item: any) => {
+        if (item.service_type_airport && item.time_based_discount && item.time_based_discount > 0) {
+          totalTimeBasedDiscount += item.time_based_discount
+          if (item.time_based_discount_percentage > totalTimeBasedDiscountPercentage) {
+            totalTimeBasedDiscountPercentage = item.time_based_discount_percentage
+          }
+          if (item.time_based_rule_name && !timeBasedRuleName) {
+            timeBasedRuleName = item.time_based_rule_name
+          }
+        }
+      })
+      
+      // Update template variables with calculated time-based values
+      templateVariables.time_based_discount = totalTimeBasedDiscount
+      templateVariables.time_based_discount_percentage = totalTimeBasedDiscountPercentage
+      templateVariables.time_based_rule_name = timeBasedRuleName
+      
+      console.log('🔍 [INVOICE-API] Calculated time-based values:', {
+        time_based_discount: totalTimeBasedDiscount,
+        time_based_discount_percentage: totalTimeBasedDiscountPercentage,
+        time_based_rule_name: timeBasedRuleName
+      })
     }
 
     console.log('🔄 [UNIFIED-EMAIL-API] Using direct template service')

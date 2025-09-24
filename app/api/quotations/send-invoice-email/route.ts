@@ -193,6 +193,7 @@ export async function POST(request: NextRequest) {
       // Basic identifiers
       customer_name: quotation.customer_name || 'Valued Customer',
       quotation_id: `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`,
+      invoice_id: `INV-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || quotation.id.slice(-6).toUpperCase()}`,
       quotation_number: quotation.quote_number,
       
       // Service details
@@ -212,7 +213,7 @@ export async function POST(request: NextRequest) {
       amount: quotation.total_amount || 0,
       currency: quotation.currency || 'JPY',
       service_total: quotation.total_amount || 0,
-      subtotal: quotation.total_amount || 0,
+      subtotal: (quotation as any).subtotal || (quotation as any).service_total || quotation.total_amount || 0,
       tax_amount: (quotation as any).tax_amount || 0,
       tax_percentage: (quotation as any).tax_percentage || 0,
       discount_percentage: (quotation as any).discount_percentage || 0,
@@ -399,10 +400,30 @@ export async function POST(request: NextRequest) {
       templateVariables.time_based_discount_percentage = totalTimeBasedDiscountPercentage
       templateVariables.time_based_rule_name = timeBasedRuleName
       
+      // Calculate proper subtotal from quotation_items
+      let calculatedSubtotal = 0
+      templateVariables.quotation_items.forEach((item: any) => {
+        if (item.total_price) {
+          calculatedSubtotal += item.total_price
+        }
+      })
+      
+      // Update subtotal with calculated value
+      if (calculatedSubtotal > 0) {
+        templateVariables.subtotal = calculatedSubtotal
+        templateVariables.service_total = calculatedSubtotal
+      }
+      
       console.log('🔍 [INVOICE-API] Calculated time-based values:', {
         time_based_discount: totalTimeBasedDiscount,
         time_based_discount_percentage: totalTimeBasedDiscountPercentage,
         time_based_rule_name: timeBasedRuleName
+      })
+      
+      console.log('🔍 [INVOICE-API] Calculated subtotal:', {
+        calculatedSubtotal,
+        originalSubtotal: templateVariables.subtotal,
+        finalSubtotal: templateVariables.subtotal
       })
     }
 

@@ -361,9 +361,9 @@ export default function QuotationList({
 
   // Get status badge
   const getStatusBadge = (status: QuotationStatus, quotation: Quotation) => {
-    // Expired handling (orange)
+    // Expired handling (red)
     const expiredBadge = (
-      <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 dark:bg-orange-900/20">
+      <Badge variant="outline" className="text-red-600 border-red-300 bg-red-50 dark:bg-red-900/20">
         {t('quotations.status.expired')}
       </Badge>
     );

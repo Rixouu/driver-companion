@@ -37,6 +37,7 @@ export function CurrencySelector({
   compact = false
 }: CurrencySelectorProps) {
   const { currencyData, isLoading, error, supportedCurrencies } = useCurrency(baseCurrency);
+  const [isTooltipOpen, setIsTooltipOpen] = React.useState(false);
 
   const handleRefresh = () => {
     // Force refresh by clearing cache
@@ -190,9 +191,14 @@ export function CurrencySelector({
         
         {showRateInfo && (
           <TooltipProvider>
-            <Tooltip>
+            <Tooltip open={isTooltipOpen} onOpenChange={setIsTooltipOpen}>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0"
+                  onClick={() => setIsTooltipOpen(!isTooltipOpen)}
+                >
                   {getStatusIcon()}
                 </Button>
               </TooltipTrigger>
@@ -235,9 +241,14 @@ export function CurrencySelector({
       {showRateInfo && (
         <div className="flex items-center gap-2">
           <TooltipProvider>
-            <Tooltip>
+            <Tooltip open={isTooltipOpen} onOpenChange={setIsTooltipOpen}>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 px-2 gap-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 px-2 gap-1"
+                  onClick={() => setIsTooltipOpen(!isTooltipOpen)}
+                >
                   {getStatusIcon()}
                   <Info className="h-3 w-3" />
                 </Button>

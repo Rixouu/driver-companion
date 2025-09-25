@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PencilIcon, Copy, Trash, Car, Calendar, Clock, Plane, MapPin, Users, Check, X as XIcon, Edit3 } from 'lucide-react';
+import { PencilIcon, Copy, Trash, Car, Calendar, Clock, Plane, MapPin, Users, Check, X as XIcon, Edit3, Package } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ServiceItemInput, PricingPackage } from '@/types/quotations';
@@ -97,119 +97,111 @@ export function ServiceCard({
 
   return (
     <Card className={cn(
-      "relative overflow-hidden transition-all",
+      "relative overflow-hidden transition-all border rounded-lg",
       isEditing && 'ring-2 ring-primary',
       className
     )}>
-      {/* Color indicator bar */}
+      {/* Subtle color indicator bar */}
       <div className={cn(
         "absolute top-0 left-0 h-full w-1",
         isPackage ? 'bg-purple-500' :
         isCharter ? 'bg-blue-500' : 'bg-green-500'
       )} />
       
-      <CardContent className="p-6">
-        <div className="space-y-5">
-          {/* Header with service type and total price */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Badge variant={
-                isPackage ? "secondary" :
-                isCharter ? "default" : "outline"
-              } className={cn(
-                "text-xs px-3 py-1 font-bold uppercase tracking-wide",
-                isPackage && "bg-purple-500 text-white",
-                isCharter && "bg-blue-500 text-white",
-                isTransfer && "bg-green-500 text-white"
-              )}>
-                {isPackage ? 'PACKAGE' : isCharter ? 'CHARTER' : 'SERVICE'}
-              </Badge>
-              {isEditing && <Badge variant="outline" className="text-xs px-2 py-1">Editing</Badge>}
+      <CardContent className="p-4">
+        <div className="space-y-4">
+          {/* Service name and basic info with icon */}
+          <div className="flex items-start gap-3">
+            <div className={cn(
+              "flex items-center justify-center w-12 h-12 rounded-md flex-shrink-0",
+              isPackage && "bg-purple-100 dark:bg-purple-900/30",
+              isCharter && "bg-blue-100 dark:bg-blue-900/30",
+              isTransfer && "bg-green-100 dark:bg-green-900/30"
+            )}>
+              {isPackage ? (
+                <Package className={cn(
+                  "h-6 w-6",
+                  "text-purple-700 dark:text-purple-300"
+                )} />
+              ) : isCharter ? (
+                <Car className={cn(
+                  "h-6 w-6",
+                  "text-blue-700 dark:text-blue-300"
+                )} />
+              ) : (
+                <Plane className={cn(
+                  "h-6 w-6",
+                  "text-green-700 dark:text-green-300"
+                )} />
+              )}
             </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-green-500">
-                {(() => {
-                  // For Charter Services, calculate total based on duration (unit_price × service_days)
-                  if (isCharter) {
-                    return formatCurrency(item.unit_price * (item.service_days || 1));
-                  }
-                  // For other services, use existing logic
-                  return formatCurrency(item.total_price || item.unit_price);
-                })()}
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-foreground mb-1">{item.service_type_name || 'Service'}</h3>
+              <div className="text-sm text-muted-foreground">
+                {!isPackage && item.vehicle_type && (
+                  <span>{item.vehicle_type}</span>
+                )}
               </div>
             </div>
+            {isEditing && <Badge variant="outline" className="text-xs px-2 py-1">Editing</Badge>}
           </div>
 
-          {/* Service name and basic info */}
-          <div>
-            <h3 className="text-lg font-bold text-white mb-2">{item.service_type_name || 'Service'}</h3>
-            <div className="text-sm text-gray-400">
-              {!isPackage && item.vehicle_type && (
-                <span className="mr-4">{item.vehicle_type}</span>
-              )}
-              {item.service_days && item.hours_per_day ? (
-                <span>{item.service_days} days × {item.hours_per_day}h/day</span>
-              ) : item.duration_hours && (
-                <span>{item.duration_hours} hour(s)</span>
-              )}
-            </div>
-          </div>
-
-          {/* Two-column layout like the reference */}
-          <div className="grid grid-cols-2 gap-6">
-            {/* Left Column */}
-            <div className="space-y-4">
-              {/* Date & Duration */}
+          {/* Reorganized layout: Row 1: Date | Duration, Row 2: Locations | Passengers & Bag Details */}
+          <div className="space-y-4">
+            {/* Row 1: Date | Duration */}
+            <div className="grid grid-cols-2 gap-6">
+              {/* Pick Up Date & Time */}
               <div>
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">DATE & DURATION</h4>
-                <div className="space-y-1">
-                  {item.pickup_date && (
-                    <div className="text-sm text-white">{formatDate(item.pickup_date)}</div>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">PICK UP DATE & TIME</h4>
+                <div className="text-sm text-foreground">
+                  {item.pickup_date && item.pickup_time ? (
+                    `${formatDate(item.pickup_date)} at ${formatTime(item.pickup_time)}`
+                  ) : item.pickup_date ? (
+                    formatDate(item.pickup_date)
+                  ) : item.pickup_time ? (
+                    formatTime(item.pickup_time)
+                  ) : (
+                    'Not specified'
                   )}
-                  {item.pickup_time && (
-                    <div className="text-sm text-white">{formatTime(item.pickup_time)}</div>
-                  )}
-                  <div className="text-sm text-gray-400">
-                    {formatCurrency(item.unit_price)} per day
-                  </div>
                 </div>
               </div>
 
-              {/* Flight Details - only for Airport services */}
-              {(item.flight_number || item.terminal) && 
-               item.service_type_name?.toLowerCase().includes('airport') && (
-                <div>
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">FLIGHT DETAILS</h4>
-                  <div className="space-y-1">
-                    {item.flight_number && (
-                      <div className="flex items-center gap-2 text-sm text-white">
-                        <Plane className="h-3 w-3" />
-                        <span>Flight {item.flight_number}</span>
-                      </div>
-                    )}
-                    {item.terminal && (
-                      <div className="flex items-center gap-2 text-sm text-white">
-                        <MapPin className="h-3 w-3" />
-                        <span>Terminal {item.terminal}</span>
-                      </div>
-                    )}
-                  </div>
+              {/* Duration or Fixed Rates */}
+              <div>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">
+                  {item.service_type_name?.toLowerCase().includes('airport') ? 'RATE TYPE' : 'DURATION'}
+                </h4>
+                <div className="space-y-1">
+                  {item.service_type_name?.toLowerCase().includes('airport') ? (
+                    <div className="text-sm text-foreground">Fixed rates</div>
+                  ) : (
+                    <>
+                      {item.service_days && item.hours_per_day ? (
+                        <div className="text-sm text-foreground">{item.service_days} days × {item.hours_per_day}h/day</div>
+                      ) : item.duration_hours && (
+                        <div className="text-sm text-foreground">{item.duration_hours} hour(s)</div>
+                      )}
+                    </>
+                  )}
                 </div>
-              )}
+              </div>
+            </div>
 
-              {/* Passenger and Bag Details - for all services */}
+            {/* Row 2: Passengers & Bag Details | Locations */}
+            <div className="grid grid-cols-2 gap-6">
+              {/* Passenger and Bag Details */}
               {(item.number_of_passengers || item.number_of_bags) && (
                 <div>
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">PASSENGER & BAG DETAILS</h4>
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">PASSENGER & BAG DETAILS</h4>
                   <div className="space-y-1">
                     {item.number_of_passengers && (
-                      <div className="flex items-center gap-2 text-sm text-white">
+                      <div className="flex items-center gap-2 text-sm text-foreground">
                         <Users className="h-3 w-3" />
                         <span>{item.number_of_passengers} passengers</span>
                       </div>
                     )}
                     {item.number_of_bags && (
-                      <div className="flex items-center gap-2 text-sm text-white">
+                      <div className="flex items-center gap-2 text-sm text-foreground">
                         <MapPin className="h-3 w-3" />
                         <span>{item.number_of_bags} bags</span>
                       </div>
@@ -217,80 +209,106 @@ export function ServiceCard({
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Right Column */}
-            <div className="space-y-4">
               {/* Locations */}
               {(item.pickup_location || item.dropoff_location) && (
                 <div>
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">LOCATIONS</h4>
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">LOCATIONS</h4>
                   <div className="space-y-1">
                     {item.pickup_location && (
                       <div className="flex items-start gap-2 text-sm">
                         <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                        <span className="text-white break-words">{item.pickup_location}</span>
+                        <span className="text-foreground break-words">{item.pickup_location}</span>
                       </div>
                     )}
                     {item.dropoff_location && (
                       <div className="flex items-start gap-2 text-sm">
                         <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
-                        <span className="text-white break-words">{item.dropoff_location}</span>
+                        <span className="text-foreground break-words">{item.dropoff_location}</span>
                       </div>
                     )}
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* Pricing */}
+            {/* Flight Details - only for Airport services */}
+            {(item.flight_number || item.terminal) && 
+             item.service_type_name?.toLowerCase().includes('airport') && (
               <div>
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">PRICING</h4>
-                <div className="space-y-1 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-white">Unit Price:</span>
-                    <div className="flex items-center gap-2">
-                      <span className={cn(
-                        "font-semibold",
-                        hasCustomPrice && "text-blue-400"
-                      )}>
-                        {formatCurrency(item.unit_price)}
-                      </span>
-                      {onPriceChange && !isPackage && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          onClick={handlePriceEdit}
-                          className="h-5 w-5 p-0 hover:bg-blue-500/20"
-                          title="Edit Price"
-                        >
-                          <Edit3 className="h-3 w-3 text-blue-400" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  {item.service_days && item.service_days > 1 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-white">× {item.service_days} days:</span>
-                      <span className="font-semibold text-white">{formatCurrency((item.unit_price || 0) * item.service_days)}</span>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">FLIGHT DETAILS</h4>
+                <div className="space-y-1">
+                  {item.flight_number && (
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <Plane className="h-3 w-3" />
+                      <span>Flight {item.flight_number}</span>
                     </div>
                   )}
-                  {item.time_based_adjustment && (
-                    <div className="flex items-center justify-between text-orange-400">
-                      <span>Time Adjustment:</span>
-                      <span className="font-semibold">
-                        {item.time_based_adjustment > 0 ? '+' : ''}
-                        {formatCurrency(Math.abs((item.unit_price || 0) * (item.service_days || 1) * (item.time_based_adjustment / 100)))}
-                        {item.time_based_rule_name && (
-                          <span className="text-xs ml-1">({item.time_based_rule_name})</span>
-                        )}
-                      </span>
+                  {item.terminal && (
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <MapPin className="h-3 w-3" />
+                      <span>Terminal {item.terminal}</span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between font-bold text-green-500 pt-1 border-t border-gray-600">
-                    <span>Total:</span>
-                    <span>{formatCurrency(item.total_price || item.unit_price || 0)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Pricing */}
+            <div className="mt-4 pt-4 border-t border-muted/30">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3">PRICING</h4>
+              <div className="bg-muted/20 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-foreground">Unit Price:</span>
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      "font-semibold",
+                      hasCustomPrice && "text-blue-600 dark:text-blue-400"
+                    )}>
+                      {formatCurrency(item.unit_price)}
+                    </span>
+                    {onPriceChange && !isPackage && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={handlePriceEdit}
+                        className="h-7 px-2 text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-700"
+                        title="Edit Price"
+                      >
+                        <Edit3 className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                    )}
                   </div>
+                </div>
+                {item.service_days && item.service_days > 1 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-foreground">× {item.service_days} days:</span>
+                    <span className="font-semibold text-foreground">{formatCurrency((item.unit_price || 0) * item.service_days)}</span>
+                  </div>
+                )}
+                {item.time_based_adjustment && (
+                  <div className="flex items-center justify-between text-sm text-orange-600 dark:text-orange-400">
+                    <span>
+                      Time Adjustment: {item.time_based_rule_name && `(${item.time_based_rule_name})`}
+                    </span>
+                    <span className="font-semibold">
+                      {item.time_based_adjustment > 0 ? '+' : ''}
+                      {formatCurrency(Math.abs((item.unit_price || 0) * (item.service_days || 1) * (item.time_based_adjustment / 100)))}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between font-bold text-white pt-2 border-t border-border">
+                  <span>Total:</span>
+                  <span>{formatCurrency((() => {
+                    // For Charter Services, calculate total based on duration (unit_price × service_days)
+                    if (isCharter) {
+                      return (item.unit_price || 0) * (item.service_days || 1);
+                    }
+                    // For other services, use existing logic
+                    return item.total_price || item.unit_price || 0;
+                  })())}</span>
                 </div>
               </div>
             </div>
@@ -356,14 +374,14 @@ export function ServiceCard({
       {/* Price editing modal */}
       {isEditingPrice && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50 rounded-lg">
-          <div className="bg-gray-800 p-4 rounded-lg border border-gray-600 min-w-[300px]">
+          <div className="bg-background p-4 rounded-lg border border-border min-w-[300px]">
             <div className="flex items-center gap-2 mb-3">
-              <Edit3 className="h-4 w-4 text-blue-400" />
-              <span className="font-semibold text-white">Edit Unit Price</span>
+              <Edit3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <span className="font-semibold text-foreground">Edit Unit Price</span>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">New Price</label>
+                <label className="text-sm text-muted-foreground mb-1 block">New Price</label>
                 <Input
                   type="number"
                   value={customPrice}
@@ -377,7 +395,7 @@ export function ServiceCard({
                       handlePriceCancel();
                     }
                   }}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-background border-border text-foreground"
                   min="0"
                   step="0.01"
                   placeholder="0.00"
@@ -390,7 +408,7 @@ export function ServiceCard({
                   size="sm"
                   variant="ghost"
                   onClick={handlePriceCancel}
-                  className="text-gray-400 hover:text-white"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   Cancel
                 </Button>

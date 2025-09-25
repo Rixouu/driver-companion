@@ -99,14 +99,12 @@ export function PricingSummary({
 
   return (
     <div className="space-y-6">
-      {/* Removed header since it's now handled at the parent level */}
-
-      {/* Pricing Details Card - Matching PDF exactly */}
-      <Card className="bg-muted/40">
-        <CardContent>
-          <div className="space-y-3 mt-6">
-            {/* Header Row - matching PDF */}
-            <div className="flex justify-between items-center border-b border-muted pb-2">
+      {/* Pricing Details Card - Clean design like quote-access page */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="space-y-4">
+            {/* Header Row */}
+            <div className="flex justify-between items-center border-b border-border pb-2">
               <span className="font-medium text-sm text-muted-foreground">Description</span>
               <span className="font-medium text-sm text-muted-foreground">Price</span>
             </div>
@@ -115,146 +113,75 @@ export function PricingSummary({
             {quotationItems.map((item, index) => {
               const isPackage = item.service_type_name?.toLowerCase().includes('package');
               return (
-                <div key={index} className="space-y-1">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">
-                        {item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Standard Vehicle'}`}
+                <div key={index} className="flex justify-between items-start py-2 border-b border-border last:border-b-0">
+                  <div className="flex-1">
+                    <div className="font-medium text-sm text-foreground">
+                      {item.service_type_name}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {item.service_days && item.service_days > 1 ? (
+                        <span>
+                          {item.service_days} day(s) × {formatCurrency(item.unit_price)} = {formatCurrency(item.unit_price * item.service_days)}
+                        </span>
+                      ) : (
+                        <span>
+                          Qty: {item.quantity} × {formatCurrency(item.unit_price)} = {formatCurrency(item.unit_price * item.quantity)}
+                        </span>
+                      )}
+                    </div>
+                    {parseFloat((item as any).time_based_adjustment || '0') > 0 && (
+                      <div className="text-xs text-orange-600 dark:text-orange-400 mt-1 flex items-center gap-1">
+                        <span>+{(item as any).time_based_adjustment}% {(item as any).time_based_rule_name ? ` ${(item as any).time_based_rule_name}` : ''}: +{formatCurrency((item.unit_price * parseFloat((item as any).time_based_adjustment || '0')) / 100)}</span>
                       </div>
-                      {!isPackage && item.service_type_name?.toLowerCase().includes('charter') && (
-                        <div className="text-xs text-muted-foreground">
-                          {item.service_days || 1} day(s) × {item.hours_per_day || 8}h
-                        </div>
-                      )}
-                      {!isPackage && item.pickup_date && (
-                        <div className="text-xs text-muted-foreground">
-                          Pickup Date: {new Date(item.pickup_date).toLocaleDateString()}
-                          {item.pickup_time && `, Pickup Time: ${item.pickup_time}`}
-                        </div>
-                      )}
-                      {/* Only show package details if selectedPackage is actually selected and this item is marked as package */}
-                      {selectedPackage && isPackage && (
-                        <div className="text-xs text-muted-foreground mt-1 pl-2">
-                          <strong>Services Included:</strong>
-                          {selectedPackage.items && selectedPackage.items.length > 0 ? (
-                            selectedPackage.items.map((pkgItem, idx) => (
-                              <div key={idx} className="text-purple-600 text-xs font-medium">
-                                • {pkgItem.name}
-                                {pkgItem.vehicle_type && (
-                                  <span className="text-muted-foreground ml-1">({pkgItem.vehicle_type})</span>
-                                )}
-                              </div>
-                            ))
-                          ) : (
-                            <div className="text-purple-600 text-xs font-medium">• All package services included</div>
-                          )}
-                        </div>
-                      )}
-                      {(item as any).time_based_adjustment && (
-                        <div className="text-xs mt-1 p-2 bg-orange-50 dark:bg-orange-900/30 rounded border border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-200">
-                          <div className="font-medium mb-1">Time-based Adjustment Details:</div>
-                          <div>Base Price: {formatCurrency(item.unit_price * (item.quantity || 1) * (item.service_days || 1))}</div>
-                          <div>Time Adjustment ({(item as any).time_based_adjustment}%): {(item as any).time_based_adjustment > 0 ? '+' : ''}{formatCurrency(Math.abs((item.unit_price * (item.quantity || 1) * (item.service_days || 1)) * ((item as any).time_based_adjustment / 100)))}</div>
-                          {(item as any).time_based_rule_name && (
-                            <div className="mt-1 text-orange-700 dark:text-orange-300 font-medium">
-                              Rule: {(item as any).time_based_rule_name}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="font-medium text-sm ml-4">
-                      {formatCurrency(item.total_price || (item.unit_price * (item.quantity || 1)))}
-                    </div>
+                    )}
                   </div>
-                  {index < quotationItems.length - 1 && (
-                    <Separator className="my-1" />
-                  )}
+                  <div className="text-right">
+                    <div className="font-semibold text-primary">{formatCurrency(item.total_price || item.unit_price)}</div>
+                  </div>
                 </div>
               );
             })}
             
-            <Separator className="my-3" />
-            
-            {/* Services Subtotal */}
-            <div className="flex justify-between text-sm font-medium">
-              <span>Services Subtotal</span>
-              <span>{formatCurrency(totals.serviceTotal)}</span>
-            </div>
-            
-            {/* Package Total - Only show when selectedPackage exists and has a positive total */}
-            {selectedPackage && totals.packageTotal > 0 && (
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm text-purple-600 font-medium">
-                  <div>
-                    <div>Package: {selectedPackage.name}</div>
-                    <div className="text-xs text-muted-foreground mt-1 pl-2">
-                      <strong>Services Included:</strong>
-                      {selectedPackage.items && selectedPackage.items.length > 0 ? (
-                        selectedPackage.items.map((pkgItem, idx) => (
-                          <div key={idx} className="text-purple-600 text-xs font-medium">
-                            • {pkgItem.name}
-                            {pkgItem.vehicle_type && (
-                              <span className="text-muted-foreground ml-1">({pkgItem.vehicle_type})</span>
-                            )}
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-purple-600 text-xs font-medium">• All package services included</div>
-                      )}
-                    </div>
-                  </div>
-                  <span>{formatCurrency(totals.packageTotal)}</span>
+            {/* Summary Section */}
+            <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Summary</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Services Subtotal</span>
+                  <span>{formatCurrency(totals.serviceTotal)}</span>
                 </div>
-              </div>
-            )}
-            
-            <Separator className="my-2" />
-            
-            {/* Subtotal */}
-            <div className="flex justify-between text-sm font-medium">
-              <span>Subtotal</span>
-              <span>{formatCurrency(totals.baseTotal)}</span>
-            </div>
-            
-            {/* Promotion Discount (if applied) */}
-            {totals.promotionDiscount > 0 && (
-              <div className="flex justify-between text-sm text-green-600">
-                <span>Promotion: {selectedPromotion?.name}</span>
-                <span>-{formatCurrency(totals.promotionDiscount)}</span>
-              </div>
-            )}
-            
-            {/* Regular Discount (if applied) */}
-            {totals.regularDiscount > 0 && (
-              <div className="flex justify-between text-sm text-red-600">
-                <span>Discount ({discountPercentage || 0}%)</span>
-                <span>-{formatCurrency(totals.regularDiscount)}</span>
-              </div>
-            )}
-            
-            {(totals.promotionDiscount > 0 || totals.regularDiscount > 0) && (
-              <>
-                <Separator className="my-1" />
-                <div className="flex justify-between text-sm font-medium">
+                
+                {totals.promotionDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Promotion: {selectedPromotion?.name}</span>
+                    <span>-{formatCurrency(totals.promotionDiscount)}</span>
+                  </div>
+                )}
+                
+                {totals.regularDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Discount ({discountPercentage || 0}%)</span>
+                    <span>-{formatCurrency(totals.regularDiscount)}</span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between text-sm">
                   <span>Subtotal</span>
                   <span>{formatCurrency(totals.subtotal)}</span>
                 </div>
-              </>
-            )}
-            
-            {(taxPercentage || 0) > 0 && (
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Tax ({taxPercentage || 0}%)</span>
-                <span>+{formatCurrency(totals.taxAmount)}</span>
+                
+                {(taxPercentage || 0) > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span>Tax ({taxPercentage || 0}%)</span>
+                    <span>+{formatCurrency(totals.taxAmount)}</span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between text-lg font-bold border-t pt-2">
+                  <span>Total Amount Due</span>
+                  <span className="text-primary">{formatCurrency(totals.finalTotal)}</span>
+                </div>
               </div>
-            )}
-            
-            <Separator className="my-2 border-2" />
-            
-            <div className="flex justify-between font-bold text-base">
-              <span>Total Amount</span>
-              <span>{formatCurrency(totals.finalTotal)}</span>
             </div>
           </div>
         </CardContent>

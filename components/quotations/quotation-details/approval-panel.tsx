@@ -71,16 +71,18 @@ export function QuotationDetailsApprovalPanel({
     >
       <Card className="border-2 border-dashed border-muted-foreground/20 hover:border-primary/40 transition-all duration-300 bg-gradient-to-br from-background to-muted/20">
         {!hideHeader && (
-          <CardHeader className="text-center pb-4">
-            <div className="mx-auto mb-3 p-3 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full w-fit">
-              <CheckCircle className="h-8 w-8 text-primary" />
+          <CardHeader className="pb-4">
+            <div className="flex items-center mb-4">
+              <CheckCircle className="h-6 w-6 mr-3 text-primary" />
+              <div>
+                <CardTitle className="text-xl font-semibold">
+                  {t('quotations.details.approvalPanel.title') || 'Quotation Approval'}
+                </CardTitle>
+                <CardDescription className="text-sm text-muted-foreground">
+                  {t('quotations.details.approvalPanel.description') || 'Review this quotation and either approve to proceed or reject with detailed feedback.'}
+                </CardDescription>
+              </div>
             </div>
-            <CardTitle className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              {t('quotations.details.approvalPanel.title') || 'Quotation Approval'}
-            </CardTitle>
-            <CardDescription className="text-muted-foreground">
-              {t('quotations.details.approvalPanel.description') || 'Review this quotation and either approve to proceed or reject with detailed feedback.'}
-            </CardDescription>
           </CardHeader>
         )}
         

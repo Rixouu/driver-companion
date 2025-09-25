@@ -553,7 +553,7 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
                               status === 'rejected' && "bg-red-500",
                               status === 'draft' && "bg-gray-500",
                               status === 'sent' && "bg-yellow-500",
-                              status === 'expired' && "bg-orange-500",
+                              status === 'expired' && "bg-red-500",
                               status === 'converted' && "bg-purple-500"
                             )} />
                             <span className="capitalize font-medium">{status}</span>

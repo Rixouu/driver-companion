@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, parseISO, addDays } from 'date-fns';
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting';
 import { toast } from '@/components/ui/use-toast';
 import { useI18n } from '@/lib/i18n/context';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +29,7 @@ import {
   FileText,
   Building,
   User,
+  AlertTriangle,
   StickyNote,
   CreditCard,
   Edit,
@@ -431,7 +433,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
         });
         setTimeout(() => {
           setProgressOpen(false);
-          router.refresh();
+        router.refresh();
         }, 500);
       } else {
         throw new Error('Failed to send quotation');
@@ -462,7 +464,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
         setShouldMoveToMainContent(false);
       }
     };
-    
+
     window.addEventListener('scroll', handleScroll);
     
     return () => {
@@ -500,8 +502,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               <div className="flex items-start gap-4 flex-1 min-w-0">
                 <div className="flex-1 min-w-0">
                   <h1 className="text-2xl font-bold mb-2 break-words">
-                    {quotation.title || t('quotations.details.untitled')}
-                  </h1>
+            {quotation.title || t('quotations.details.untitled')}
+          </h1>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <p className="text-muted-foreground">
                       {t('quotations.details.quotationNumber', { defaultValue: 'Quotation Number #{id}' }).replace('{id}', formattedQuoteNumber)}
@@ -511,24 +513,57 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                         </span>
                       )}
                     </p>
-                    <Badge variant="outline" className={
-                      quotation.status === 'converted' ? "text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20" :
-                      (quotation.status === 'paid' || (quotation as any).payment_completed_at) ? "text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20" :
-                      (quotation.status === 'approved' || (quotation as any).approved_at) ? "text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20" :
-                      quotation.status === 'sent' ? "text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20" :
-                      (quotation.status === 'rejected' || (quotation as any).rejected_at) ? "text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20" :
-                      "text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20"
-                    }>
-                      {quotation.status === 'converted' ? (t('quotations.status.converted') || 'Converted to Booking') :
-                       (quotation.status === 'paid' || (quotation as any).payment_completed_at) ? (t('quotations.status.paid') || 'Paid') :
-                       (quotation.status === 'approved' || (quotation as any).approved_at) ? (t('quotations.status.approved') || 'Approved') :
-                       (quotation.status === 'rejected' || (quotation as any).rejected_at) ? (t('quotations.status.rejected') || 'Rejected') :
-                       t(`quotations.status.${quotation.status}`)}
-                    </Badge>
+                    {/* Only show status badge if not expired */}
+                    {(() => {
+                      const now = new Date();
+                      const createdDate = new Date(quotation.created_at);
+                      const properExpiryDate = addDays(createdDate, 3);
+                      const isExpired = now > properExpiryDate;
+                      
+                      // Hide the status badge if expired and it's a draft/sent quotation
+                      if (isExpired && (quotation.status === 'draft' || quotation.status === 'sent') && !(quotation as any).approved_at && !(quotation as any).rejected_at) {
+                        return null;
+                      }
+                      
+                      return (
+                        <Badge variant="outline" className={
+                          quotation.status === 'converted' ? "text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20" :
+                          (quotation.status === 'paid' || (quotation as any).payment_completed_at) ? "text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20" :
+                          (quotation.status === 'approved' || (quotation as any).approved_at) ? "text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20" :
+                          quotation.status === 'sent' ? "text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20" :
+                          (quotation.status === 'rejected' || (quotation as any).rejected_at) ? "text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20" :
+                          "text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20"
+                        }>
+                          {quotation.status === 'converted' ? (t('quotations.status.converted') || 'Converted to Booking') :
+                           (quotation.status === 'paid' || (quotation as any).payment_completed_at) ? (t('quotations.status.paid') || 'Paid') :
+                           (quotation.status === 'approved' || (quotation as any).approved_at) ? (t('quotations.status.approved') || 'Approved') :
+                           (quotation.status === 'rejected' || (quotation as any).rejected_at) ? (t('quotations.status.rejected') || 'Rejected') :
+                           t(`quotations.status.${quotation.status}`)}
+                        </Badge>
+                      );
+                    })()}
+                    
+                    {/* Expired Status Display - Only show if not expired, otherwise hide the Sent badge */}
+                    {(() => {
+                      const now = new Date();
+                      const createdDate = new Date(quotation.created_at);
+                      const properExpiryDate = addDays(createdDate, 3);
+                      const isExpired = now > properExpiryDate;
+                      
+                      // Only show expired status for draft/sent quotations that are not approved
+                      if (isExpired && (quotation.status === 'draft' || quotation.status === 'sent') && !(quotation as any).approved_at && !(quotation as any).rejected_at) {
+                        return (
+                          <Badge variant="outline" className="text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20">
+                            Expired
+                          </Badge>
+                        );
+                      }
+                      return null;
+                    })()}
                 </div>
               </div>
-            </div>
-            
+        </div>
+        
               {/* Share and Edit buttons moved to top right */}
               <div className="flex flex-col sm:flex-row flex-wrap gap-2 flex-shrink-0">
                 <QuotationShareButtons quotation={quotation} />
@@ -538,7 +573,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       <Edit className="h-4 w-4" />
                       {t('quotations.actions.edit')}
                     </Link>
-                  </Button>
+          </Button>
                 )}
               </div>
             </div>
@@ -547,6 +582,16 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             {/* Next Step Indicator */}
           {(() => {
             const getNextStep = () => {
+              // Check if quotation is expired - hide next step banner
+              const now = new Date();
+              const createdDate = new Date(quotation.created_at);
+              const properExpiryDate = addDays(createdDate, 3);
+              const isExpired = now > properExpiryDate;
+              
+              if (isExpired && (quotation.status === 'draft' || quotation.status === 'sent') && !(quotation as any).approved_at && !(quotation as any).rejected_at) {
+                return null; // Hide next step banner when expired
+              }
+              
               // Check if payment is completed first
               if ((quotation as any).payment_completed_at) {
                 if ((quotation as any).booking_created_at) {
@@ -579,6 +624,36 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             };
             
             const nextStep = getNextStep();
+            
+            // Check if quotation is expired - show red expired block instead of next step
+            const now = new Date();
+            const createdDate = new Date(quotation.created_at);
+            const properExpiryDate = addDays(createdDate, 3);
+            const isExpired = now > properExpiryDate;
+            
+            if (isExpired && (quotation.status === 'draft' || quotation.status === 'sent') && !(quotation as any).approved_at && !(quotation as any).rejected_at) {
+              const daysUntilExpiry = Math.ceil((properExpiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+              return (
+                <div className="px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                    <span className="text-sm text-red-700 dark:text-red-300 font-medium">
+                      Expired
+                    </span>
+                    <span className="text-xs text-red-600 dark:text-red-400">
+                      (Expired {Math.abs(daysUntilExpiry)} day{Math.abs(daysUntilExpiry) !== 1 ? 's' : ''} ago)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      Valid until {formatDateDDMMYYYY(properExpiryDate)} at {format(properExpiryDate, 'h:mm a')}
+                    </span>
+                  </div>
+                </div>
+              );
+            }
+            
             if (nextStep) {
               return (
                 <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -629,32 +704,32 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     onSuccess={() => router.refresh()} 
                   />
                   {isOrganizationMember && quotation.status === 'draft' && (
-                    <Button 
+            <Button
                       onClick={() => workflowRef.current?.openSendQuotationDialog()} 
-                      disabled={isLoading} 
+              disabled={isLoading}
                       className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                    >
+            >
                       <Mail className="h-4 w-4" />
                       Send Quotation
-                    </Button>
+            </Button>
                   )}
                 </>
-              )}
-              
+          )}
+          
               {/* Regenerate Magic Link Button - Show for all statuses */}
               {isOrganizationMember && (
-                <Button 
-                  variant="outline" 
+            <Button
+              variant="outline"
                   onClick={() => setIsMagicLinkDialogOpen(true)} 
                   disabled={isLoading}
                   className="w-full sm:w-auto gap-2"
-                >
+            >
                   <RefreshCw className="h-4 w-4" />
                   Send New Magic Link
-                </Button>
-              )}
-            </div>
-          </div>
+            </Button>
+          )}
+        </div>
+      </div>
         </CardContent>
       </Card>
       
@@ -662,7 +737,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
       {isLoading && (
         <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50">
           <div className="bg-card border rounded-lg p-6 shadow-lg">
-            <LoadingSpinner />
+          <LoadingSpinner />
             <p className="text-center mt-4 text-muted-foreground">Processing quotation...</p>
           </div>
         </div>
@@ -674,8 +749,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 xl:gap-6">
             {/* Main Content Skeleton */}
             <div className="xl:col-span-2 space-y-4 xl:space-y-6">
-              <Card>
-                <CardContent className="pt-6">
+          <Card>
+            <CardContent className="pt-6">
                   <div className="space-y-4">
                     {/* Customer Info Skeleton */}
                     <div className="space-y-3">
@@ -685,14 +760,14 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                           <div className="h-20 bg-muted animate-pulse rounded-lg" />
                           <div className="h-16 bg-muted animate-pulse rounded-lg" />
                           <div className="h-16 bg-muted animate-pulse rounded-lg" />
-                        </div>
+                  </div>
                         <div className="space-y-3">
                           <div className="h-20 bg-muted animate-pulse rounded-lg" />
                           <div className="h-16 bg-muted animate-pulse rounded-lg" />
                         </div>
-                      </div>
-                    </div>
-                    
+                  </div>
+                </div>
+                
                     {/* Services Skeleton */}
                     <div className="space-y-3">
                       <div className="h-6 w-24 bg-muted animate-pulse rounded" />
@@ -706,20 +781,20 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     {/* Pricing Summary Skeleton */}
                     <div className="space-y-3">
                       <div className="h-6 w-28 bg-muted animate-pulse rounded" />
-                      <div className="space-y-2">
+                    <div className="space-y-2">
                         {Array.from({ length: 4 }).map((_, i) => (
                           <div key={i} className="flex justify-between">
                             <div className="h-4 w-24 bg-muted animate-pulse rounded" />
                             <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-                          </div>
+                    </div>
                         ))}
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            </div>
-            
+                  </div>
+                  
             {/* Sidebar Skeleton */}
             <div className="xl:col-span-1 space-y-4 xl:space-y-6">
               <Card>
@@ -733,8 +808,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                           <div className="h-4 w-16 bg-muted animate-pulse rounded" />
                         </div>
                       ))}
+                      </div>
                     </div>
-                  </div>
                 </CardContent>
               </Card>
               
@@ -747,8 +822,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                         {Array.from({ length: 3 }).map((_, i) => (
                           <div key={i} className="h-10 bg-muted animate-pulse rounded" />
                         ))}
-                      </div>
-                    </div>
+                </div>
+              </div>
                   </div>
                 </CardContent>
               </Card>
@@ -758,16 +833,153 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
       )}
 
       {!loadingPricingDetails && (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 xl:gap-6">
-          {/* Main Content - 2 columns on XL screens, full width on smaller */}
-          <div className="xl:col-span-2 space-y-4 xl:space-y-6">
+        <div className="space-y-6">
+          {/* Main Content - Reorganized Layout */}
+          <div className="space-y-6">
+
+            {/* Row 2: Quotation Workflow (full width) */}
+            <QuotationWorkflow
+              ref={workflowRef}
+              quotation={{
+                id: quotation.id,
+                status: quotation.status,
+                created_at: quotation.created_at,
+                expiry_date: quotation.expiry_date,
+                last_sent_at: (quotation as any).last_sent_at,
+                reminder_sent_at: (quotation as any).reminder_sent_at,
+                approved_at: (quotation as any).approved_at,
+                rejected_at: (quotation as any).rejected_at,
+                invoice_generated_at: (quotation as any).invoice_generated_at,
+                payment_completed_at: (quotation as any).payment_completed_at,
+                payment_link_sent_at: (quotation as any).payment_link_sent_at,
+                payment_link: (quotation as any).payment_link,
+                payment_link_generated_at: (quotation as any).payment_link_generated_at,
+                payment_link_expires_at: (quotation as any).payment_link_expires_at,
+                booking_created_at: (quotation as any).booking_created_at || (quotation.status === 'converted' ? quotation.updated_at : undefined),
+                quote_number: quotation.quote_number,
+                customer_email: quotation.customer_email,
+                customer_name: quotation.customer_name,
+                amount: quotation.amount,
+                total_amount: quotation.total_amount,
+                currency: quotation.currency,
+                receipt_url: (quotation as any).receipt_url,
+              }}
+              onRefresh={() => router.refresh()}
+              onSendReminder={() => {
+                // Open the send reminder dialog instead of directly calling API
+                setIsReminderDialogOpen(true);
+              }}
+              onGenerateInvoice={async () => {
+                setIsLoading(true);
+                setProgressOpen(true);
+                setProgressVariant('invoice');
+                setProgressTitle('Sending Invoice');
+                
+                try {
+                  // Start progress simulation
+                  const progressPromise = startProgress({
+                    steps: [
+                      { label: 'Preparing invoice...', value: 30 },
+                      { label: 'Generating PDF...', value: 60 },
+                      { label: 'Sending email...', value: 90 }
+                    ],
+                    totalDuration: 2000
+                  });
+                  
+                  // First generate the invoice PDF
+                  const response = await fetch('/api/quotations/generate-invoice-pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                      quotation_id: quotation.id,
+                      language: 'en'
+                    })
+                  });
+                  
+                  if (response.ok) {
+                    const pdfBlob = await response.blob();
+                    
+                    // Send the PDF via email using the same logic as QuotationInvoiceButton
+                    const formData = new FormData();
+                    formData.append('email', quotation.customer_email);
+                    formData.append('quotation_id', quotation.id);
+                    formData.append('customer_name', quotation.customer_name || 'Customer');
+                    formData.append('include_details', 'true');
+                    formData.append('language', 'en');
+                    formData.append('payment_link', '');
+                    const formattedId = `INV-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}`;
+                    formData.append('invoice_pdf', pdfBlob, `${formattedId}.pdf`);
+                    
+                    const emailResponse = await fetch('/api/quotations/send-invoice-email', {
+                      method: 'POST',
+                      body: formData,
+                    });
+                    
+                    // Wait for progress to complete
+                    await progressPromise;
+                    
+                    if (emailResponse.ok) {
+                      // Update the quotation status to mark invoice as generated
+                      try {
+                        await fetch(`/api/quotations/${quotation.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            invoice_generated_at: new Date().toISOString()
+                          })
+                        });
+                      } catch (error) {
+                        console.error('Error updating invoice status:', error);
+                      }
+                      
+                      toast({
+                        title: "Invoice sent successfully",
+                        variant: 'default',
+                      });
+                      setTimeout(() => {
+                        setProgressOpen(false);
+                        router.refresh();
+                      }, 500);
+                    } else {
+                      throw new Error('Failed to send invoice email');
+                    }
+                  } else {
+                    throw new Error('Failed to generate invoice');
+                  }
+                } catch (error) {
+                  console.error('Error sending invoice:', error);
+                  toast({
+                    title: "Failed to send invoice",
+                    description: "Please try again later",
+                    variant: 'destructive',
+                  });
+                  setTimeout(() => setProgressOpen(false), 1000);
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              onSendPaymentLink={() => {
+                // Open the payment link dialog in QuotationWorkflow
+                workflowRef.current?.openPaymentLinkDialog();
+              }}
+              onCreateBooking={async () => {
+                // This is now handled in the QuotationWorkflow component
+                // No need to duplicate the conversion logic here
+              }}
+              isOrganizationMember={isOrganizationMember}
+            />
+
+            {/* Row 3: Customer Information (full width) */}
             <Card>
               <CardContent className="pt-6">
               {/* Customer Information - Clean Design */}
               <div className="mb-6">
                 <div className="flex items-center mb-4">
-                  <User className="h-5 w-5 mr-2 text-primary" />
-                  <h2 className="text-xl font-semibold">{t('quotations.details.customerInfo')}</h2>
+                  <User className="h-6 w-6 mr-3 text-primary" />
+                  <div>
+                    <h2 className="text-xl font-semibold">{t('quotations.details.customerInfo')}</h2>
+                    <p className="text-sm text-muted-foreground">Contact and billing details</p>
+                  </div>
                 </div>
                 
                 <Card>
@@ -776,107 +988,113 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       {/* Contact Information */}
                       <div className="space-y-4">
                         <div className="flex items-center gap-3 mb-4">
-                          <div className="p-2 rounded-lg bg-muted">
-                            <User className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-lg">{t('quotations.details.contactInfo')}</h3>
-                            <p className="text-sm text-muted-foreground">{t('quotations.details.primaryContact')}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <div className="flex-1">
-                              <span className="text-xs text-muted-foreground font-medium">{t('quotations.details.customerName')}</span>
-                              <div className="font-semibold">{quotation.customer_name || t('common.notAvailable')}</div>
-                            </div>
-                          </div>
                           
-                          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-                            <Mail className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                            <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">{t('quotations.details.contactInfo')}</h4>
+                      </div>
+                      </div>
+                      
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                              <User className="h-5 w-5 text-foreground" />
+                            </div>
                             <div className="flex-1">
-                              <span className="text-xs text-muted-foreground font-medium">{t('quotations.details.email')}</span>
-                              <div className="font-semibold">{quotation.customer_email}</div>
+                              <div className="font-semibold text-lg">{quotation.customer_name || t('common.notAvailable')}</div>
+                              <span className="text-xs text-muted-foreground font-normal">Full Name</span>
+                            </div>
+                      </div>
+                      
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                              <Mail className="h-5 w-5 text-foreground" />
+                        </div>
+                            <div className="flex-1">
+                              <div className="font-semibold text-lg">{quotation.customer_email}</div>
+                              <span className="text-xs text-muted-foreground font-normal">{t('quotations.details.email')}</span>
                             </div>
                           </div>
                           
                           {quotation.customer_phone && (
-                            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-                              <Phone className="h-4 w-4 text-muted-foreground" />
-                              <div className="flex-1">
-                                <span className="text-xs text-muted-foreground font-medium">{t('quotations.details.phone')}</span>
-                                <div className="font-semibold">{quotation.customer_phone}</div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                                <Phone className="h-5 w-5 text-foreground" />
                               </div>
-                            </div>
-                          )}
+                              <div className="flex-1">
+                                <div className="font-semibold text-lg">{quotation.customer_phone}</div>
+                                <span className="text-xs text-muted-foreground font-normal">{t('quotations.details.phone')}</span>
+                              </div>
                         </div>
-                      </div>
-                      
+                      )}
+                    </div>
+                  </div>
+                
                       {/* Billing Address if available */}
                       {(quotation.billing_company_name || 
                         quotation.billing_tax_number || 
                         quotation.billing_street_name || 
                         quotation.billing_city ||
                         quotation.billing_country) && (
-                        <div className="space-y-4">
+                    <div className="space-y-4">
                           <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 rounded-lg bg-muted">
-                              <Building className="h-5 w-5 text-muted-foreground" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-lg">{t('quotations.details.billingAddress')}</h3>
-                              <p className="text-sm text-muted-foreground">{t('quotations.details.invoicingDetails')}</p>
-                            </div>
-                          </div>
+                  
+                  <div>
+                              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">{t('quotations.details.billingAddress')}</h4>
+                        </div>
+                        </div>
                           
-                          <div className="space-y-3">
+                          <div className="space-y-4">
                             {quotation.billing_company_name && (
-                              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-                                <Building className="h-4 w-4 text-muted-foreground" />
-                                <div className="flex-1">
-                                  <span className="text-xs text-muted-foreground font-medium">{t('quotations.details.companyName')}</span>
-                                  <div className="font-semibold">{quotation.billing_company_name}</div>
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                                  <Building className="h-5 w-5 text-foreground" />
                                 </div>
-                              </div>
-                            )}
+                                <div className="flex-1">
+                                  <div className="font-semibold text-lg">{quotation.billing_company_name}</div>
+                                  <span className="text-xs text-muted-foreground font-normal">{t('quotations.details.companyName')}</span>
+                                </div>
+                        </div>
+                      )}
                             
                             {quotation.billing_tax_number && (
-                              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-                                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                                  <CreditCard className="h-5 w-5 text-foreground" />
+                    </div>
                                 <div className="flex-1">
-                                  <span className="text-xs text-muted-foreground font-medium">{t('quotations.details.taxId')}</span>
-                                  <div className="font-semibold">{quotation.billing_tax_number}</div>
-                                </div>
-                              </div>
+                                  <div className="font-semibold text-lg">{quotation.billing_tax_number}</div>
+                                  <span className="text-xs text-muted-foreground font-normal">{t('quotations.details.taxId')}</span>
+                  </div>
+                </div>
                             )}
                             
                             {(quotation.billing_street_name || quotation.billing_city || quotation.billing_country) && (
-                              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-                                <MapPin className="h-4 w-4 text-muted-foreground" />
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                                  <MapPin className="h-5 w-5 text-foreground" />
+                          </div>
                                 <div className="flex-1">
-                                  <span className="text-xs text-muted-foreground font-medium">{t('quotations.details.address')}</span>
-                                  <div className="space-y-0.5 text-sm">
+                                  <div className="space-y-0.5 font-semibold text-lg">
                                     {quotation.billing_street_name && (
                                       <div className="font-medium">
                                         {quotation.billing_street_name} {quotation.billing_street_number || ''}
-                                      </div>
-                                    )}
+                        </div>
+                      )}
                                     {(quotation.billing_city || quotation.billing_state || quotation.billing_postal_code) && (
-                                      <div>
+                          <div>
                                         {quotation.billing_city}
                                         {quotation.billing_state && quotation.billing_city ? `, ${quotation.billing_state}` : quotation.billing_state}
                                         {quotation.billing_postal_code && (quotation.billing_city || quotation.billing_state) ? ' ' : ''}
                                         {quotation.billing_postal_code}
-                                      </div>
-                                    )}
-                                    {quotation.billing_country && <div className="font-medium">{quotation.billing_country}</div>}
+                                        {quotation.billing_country && ` ${quotation.billing_country}`}
+                        </div>
+                      )}
                                   </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                                  <span className="text-xs text-muted-foreground font-normal">Billing Address</span>
+                    </div>
+                  </div>
+                )}
+              </div>
                         </div>
                       )}
                       
@@ -890,12 +1108,12 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                           <div className="flex items-center gap-3 mb-4">
                             <div className="p-2 rounded-lg bg-muted">
                               <Building className="h-5 w-5 text-muted-foreground" />
-                            </div>
-                            <div>
+                    </div>
+                        <div>
                               <h3 className="font-semibold text-lg">{t('quotations.details.billingAddress')}</h3>
                               <p className="text-sm text-muted-foreground">{t('quotations.details.noBillingInfo')}</p>
-                            </div>
                           </div>
+                        </div>
                           
                           <div className="p-4 bg-muted/30 rounded-lg border-2 border-dashed border-muted-foreground/20">
                             <p className="text-sm text-muted-foreground text-center">
@@ -905,467 +1123,140 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                         </div>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <Separator className="my-6" />
-              
-              {/* Selected Services Section using ServiceCard */}
-              {quotation.quotation_items && quotation.quotation_items.length > 0 && (
-                <div className="mb-6">
-                  <div className="flex items-center mb-4">
-                    <Car className="h-5 w-5 mr-2 text-primary" />
-                    <h2 className="text-xl font-semibold">{t('quotations.details.selectedServices')} ({quotation.quotation_items.length})</h2>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {quotation.quotation_items.map((item, index) => {
-                      // Convert QuotationItem to ServiceItemInput format for ServiceCard
-                      const serviceItem = {
-                        description: item.description,
-                        service_type_id: item.service_type_id || '',
-                        service_type_name: item.service_type_name || '',
-                        vehicle_category: item.vehicle_category as string || '',
-                        vehicle_type: item.vehicle_type || '',
-                        duration_hours: item.duration_hours || 1,
-                        service_days: item.service_days || 1,
-                        hours_per_day: item.hours_per_day || null,
-                        unit_price: item.unit_price,
-                        total_price: item.total_price,
-                        quantity: item.quantity,
-                        sort_order: item.sort_order || index,
-                        is_service_item: item.is_service_item !== false,
-                        pickup_date: item.pickup_date || null,
-                        pickup_time: item.pickup_time || null,
-                        pickup_location: (item as any).pickup_location || '',
-                        dropoff_location: (item as any).dropoff_location || '',
-                        number_of_passengers: (item as any).number_of_passengers || null,
-                        number_of_bags: (item as any).number_of_bags || null,
-                        flight_number: (item as any).flight_number || '',
-                        terminal: (item as any).terminal || '',
-                        time_based_adjustment: (item as any).time_based_adjustment,
-                        time_based_rule_name: (item as any).time_based_rule_name,
-                      };
-                      
-                      return (
-                        <ServiceCard
-                          key={item.id}
-                          item={serviceItem}
-                          index={index}
-                          formatCurrency={formatCurrency}
-                          packages={selectedPackage ? [selectedPackage] : []}
-                          selectedPackage={selectedPackage}
-                          showActions={false}
-                        />
-                      );
-                    })}
-                    
-                    <div className="pt-2 pb-4 flex justify-between items-center font-medium text-sm border-t">
-                      <span>Total Amount (before discount/tax):</span>
-                      <span>{formatCurrency(quotation.quotation_items.reduce((total, item) => {
-                        // For Charter Services, calculate total based on duration (unit_price × service_days)
-                        if (item.service_type_name?.toLowerCase().includes('charter')) {
-                          const calculatedTotal = item.unit_price * (item.service_days || 1);
-                          return total + calculatedTotal;
-                        }
-                        // For other services, use existing logic
-                        return total + (item.total_price || item.unit_price);
-                      }, 0))}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <Separator className="my-6" />
-
-              {/* ✅ ENHANCED PRICING SUMMARY with Dynamic Currency */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Calculator className="h-5 w-5 text-primary" />
-                    <h2 className="text-xl font-semibold">{t('quotations.details.priceDetails')}</h2>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {currencyLoading && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <div className="h-3 w-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                        <span>Loading rates...</span>
-                      </div>
-                    )}
-                    <CurrencySelector
-                      selectedCurrency={selectedCurrency}
-                      onCurrencyChange={handleCurrencyChange}
-                      baseCurrency="JPY"
-                      compact={true}
-                      showRefreshButton={true}
-                      showRateInfo={true}
-                    />
-                  </div>
-                </div>
-                
-                <PricingSummary 
-                  quotationItems={quotation.quotation_items || []}
-                  selectedPackage={selectedPackage}
-                  selectedPromotion={selectedPromotion}
-                  discountPercentage={quotation.discount_percentage || 0}
-                  taxPercentage={quotation.tax_percentage || 0}
-                  formatCurrency={formatCurrency}
-                />
-              </div>
-
-
-              
-              {/* Conditional Approval Panel placement - under price details when scrolled */}
-              {shouldMoveToMainContent && ['draft', 'sent'].includes(quotation.status) && !['approved', 'paid', 'rejected', 'converted'].includes(quotation.status) && !(quotation as any).approved_at && !(quotation as any).payment_completed_at && !(quotation as any).rejected_at && (
-                <div className="mt-6">
-                  <QuotationDetailsApprovalPanel 
-                    isProcessing={isLoading}
-                    customerName={quotation.customer_name}
-                    quotation={quotation as any}
-                    onApprove={async (notes, signature, bccEmails) => {
-                      setIsLoading(true);
-                      setProgressOpen(true);
-                      setProgressVariant('approval');
-                      setProgressTitle('Approving Quotation');
-                      
-                      try {
-                        // Start progress simulation and API call in parallel
-                        const progressPromise = startProgress(progressConfigs.approval);
-                        
-                        const apiCall = fetch('/api/quotations/approve-optimized', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            id: quotation.id,
-                            notes: notes,
-                            signature: signature,
-                            bcc_emails: bccEmails
-                          }),
-                        });
-                        
-                        // Wait for both to complete
-                        const [_, response] = await Promise.all([progressPromise, apiCall]);
-                        const success = response.ok;
-                        
-                        if (success) {
-                          toast({
-                            title: t('quotations.notifications.approveSuccess'),
-                            variant: 'default',
-                          });
-                          setTimeout(() => {
-                            setProgressOpen(false);
-                            router.refresh();
-                          }, 500);
-                        } else {
-                          throw new Error('Failed to approve quotation');
-                        }
-                      } catch (error) {
-                        console.error('Error approving quotation:', error);
-                        toast({
-                          title: t('quotations.notifications.error'),
-                          description: 'Failed to approve quotation',
-                          variant: 'destructive',
-                        });
-                        setTimeout(() => setProgressOpen(false), 1000);
-                      } finally {
-                        setIsLoading(false);
-                      }
-                    }}
-                    onReject={async (reason, signature, bccEmails) => {
-                      setIsLoading(true);
-                      setProgressOpen(true);
-                      setProgressVariant('rejection');
-                      setProgressTitle('Rejecting Quotation');
-                      
-                      try {
-                        // Start progress simulation and API call in parallel
-                        const progressPromise = startProgress(progressConfigs.rejection);
-                        
-                        const apiCall = fetch('/api/quotations/reject-optimized', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            id: quotation.id,
-                            email: quotation.customer_email,
-                            reason: reason,
-                            signature: signature,
-                            language: 'en',
-                            bcc_emails: bccEmails
-                          }),
-                        });
-                        
-                        // Wait for both to complete
-                        const [_, response] = await Promise.all([progressPromise, apiCall]);
-                        const success = response.ok;
-                        
-                        if (success) {
-                          toast({
-                            title: t('quotations.notifications.rejectSuccess'),
-                            variant: 'default',
-                          });
-                          setTimeout(() => {
-                            setProgressOpen(false);
-                            router.refresh();
-                          }, 500);
-                        } else {
-                          throw new Error('Failed to reject quotation');
-                        }
-                      } catch (error) {
-                        console.error('Error rejecting quotation:', error);
-                        toast({
-                          title: t('quotations.notifications.error'),
-                          description: 'Failed to reject quotation',
-                          variant: 'destructive',
-                        });
-                        setTimeout(() => setProgressOpen(false), 1000);
-                      } finally {
-                        setIsLoading(false);
-                      }
-                    }}
-                  />
-                </div>
-              )}
-              
-
             </CardContent>
           </Card>
-          
-
-        </div>
-        
-        {/* Sidebar - Enhanced */}
-        <div className="xl:col-span-1 space-y-4 xl:space-y-6">
-          {/* Quotation Info Card - Now Using Component */}
-          <QuotationInfoCard 
-            quotation={{
-              id: quotation.id,
-              status: quotation.status,
-              quote_number: quotation.quote_number?.toString(),
-              created_at: quotation.created_at,
-              expiry_date: quotation.expiry_date,
-              last_sent_at: (quotation as any).last_sent_at,
-              reminder_sent_at: (quotation as any).reminder_sent_at,
-              booking_created_at: (quotation as any).booking_created_at,
-              approved_at: (quotation as any).approved_at,
-              rejected_at: (quotation as any).rejected_at,
-              payment_completed_at: (quotation as any).payment_completed_at
-            }}
-            onRefresh={() => router.refresh()}
-          />
-          
-
-          
-
-
-          {/* Quotation Workflow - Replaces "Other Actions" */}
-          <QuotationWorkflow
-            ref={workflowRef}
-            quotation={{
-              id: quotation.id,
-              status: quotation.status,
-              created_at: quotation.created_at,
-              expiry_date: quotation.expiry_date,
-              last_sent_at: (quotation as any).last_sent_at,
-              reminder_sent_at: (quotation as any).reminder_sent_at,
-              approved_at: (quotation as any).approved_at,
-              rejected_at: (quotation as any).rejected_at,
-              invoice_generated_at: (quotation as any).invoice_generated_at,
-              payment_completed_at: (quotation as any).payment_completed_at,
-              payment_link_sent_at: (quotation as any).payment_link_sent_at,
-              payment_link: (quotation as any).payment_link,
-              payment_link_generated_at: (quotation as any).payment_link_generated_at,
-              payment_link_expires_at: (quotation as any).payment_link_expires_at,
-              booking_created_at: (quotation as any).booking_created_at || (quotation.status === 'converted' ? quotation.updated_at : undefined),
-              quote_number: quotation.quote_number,
-              customer_email: quotation.customer_email,
-              customer_name: quotation.customer_name,
-              amount: quotation.amount,
-              total_amount: quotation.total_amount,
-              currency: quotation.currency,
-              receipt_url: (quotation as any).receipt_url,
-            }}
-            onRefresh={() => router.refresh()}
-            onSendReminder={() => {
-              // Open the send reminder dialog instead of directly calling API
-              setIsReminderDialogOpen(true);
-            }}
-            onGenerateInvoice={async () => {
-              setIsLoading(true);
-              setProgressOpen(true);
-              setProgressVariant('invoice');
-              setProgressTitle('Sending Invoice');
+              </div>
               
-              try {
-                // Start progress simulation
-                const progressPromise = startProgress({
-                  steps: [
-                    { label: 'Preparing invoice...', value: 30 },
-                    { label: 'Generating PDF...', value: 60 },
-                    { label: 'Sending email...', value: 90 }
-                  ],
-                  totalDuration: 2000
-                });
-                
-                // First generate the invoice PDF
-                const response = await fetch('/api/quotations/generate-invoice-pdf', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ 
-                    quotation_id: quotation.id,
-                    language: 'en'
-                  })
-                });
-                
-                if (response.ok) {
-                  const pdfBlob = await response.blob();
-                  
-                  // Send the PDF via email using the same logic as QuotationInvoiceButton
-                  const formData = new FormData();
-                  formData.append('email', quotation.customer_email);
-                  formData.append('quotation_id', quotation.id);
-                  formData.append('customer_name', quotation.customer_name || 'Customer');
-                  formData.append('include_details', 'true');
-                  formData.append('language', 'en');
-                  formData.append('payment_link', '');
-                  const formattedId = `INV-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}`;
-                  formData.append('invoice_pdf', pdfBlob, `${formattedId}.pdf`);
-                  
-                  const emailResponse = await fetch('/api/quotations/send-invoice-email', {
-                    method: 'POST',
-                    body: formData,
-                  });
-                  
-                  // Wait for progress to complete
-                  await progressPromise;
-                  
-                  if (emailResponse.ok) {
-                    // Update the quotation status to mark invoice as generated
-                    try {
-                      await fetch(`/api/quotations/${quotation.id}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          invoice_generated_at: new Date().toISOString()
-                        })
-                      });
-                    } catch (error) {
-                      console.error('Error updating invoice status:', error);
-                    }
+            </CardContent>
+          </Card>
+        
+            {/* Row 4: Services and Price Details (2 columns) */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {/* Services Section */}
+          <Card>
+                <CardContent className="pt-6">
+                  {/* Selected Services Section using ServiceCard */}
+                  {quotation.quotation_items && quotation.quotation_items.length > 0 && (
+                    <div className="mb-6">
+                      <div className="flex items-center mb-4">
+                        <Car className="h-6 w-6 mr-3 text-primary" />
+                        <div>
+                          <h2 className="text-xl font-semibold">{t('quotations.details.selectedServices')}</h2>
+                          <p className="text-sm text-muted-foreground">{quotation.quotation_items.length} services selected</p>
+                        </div>
+              </div>
+              
+                      <div className="space-y-3">
+                        {quotation.quotation_items.map((item, index) => {
+                          // Convert QuotationItem to ServiceItemInput format for ServiceCard
+                          const serviceItem = {
+                            description: item.description,
+                            service_type_id: item.service_type_id || '',
+                            service_type_name: item.service_type_name || '',
+                            vehicle_category: item.vehicle_category as string || '',
+                            vehicle_type: item.vehicle_type || '',
+                            duration_hours: item.duration_hours || 1,
+                            service_days: item.service_days || 1,
+                            hours_per_day: item.hours_per_day || null,
+                            unit_price: item.unit_price,
+                            total_price: item.total_price,
+                            quantity: item.quantity,
+                            sort_order: item.sort_order || index,
+                            is_service_item: item.is_service_item !== false,
+                            pickup_date: item.pickup_date || null,
+                            pickup_time: item.pickup_time || null,
+                            pickup_location: (item as any).pickup_location || '',
+                            dropoff_location: (item as any).dropoff_location || '',
+                            number_of_passengers: (item as any).number_of_passengers || null,
+                            number_of_bags: (item as any).number_of_bags || null,
+                            flight_number: (item as any).flight_number || '',
+                            terminal: (item as any).terminal || '',
+                            time_based_adjustment: (item as any).time_based_adjustment,
+                            time_based_rule_name: (item as any).time_based_rule_name,
+                          };
+                          
+                          return (
+                            <ServiceCard
+                              key={item.id}
+                              item={serviceItem}
+                              index={index}
+                              formatCurrency={formatCurrency}
+                              packages={selectedPackage ? [selectedPackage] : []}
+                              selectedPackage={selectedPackage}
+                              showActions={false}
+                            />
+                          );
+                        })}
+                        
+                        <div className="pt-2 pb-4 flex justify-between items-center font-medium text-sm border-t">
+                          <span>Total Amount (before discount/tax):</span>
+                          <span>{formatCurrency(quotation.quotation_items.reduce((total, item) => {
+                            // For Charter Services, calculate total based on duration (unit_price × service_days)
+                            if (item.service_type_name?.toLowerCase().includes('charter')) {
+                              const calculatedTotal = item.unit_price * (item.service_days || 1);
+                              return total + calculatedTotal;
+                            }
+                            // For other services, use existing logic
+                            return total + (item.total_price || item.unit_price);
+                          }, 0))}</span>
+                </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Price Details Section */}
+              <Card>
+                <CardContent className="pt-6">
+                  {/* ✅ ENHANCED PRICING SUMMARY with Dynamic Currency */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <Calculator className="h-6 w-6 text-primary" />
+                        <div>
+                          <h2 className="text-xl font-semibold">{t('quotations.details.priceDetails')}</h2>
+                          <p className="text-sm text-muted-foreground">Detailed pricing information</p>
+                </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {currencyLoading && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <div className="h-3 w-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                            <span>Loading rates...</span>
+                          </div>
+                        )}
+                        <CurrencySelector
+                          selectedCurrency={selectedCurrency}
+                          onCurrencyChange={handleCurrencyChange}
+                          baseCurrency="JPY"
+                          compact={true}
+                          showRefreshButton={true}
+                          showRateInfo={true}
+                        />
+                      </div>
+                    </div>
                     
-                    toast({
-                      title: "Invoice sent successfully",
-                      variant: 'default',
-                    });
-                    setTimeout(() => {
-                      setProgressOpen(false);
-                      router.refresh();
-                    }, 500);
-                  } else {
-                    throw new Error('Failed to send invoice email');
-                  }
-                } else {
-                  throw new Error('Failed to generate invoice');
-                }
-              } catch (error) {
-                console.error('Error sending invoice:', error);
-                toast({
-                  title: "Failed to send invoice",
-                  description: "Please try again later",
-                  variant: 'destructive',
-                });
-                setTimeout(() => setProgressOpen(false), 1000);
-              } finally {
-                setIsLoading(false);
-              }
-            }}
-            onSendPaymentLink={() => {
-              // Open the payment link dialog in QuotationWorkflow
-              workflowRef.current?.openPaymentLinkDialog();
-            }}
-            onCreateBooking={async () => {
-              // This is now handled in the QuotationWorkflow component
-              // No need to duplicate the conversion logic here
-            }}
-            isOrganizationMember={isOrganizationMember}
-          />
-
-          {/* Notes & Comments Section */}
-          {(quotation.customer_notes || quotation.merchant_notes || quotation.general_notes) && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Notes & Comments
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {quotation.customer_notes && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <User className="h-3 w-3 text-muted-foreground" />
-                      Customer Notes
-                    </h4>
-                    <div 
-                      className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-blue-500 whitespace-pre-wrap break-words"
-                    >
-                      {processNotesText(quotation.customer_notes)}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Notes visible to the customer on the quotation
-                    </p>
-                  </div>
-                )}
-                
-                {quotation.merchant_notes && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <StickyNote className="h-3 w-3 text-muted-foreground" />
-                      Internal Notes
-                    </h4>
-                    <div 
-                      className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-orange-500 whitespace-pre-wrap break-words"
-                    >
-                      {processNotesText(quotation.merchant_notes)}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Internal notes, not visible to the customer
-                    </p>
-                  </div>
-                )}
-                
-                {quotation.general_notes && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <FileText className="h-3 w-3 text-muted-foreground" />
-                      General Notes
-                    </h4>
-                    <div 
-                      className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-gray-500 whitespace-pre-wrap break-words"
-                    >
-                      {processNotesText(quotation.general_notes)}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      General notes and comments
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Default Approval Panel placement - in sidebar above activity feed */}
-          {!shouldMoveToMainContent && ['draft', 'sent'].includes(quotation.status) && !['approved', 'paid', 'rejected', 'converted'].includes(quotation.status) && !(quotation as any).approved_at && !(quotation as any).payment_completed_at && !(quotation as any).rejected_at && (
-            <div className="mt-4 xl:mt-6">
+                    <PricingSummary 
+                      quotationItems={quotation.quotation_items || []}
+                      selectedPackage={selectedPackage}
+                      selectedPromotion={selectedPromotion}
+                      discountPercentage={quotation.discount_percentage || 0}
+                      taxPercentage={quotation.tax_percentage || 0}
+                      formatCurrency={formatCurrency}
+                    />
+              </div>
+            </CardContent>
+          </Card>
+            </div>
+          
+            {/* Row 5: Quotation Approval (full width) */}
+            {['draft', 'sent'].includes(quotation.status) && !['approved', 'paid', 'rejected', 'converted'].includes(quotation.status) && !(quotation as any).approved_at && !(quotation as any).payment_completed_at && !(quotation as any).rejected_at && (
               <QuotationDetailsApprovalPanel 
                 isProcessing={isLoading}
                 customerName={quotation.customer_name}
                 quotation={quotation as any}
-                onApprove={async (notes, signature) => {
+                onApprove={async (notes, signature, bccEmails) => {
                   setIsLoading(true);
                   setProgressOpen(true);
                   setProgressVariant('approval');
@@ -1383,7 +1274,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       body: JSON.stringify({
                         id: quotation.id,
                         notes: notes,
-                        signature: signature
+                        signature: signature,
+                        bcc_emails: bccEmails
                       }),
                     });
                     
@@ -1392,20 +1284,16 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     const success = response.ok;
                     
                     if (success) {
-                      const responseData = await response.json();
-                      console.log('✅ [APPROVAL] API Response:', responseData);
                       toast({
                         title: t('quotations.notifications.approveSuccess'),
                         variant: 'default',
                       });
                       setTimeout(() => {
                         setProgressOpen(false);
-                        router.refresh();
+                      router.refresh();
                       }, 500);
                     } else {
-                      const errorData = await response.json();
-                      console.error('❌ [APPROVAL] API Error:', response.status, errorData);
-                      throw new Error(`API Error: ${response.status} - ${errorData.error || 'Unknown error'}`);
+                      throw new Error('Failed to approve quotation');
                     }
                   } catch (error) {
                     console.error('Error approving quotation:', error);
@@ -1419,7 +1307,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     setIsLoading(false);
                   }
                 }}
-                onReject={async (reason, signature) => {
+                onReject={async (reason, signature, bccEmails) => {
                   setIsLoading(true);
                   setProgressOpen(true);
                   setProgressVariant('rejection');
@@ -1429,7 +1317,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     // Start progress simulation and API call in parallel
                     const progressPromise = startProgress(progressConfigs.rejection);
                     
-                    const response = await fetch('/api/quotations/reject-optimized', {
+                    const apiCall = fetch('/api/quotations/reject-optimized', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -1440,12 +1328,12 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                         reason: reason,
                         signature: signature,
                         language: 'en',
-                        bcc_emails: 'booking@japandriver.com'
+                        bcc_emails: bccEmails
                       }),
                     });
                     
                     // Wait for both to complete
-                    await Promise.all([progressPromise, response]);
+                    const [_, response] = await Promise.all([progressPromise, apiCall]);
                     const success = response.ok;
                     
                     if (success) {
@@ -1455,8 +1343,10 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       });
                       setTimeout(() => {
                         setProgressOpen(false);
-                        router.refresh();
+                      router.refresh();
                       }, 500);
+                    } else {
+                      throw new Error('Failed to reject quotation');
                     }
                   } catch (error) {
                     console.error('Error rejecting quotation:', error);
@@ -1471,9 +1361,111 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   }
                 }}
               />
-            </div>
           )}
+          
+            {/* Row 6: Notes and Comments (dynamic columns) */}
+            {(() => {
+              const notesCount = [
+                quotation.customer_notes,
+                quotation.merchant_notes,
+                quotation.general_notes
+              ].filter(Boolean).length;
+              
+              if (notesCount === 0) return null;
+              
+              // Dynamic grid classes based on number of notes
+              const gridClasses = notesCount === 1 
+                ? "grid grid-cols-1" 
+                : notesCount === 2 
+                ? "grid grid-cols-1 md:grid-cols-2" 
+                : "grid grid-cols-1 md:grid-cols-3";
+              
+              return (
+                <div className="space-y-6">
+                  <div className="flex items-center mb-4">
+                    <StickyNote className="h-6 w-6 mr-3 text-primary" />
+                    <div>
+                      <h2 className="text-xl font-semibold">Notes and Comments</h2>
+                      <p className="text-sm text-muted-foreground">Additional information and feedback</p>
+            </div>
+                  </div>
+                  <div className={`${gridClasses} gap-6`}>
+                {quotation.customer_notes && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Customer Notes
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div 
+                        className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-blue-500 whitespace-pre-wrap break-words"
+                      >
+                        {processNotesText(quotation.customer_notes)}
+            </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Notes visible to the customer on the quotation
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {quotation.merchant_notes && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <StickyNote className="h-4 w-4" />
+                        Internal Notes
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div 
+                        className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-orange-500 whitespace-pre-wrap break-words"
+                      >
+                        {processNotesText(quotation.merchant_notes)}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Internal notes, not visible to the customer
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {quotation.general_notes && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        General Notes
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div 
+                        className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-gray-500 whitespace-pre-wrap break-words"
+                      >
+                        {processNotesText(quotation.general_notes)}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        General notes and comments
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+                  </div>
+                </div>
+              );
+            })()}
+
         </div>
+        
+          
+
+          
+
+
+
+
       </div>
       )}
 
@@ -1504,7 +1496,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               <p className="text-xs text-muted-foreground mt-1">
                 Email will be sent to the customer's registered email address
               </p>
-            </div>
+          </div>
             
             <div>
               <Label htmlFor="magic-link-bcc-emails">BCC Emails</Label>
@@ -1518,7 +1510,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               <p className="text-xs text-muted-foreground mt-1">
                 Default: booking@japandriver.com. Add more emails separated by commas.
               </p>
-            </div>
+        </div>
             
             <div>
               <Label>Language</Label>
@@ -1531,7 +1523,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   <SelectItem value="ja">日本語</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+      </div>
             
             <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md">
               <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100 mb-2">

@@ -1,7 +1,7 @@
 "use client";
 
 import { UseFormReturn } from 'react-hook-form';
-import { Eye, User, Mail, Phone, Building, FileText, DollarSign, Gift } from 'lucide-react';
+import { Eye, User, Mail, Phone, Building, FileText, DollarSign, Gift, Users, MapPin } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -117,7 +117,6 @@ export function PreviewStep({
               {/* Left Column - Customer Information */}
               <div className="space-y-3">
                 <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
-                  <User className="h-4 w-4" />
                   Customer Details
                 </h4>
                 <div className="space-y-3">
@@ -152,39 +151,107 @@ export function PreviewStep({
               {/* Right Column - Billing Address */}
               <div className="space-y-3">
                 <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
-                  <Building className="h-4 w-4" />
                   {t('quotations.form.preview.billingAddress')}
                 </h4>
-                {(watchedValues.billing_company_name || watchedValues.billing_street_name) ? (
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    {watchedValues.billing_company_name && (
-                      <p className="font-medium text-foreground">{watchedValues.billing_company_name}</p>
-                    )}
-                    {watchedValues.billing_tax_number && (
-                      <p>{t('quotations.form.preview.taxId')} {watchedValues.billing_tax_number}</p>
-                    )}
-                    <div>
-                      {watchedValues.billing_street_name && (
-                        <p>{watchedValues.billing_street_name} {watchedValues.billing_street_number}</p>
-                      )}
-                      {(watchedValues.billing_city || watchedValues.billing_state || watchedValues.billing_postal_code) && (
-                        <p>
-                          {[watchedValues.billing_city, watchedValues.billing_state, watchedValues.billing_postal_code]
-                            .filter(Boolean).join(', ')}
-                        </p>
-                      )}
-                      {watchedValues.billing_country && (
-                        <p>{watchedValues.billing_country}</p>
-                      )}
+                <div className="space-y-3">
+                  {watchedValues.billing_company_name && (
+                    <div className="flex items-start gap-4">
+                        <Building className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex-1">
+                        <div className="font-medium">{watchedValues.billing_company_name}</div>
+                        <div className="text-sm text-muted-foreground">Company</div>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">No billing address provided</p>
-                )}
+                  )}
+                  
+                  {watchedValues.billing_tax_number && (
+                    <div className="flex items-start gap-4">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex-1">
+                        <div className="font-medium">{watchedValues.billing_tax_number}</div>
+                        <div className="text-sm text-muted-foreground">Tax ID</div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {(watchedValues.billing_street_name || watchedValues.billing_street_number || 
+                    watchedValues.billing_city || watchedValues.billing_state || 
+                    watchedValues.billing_postal_code || watchedValues.billing_country) && (
+                    <div className="flex items-start gap-4">
+                        <Building className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex-1">
+                        <div className="font-medium">
+                          {[
+                            watchedValues.billing_street_name,
+                            watchedValues.billing_street_number,
+                            watchedValues.billing_city,
+                            watchedValues.billing_state,
+                            watchedValues.billing_postal_code,
+                            watchedValues.billing_country
+                          ].filter(Boolean).join(', ')}
+                        </div>
+                        <div className="text-sm text-muted-foreground">Address</div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {!watchedValues.billing_company_name && !watchedValues.billing_street_name && (
+                    <p className="text-sm text-muted-foreground italic">No billing address provided</p>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Passenger & Bag Details */}
+        {serviceItems.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Passenger & Bag Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {serviceItems.map((item, index) => (
+                  <div key={index} className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">Service {index + 1}:</span>
+                      <span className="text-sm text-muted-foreground">{item.service_type_name || 'Service'}</span>
+                    </div>
+                    {(item.number_of_passengers || item.number_of_bags) && (
+                      <div className="grid grid-cols-2 gap-4">
+                        {item.number_of_passengers && (
+                          <div className="flex items-center gap-3">
+                              <Users className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <div className="font-semibold text-base">{item.number_of_passengers} passengers</div>
+                              <div className="text-xs text-muted-foreground">Passengers</div>
+                            </div>
+                          </div>
+                        )}
+                        {item.number_of_bags && (
+                          <div className="flex items-center gap-3">
+                              <MapPin className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <div className="font-semibold text-base">{item.number_of_bags} bags</div>
+                              <div className="text-xs text-muted-foreground">Bags</div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {!item.number_of_passengers && !item.number_of_bags && (
+                      <div className="text-sm text-muted-foreground italic">No passenger or bag details specified</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Price Breakdown */}
         <Card>
@@ -284,7 +351,7 @@ export function PreviewStep({
 
               {/* Tax */}
               {totals.taxAmount > 0 && (
-                <div className="flex justify-between items-center text-blue-600">
+                <div className="flex justify-between items-center text-white">
                   <span className="text-sm">Tax ({watchedValues.tax_percentage || 0}%)</span>
                   <span className="font-medium">+{formatCurrency(totals.taxAmount)}</span>
                 </div>

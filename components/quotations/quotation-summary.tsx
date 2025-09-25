@@ -31,7 +31,7 @@ export function QuotationSummary({
   selectedPackage,
   selectedPromotion,
   setActiveTab,
-  selectedCurrency = selectedCurrency
+  selectedCurrency = 'JPY'
 }: QuotationSummaryProps) {
   const { t } = useI18n()
   
@@ -93,9 +93,13 @@ export function QuotationSummary({
                     {/* Service Header */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {item.is_service_item ? 'Service' : 'Package'}
-                        </Badge>
+                        <div className="w-6 h-6 bg-primary/10 rounded-lg flex items-center justify-center">
+                          {item.service_type_name?.toLowerCase().includes('airport') ? (
+                            <Plane className="h-4 w-4 text-primary" />
+                          ) : (
+                            <Car className="h-4 w-4 text-primary" />
+                          )}
+                        </div>
                         <span className="text-sm font-medium">{item.service_type_name || 'Service'}</span>
                       </div>
                     </div>
@@ -201,57 +205,7 @@ export function QuotationSummary({
                       </div>
                     )}
 
-                    {/* Time-based Pricing */}
-                    {item.time_based_adjustment && (
-                      <div className="pt-2 border-t border-muted">
-                        <div className="text-xs text-muted-foreground mb-1">Time-based Adjustment:</div>
-                        <div className="text-xs">
-                          <div className="flex items-center justify-between">
-                            <span className="text-orange-600">
-                              {item.time_based_adjustment > 0 ? '+' : ''}{item.time_based_adjustment}%
-                            </span>
-                            <span className="font-medium text-orange-600">
-                              {formatCurrency(Math.abs((item.unit_price || 0) * (item.service_days || 1) * (item.time_based_adjustment / 100)), selectedCurrency)}
-                            </span>
-                          </div>
-                          {item.time_based_rule_name && (
-                            <div className="text-xs text-orange-600 mt-1">
-                              {item.time_based_rule_name}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
 
-                    {/* Price Breakdown */}
-                    <div className="pt-2 border-t border-muted">
-                      <div className="text-xs text-muted-foreground mb-1">Price Breakdown:</div>
-                      <div className="space-y-1 text-xs">
-                        <div className="flex items-center justify-between">
-                          <span>Unit Price:</span>
-                          <span>{formatCurrency(item.unit_price || 0, selectedCurrency)}</span>
-                        </div>
-                        {item.service_days && item.service_days > 1 && (
-                          <div className="flex items-center justify-between">
-                            <span>× {item.service_days} days:</span>
-                            <span>{formatCurrency((item.unit_price || 0) * item.service_days, selectedCurrency)}</span>
-                          </div>
-                        )}
-                        {item.time_based_adjustment && (
-                          <div className="flex items-center justify-between text-orange-600">
-                            <span>Time Adjustment:</span>
-                            <span>
-                              {item.time_based_adjustment > 0 ? '+' : ''}
-                              {formatCurrency(Math.abs((item.unit_price || 0) * (item.service_days || 1) * (item.time_based_adjustment / 100)), selectedCurrency)}
-                            </span>
-                          </div>
-                        )}
-                        <div className="flex items-center justify-between font-semibold text-green-600 pt-1 border-t border-muted">
-                          <span>Total:</span>
-                          <span>{formatCurrency(item.total_price || item.unit_price || 0, selectedCurrency)}</span>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -305,7 +259,7 @@ export function QuotationSummary({
                     <span>-{formatCurrency(calculatedPrice.discountAmount, selectedCurrency)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm text-blue-600">
+                <div className="flex justify-between text-sm text-white">
                   <span>Tax ({((calculatedPrice.taxAmount / (calculatedPrice.baseAmount - calculatedPrice.discountAmount)) * 100).toFixed(0)}%):</span>
                   <span>{formatCurrency(calculatedPrice.taxAmount, selectedCurrency)}</span>
                 </div>

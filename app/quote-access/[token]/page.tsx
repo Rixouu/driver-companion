@@ -52,6 +52,12 @@ interface QuotationData {
   customer_address?: string;
   billing_company_name?: string;
   billing_tax_number?: string;
+  billing_street_name?: string;
+  billing_street_number?: string;
+  billing_city?: string;
+  billing_state?: string;
+  billing_postal_code?: string;
+  billing_country?: string;
   created_at: string;
   status: string;
   amount: number;
@@ -66,12 +72,16 @@ interface QuotationData {
   discount_percentage?: string;
   package_discount?: string;
   tax_percentage?: string;
+  pickup_location?: string;
+  dropoff_location?: string;
   quotation_items: Array<{
     id: string;
     service_type_name: string;
   vehicle_type?: string;
   pickup_date?: string;
   pickup_time?: string;
+  pickup_location?: string;
+  dropoff_location?: string;
   duration_hours?: number;
   service_days?: number;
   quantity: number;
@@ -988,7 +998,29 @@ export default function QuoteAccessPage() {
                         <MapPin className="h-5 w-5 text-primary" />
                       </div>
                       <div className="flex-1">
-                        <div className="font-semibold text-lg">{quotation.customer_address || 'Address not provided'}</div>
+                        <div className="font-semibold text-lg">
+                          {quotation.billing_street_name || quotation.billing_city || quotation.billing_country
+                            ? (
+                                <div className="space-y-0.5">
+                                  {quotation.billing_street_name && (
+                                    <div className="font-medium">
+                                      {quotation.billing_street_name} {quotation.billing_street_number || ''}
+                                    </div>
+                                  )}
+                                  {(quotation.billing_city || quotation.billing_state || quotation.billing_postal_code) && (
+                                    <div>
+                                      {quotation.billing_city}
+                                      {quotation.billing_state && quotation.billing_city ? `, ${quotation.billing_state}` : quotation.billing_state}
+                                      {quotation.billing_postal_code && (quotation.billing_city || quotation.billing_state) ? ' ' : ''}
+                                      {quotation.billing_postal_code}
+                                      {quotation.billing_country && ` ${quotation.billing_country}`}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            : quotation.customer_address || 'Address not provided'
+                          }
+                        </div>
                         <div className="text-sm text-muted-foreground">Billing Address</div>
                         </div>
                       </div>
@@ -1055,19 +1087,24 @@ export default function QuoteAccessPage() {
                       {/* Service Details Grid - Compact */}
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div>
-                          <div className="text-muted-foreground mb-1">Pickup Date</div>
+                          <div className="text-muted-foreground mb-1">Pick up Date & Time</div>
                           <div className="font-medium">
-                            {item.pickup_date ? new Date(item.pickup_date).toLocaleDateString('en-US', {
-                              weekday: 'short',
-                              month: 'short',
-                              day: 'numeric'
-                            }) : 'TBD'}
-                        </div>
+                            {item.pickup_date && item.pickup_time 
+                              ? `${new Date(item.pickup_date).toLocaleDateString('en-US', {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })} at ${item.pickup_time}`
+                              : item.pickup_date 
+                                ? new Date(item.pickup_date).toLocaleDateString('en-US', {
+                                    weekday: 'short',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })
+                                : 'TBD'
+                            }
                           </div>
-                        <div>
-                          <div className="text-muted-foreground mb-1">Pickup Time</div>
-                          <div className="font-medium">{item.pickup_time || 'TBD'}</div>
-                      </div>
+                        </div>
                         <div>
                           <div className="text-muted-foreground mb-1">Duration</div>
                           <div className="font-medium">
@@ -1078,17 +1115,26 @@ export default function QuoteAccessPage() {
                                 : 'TBD'
                             }
                           </div>
-                          </div>
+                        </div>
                         <div>
-                          <div className="text-muted-foreground mb-1">Customers & Bags</div>
+                          <div className="text-muted-foreground mb-1">Passenger & Bag Details</div>
                           <div className="font-medium">
-                            {(item as any).number_of_passengers || (item as any).number_of_bags 
-                              ? `${(item as any).number_of_passengers || 0} customers • ${(item as any).number_of_bags || 0} bags`
+                            {item.number_of_passengers || item.number_of_bags 
+                              ? `${item.number_of_passengers || 0} passengers • ${item.number_of_bags || 0} bags`
                               : 'Not specified'
                             }
                           </div>
                         </div>
+                        <div>
+                          <div className="text-muted-foreground mb-1">Locations</div>
+                          <div className="font-medium">
+                            {item.pickup_location || item.dropoff_location
+                              ? `${item.pickup_location || 'TBD'} → ${item.dropoff_location || 'TBD'}`
+                              : 'Not specified'
+                            }
+                          </div>
                         </div>
+                      </div>
                         
                       {/* Additional Info - Only if needed */}
                       {(item.quantity && item.quantity > 1) || (item.time_based_adjustment && parseFloat(item.time_based_adjustment) > 0) ? (

@@ -142,9 +142,6 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
   // Receipt information state
   const [receiptInfo, setReceiptInfo] = useState<any>(null);
   
-  // Selected step for details panel
-  const [selectedStep, setSelectedStep] = useState<string | null>(null);
-  
   // Update payment amount when quotation changes
   React.useEffect(() => {
     const newAmount = (quotation.total_amount || quotation.amount)?.toString() || "0.00";
@@ -699,7 +696,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     const steps: WorkflowStep[] = [
       {
         id: 'draft',
-        title: 'Created',
+        title: t('quotations.workflow.draft.title'),
         description: t('quotations.workflow.draft.description'),
         icon: <FileText className="h-4 w-4" />,
         status: 'completed',
@@ -707,7 +704,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       },
       {
         id: 'send',
-        title: 'Sent',
+        title: t('quotations.workflow.send.title'),
         description: t('quotations.workflow.send.description'),
         icon: <Send className="h-4 w-4" />,
         status: quotation.status === 'draft' ? 'current' : 
@@ -749,8 +746,8 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     steps.push({
       id: 'approve',
       title: quotation.status === 'rejected' 
-        ? 'Rejected'
-        : 'Approval',
+        ? (t('quotations.workflow.rejected.title') || 'Rejected')
+        : t('quotations.workflow.approve.title'),
       description: quotation.status === 'rejected'
         ? (t('quotations.workflow.rejected.description') || 'Quotation was rejected by customer')
         : t('quotations.workflow.approve.description'),
@@ -769,7 +766,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       steps.push(
         {
           id: 'payment_link_sent',
-          title: 'Payment',
+          title: 'Payment Method Selected',
           description: 'Payment link sent to customer or bank transfer method selected',
           icon: <Mail className="h-4 w-4" />,
           status: quotation.payment_completed_at ? 'completed' : 
@@ -787,7 +784,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         },
         {
           id: 'paid',
-          title: 'Confirmed',
+          title: 'Marked as Paid',
           description: 'Quotation has been marked as paid',
           icon: <CheckCircle className="h-4 w-4" />,
           status: (quotation.status === 'paid' || quotation.payment_completed_at) ? 'completed' : 'pending',
@@ -802,7 +799,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         },
         {
           id: 'booking',
-          title: 'Converted',
+          title: 'Convert to Booking',
           description: 'Convert approved quotation to a booking',
           icon: <Calendar className="h-4 w-4" />,
           status: quotation.booking_created_at ? 'completed' :
@@ -896,7 +893,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     if (quotation.status === 'converted') {
       steps.push({
         id: 'converted',
-        title: 'Converted',
+        title: 'Converted to Booking',
         description: 'Quotation has been successfully converted to a booking',
         icon: <CheckCircle className="h-4 w-4" />,
         status: 'completed',
@@ -940,35 +937,25 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center mb-4">
-          <FileText className="h-6 w-6 mr-3 text-primary" />
+    <div className="bg-muted/30 border-b">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <CardTitle className="text-xl font-semibold">
-              {t('quotations.workflow.title') || 'Quotation Workflow'}
-            </CardTitle>
-            <CardDescription className="text-sm text-muted-foreground">
-              {t('quotations.workflow.description') || 'Track the progress of this quotation through each stage'}
-            </CardDescription>
+            <h2 className="text-lg font-semibold">Quotation Workflow</h2>
+            <p className="text-sm text-muted-foreground mt-1">Track the progress of this quotation from draft to completion</p>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-2">
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-2">
+        <div className="space-y-4">
           {workflowSteps.map((step, index) => {
             const isLast = index === workflowSteps.length - 1;
+            const nextStep = workflowSteps[index + 1];
             
             return (
-              <div key={step.id} className="relative flex-1">
+              <div key={step.id} className="relative">
                 {/* Step Content */}
-                <div 
-                  className="flex items-start gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-colors"
-                  onClick={() => setSelectedStep(selectedStep === step.id ? null : step.id)}
-                >
+                <div className="flex items-start gap-4">
                   {/* Icon with status indicator */}
                   <div className={cn(
-                    "relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors flex-shrink-0",
+                    "relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors",
                     getStepStatusColor(step.status)
                   )}>
                     {step.icon}
@@ -980,72 +967,80 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                   </div>
                   
                   {/* Step Details */}
-                  <div className="flex-1 min-w-0">
-                    <h4 className={cn(
-                      "font-medium text-sm mb-1",
-                      step.status === 'completed' ? 'text-green-700 dark:text-green-300' :
-                      step.status === 'current' ? 'text-blue-700 dark:text-blue-300' :
-                      'text-gray-500 dark:text-gray-400'
-                    )}>
-                      {step.title}
-                    </h4>
-                    <p className="text-xs text-muted-foreground">
-                      Click for details
-                    </p>
-                    
-                    {/* Warning */}
-                    {step.warning && (
-                      <Badge variant="outline" className="text-xs text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20 mt-2">
-                        <AlertTriangle className="h-3 w-3 mr-1" />
-                        {step.warning}
-                      </Badge>
-                    )}
-                    
+                  <div className="flex-1 min-w-0 pb-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h4 className={cn(
+                          "font-medium text-sm",
+                          step.status === 'completed' ? 'text-green-700 dark:text-green-300' :
+                          step.status === 'current' ? 'text-blue-700 dark:text-blue-300' :
+                          'text-gray-500 dark:text-gray-400'
+                        )}>
+                          {step.title}
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {step.description}
+                        </p>
+                        
+                        {/* Date and warning */}
+                        <div className="flex items-center gap-2 mt-2">
+                          {step.date && (
+                            <Badge variant="outline" className="text-xs">
+                              {format(parseISO(step.date), 'MMM dd, yyyy \'at\' h:mm a')}
+                            </Badge>
+                          )}
+                          {step.warning && (
+                            <Badge variant="outline" className="text-xs text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              {step.warning}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {/* Action Button - positioned below step details */}
+                        {step.action && (
+                          <div className="mt-3">
+                            <Button
+                              size="sm"
+                              variant={step.action.variant || 'default'}
+                              onClick={step.action.onClick}
+                              disabled={step.action.disabled}
+                            >
+                              {step.action.label}
+                              {step.action.icon}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Remove the old action button position */}
+                      {/* {step.action && (
+                        <div className="ml-3 flex-shrink-0 self-start">
+                          <Button
+                            size="sm"
+                            variant={step.action.variant || 'default'}
+                            onClick={step.action.onClick}
+                            disabled={step.action.disabled}
+                          >
+                            {step.action.label}
+                          </Button>
+                        </div>
+                      )} */}
+                    </div>
                   </div>
                 </div>
                 
+                {/* Connector Line */}
+                {!isLast && (
+                  <div className={cn(
+                    "absolute left-5 top-10 w-0.5 h-6 transition-colors",
+                    getConnectorColor(step.status, nextStep?.status)
+                  )} />
+                )}
               </div>
             );
           })}
         </div>
-
-        {/* Details Panel */}
-        {selectedStep && (() => {
-          const step = workflowSteps.find(s => s.id === selectedStep);
-          if (!step) return null;
-          
-            return (
-              <div className="mt-4 p-4 bg-muted/30 rounded-lg border">
-                <div className="space-y-2">
-                  <h4 className={cn(
-                    "font-semibold",
-                    step.status === 'completed' ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
-                  )}>
-                    {step.status === 'completed' ? '✓' : '⏳'} {step.title}
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    {step.status === 'completed' && step.date 
-                      ? `${step.description} on ${format(parseISO(step.date), 'MMM dd, yyyy \'at\' h:mm:ss a')}`
-                      : step.status === 'current'
-                      ? step.description
-                      : `⏳ Not ${step.title} Yet`
-                    }
-                  </p>
-                  {step.status === 'current' && step.action && (
-                    <div className="mt-3">
-                      <Button
-                        onClick={step.action.onClick}
-                        disabled={step.action.disabled}
-                        className="w-full"
-                      >
-                        {step.action.label}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-        })()}
 
         {/* Summary Status */}
         <Separator className="my-4" />
@@ -1061,7 +1056,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                  quotation.status === 'sent' ? 'text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20' :
                  'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
                }>
-                 {quotation.status === 'converted' ? (t('quotations.status.converted') || 'Converted') :
+                 {quotation.status === 'converted' ? (t('quotations.status.converted') || 'Converted to Booking') :
                   (quotation.status === 'paid' || quotation.payment_completed_at) ? (t('quotations.status.paid') || 'Paid') :
                   (quotation.status === 'approved' || quotation.approved_at) ? (t('quotations.status.approved') || 'Approved') :
                   (quotation.status === 'rejected' || quotation.rejected_at) ? (t('quotations.status.rejected') || 'Rejected') :

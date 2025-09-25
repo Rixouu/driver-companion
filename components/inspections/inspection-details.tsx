@@ -406,14 +406,14 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
             <CardContent>
               {inspection.vehicle ? (
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="w-full sm:w-80 h-48 sm:h-56 bg-muted rounded-md overflow-hidden relative flex-shrink-0">
+                  <div className="w-full sm:w-96 h-48 sm:h-56 bg-white rounded-md overflow-hidden relative flex-shrink-0">
                     {inspection.vehicle.image_url ? (
                         <Image 
                           src={inspection.vehicle.image_url} 
                           alt={inspection.vehicle.name || t('vehicles.imageAlt', { name: inspection.vehicle.name || t('common.untitled')})} 
                           fill
-                          sizes="(max-width: 640px) 100vw, 320px"
-                          className="object-contain sm:object-cover"
+                          sizes="(max-width: 640px) 100vw, 384px"
+                          className="object-contain"
                         />
                     ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -432,7 +432,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                     </div>
                     <Link href={`/vehicles/${inspection.vehicle_id}`} className="block mt-3">
                       <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                        {t("common.viewDetails")}
+                        View Vehicle Details
                       </Button>
                     </Link>
                   </div>
@@ -555,54 +555,115 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
         <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>{t("inspections.details.overviewTitle")}</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                {t("inspections.details.summaryTitle")}
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <Label>{t("inspections.fields.status")}</Label>
-                <InspectionStatusBadge status={inspection.status || 'unknown'} />
-              </div>
-              <div>
-                <Label>{t("inspections.fields.type")}</Label>
-                <TextValue>
-                  {inspection.templateDisplayName 
-                    ? inspection.templateDisplayName 
-                    : (inspection.type 
-                        ? t(`inspections.typeValues.${inspection.type.replace(/ /g, '_').toLowerCase()}`, { defaultValue: inspection.type }) 
-                        : t("common.notAvailable"))}
-                </TextValue>
-              </div>
-              <div>
-                <Label>{t("inspections.fields.date")}</Label>
-                <TextValue>{inspection.date ? formatDate(inspection.date) : t("common.notAvailable")}</TextValue>
-              </div>
-              <div>
-                <Label>{t("inspections.fields.inspector")}</Label>
-                <TextValue>{inspection.inspector?.name || t("common.notAssigned")}</TextValue>
-              </div>
-              {inspection?.booking_id && (
+            <CardContent className="space-y-6">
+              {/* Overview Section */}
+              <div className="space-y-3">
                 <div>
-                  <Label>{t("bookings.title")}</Label>
-                  <Link href={`/bookings/${inspection.booking_id}`} className="text-sm text-primary hover:underline">
-                    {t("bookings.actions.viewDetails")}
-                  </Link>
+                  <Label>{t("inspections.fields.status")}</Label>
+                  <InspectionStatusBadge status={inspection.status || 'unknown'} />
                 </div>
-              )}
+                <div>
+                  <Label>{t("inspections.fields.type")}</Label>
+                  <TextValue>
+                    {inspection.templateDisplayName 
+                      ? inspection.templateDisplayName 
+                      : (inspection.type 
+                          ? t(`inspections.typeValues.${inspection.type.replace(/ /g, '_').toLowerCase()}`, { defaultValue: inspection.type }) 
+                          : t("common.notAvailable"))}
+                  </TextValue>
+                </div>
+                <div>
+                  <Label>{t("inspections.fields.date")}</Label>
+                  <TextValue>{inspection.date ? formatDate(inspection.date) : t("common.notAvailable")}</TextValue>
+                </div>
+                <div>
+                  <Label>{t("inspections.fields.inspector")}</Label>
+                  <TextValue>{inspection.inspector?.name || t("common.notAssigned")}</TextValue>
+                </div>
+                {inspection?.booking_id && (
+                  <div>
+                    <Label>{t("bookings.title")}</Label>
+                    <Link href={`/bookings/${inspection.booking_id}`} className="text-sm text-primary hover:underline">
+                      {t("bookings.actions.viewDetails")}
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* Summary Statistics */}
+              <div className="pt-4 border-t">
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">{t("inspections.details.summaryTitle")}</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col items-center p-3 rounded-lg bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800">
+                    <div className="flex items-center gap-2 mb-1">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <span className="text-2xl font-bold text-green-700 dark:text-green-400">{passedCount}</span>
+                    </div>
+                    <span className="text-xs text-green-600 dark:text-green-400 text-center">{t("inspections.details.summaryPassed")}</span>
+                  </div>
+                  
+                  <div className="flex flex-col items-center p-3 rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800">
+                    <div className="flex items-center gap-2 mb-1">
+                      <XCircle className="h-5 w-5 text-red-600" />
+                      <span className="text-2xl font-bold text-red-700 dark:text-red-400">{failedCount}</span>
+                    </div>
+                    <span className="text-xs text-red-600 dark:text-red-400 text-center">{t("inspections.details.summaryFailed")}</span>
+                  </div>
+                </div>
+
+                {/* Additional Details */}
+                <div className="space-y-3 pt-3">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <Clipboard className="h-4 w-4 text-blue-500" />
+                      <span className="text-sm font-medium text-muted-foreground">{t("inspections.details.summaryNotes")}</span>
+                    </div>
+                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">{notesCount}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center pb-2">
+                    <div className="flex items-center gap-2">
+                      <Camera className="h-4 w-4 text-purple-500" />
+                      <span className="text-sm font-medium text-muted-foreground">{t("inspections.details.summaryPhotos")}</span>
+                    </div>
+                    <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">{photosCount}</span>
+                  </div>
+                </div>
+
+                {/* Pass Rate Indicator */}
+                <div className="pt-3 border-t">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-muted-foreground">{t("inspections.details.passRate")}</span>
+                    <span className="text-sm font-semibold">{Math.round((passedCount / (passedCount + failedCount)) * 100) || 0}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                    <div 
+                      className="bg-green-500 h-2 rounded-full transition-all duration-500" 
+                      style={{ width: `${Math.round((passedCount / (passedCount + failedCount)) * 100) || 0}%` }}
+                    ></div>
+                  </div>
+                </div>
+
+                {/* Status Summary */}
+                {failedCount > 0 && (
+                  <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-900/20 dark:border-amber-800 mt-3">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-amber-800 dark:text-amber-300">{t("inspections.details.attentionRequired")}</p>
+                      <p className="text-amber-700 dark:text-amber-400">{t("inspections.details.itemsNeedAttention", { count: failedCount })}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Export Actions */}
-              <div className="pt-3 border-t">
+              <div className="pt-4 border-t">
                 <p className="text-sm font-medium text-muted-foreground mb-3">{t("common.actions.default")}</p>
                 <div className="flex flex-col gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={exportCSV}
-                    disabled={isExporting}
-                    className="justify-start"
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    {isExporting ? t('common.exporting') : t('common.exportCSV')}
-                  </Button>
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -644,79 +705,6 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                     {t('inspections.actions.continueEditing')}
                   </Link>
                 </Button>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" />
-                {t("inspections.details.summaryTitle")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Summary Statistics */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col items-center p-3 rounded-lg bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800">
-                  <div className="flex items-center gap-2 mb-1">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <span className="text-2xl font-bold text-green-700 dark:text-green-400">{passedCount}</span>
-                  </div>
-                  <span className="text-xs text-green-600 dark:text-green-400 text-center">{t("inspections.details.summaryPassed")}</span>
-                </div>
-                
-                <div className="flex flex-col items-center p-3 rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800">
-                  <div className="flex items-center gap-2 mb-1">
-                    <XCircle className="h-5 w-5 text-red-600" />
-                    <span className="text-2xl font-bold text-red-700 dark:text-red-400">{failedCount}</span>
-                  </div>
-                  <span className="text-xs text-red-600 dark:text-red-400 text-center">{t("inspections.details.summaryFailed")}</span>
-                </div>
-              </div>
-
-              {/* Additional Details */}
-              <div className="space-y-3 pt-2 border-t">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <Clipboard className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm font-medium text-muted-foreground">{t("inspections.details.summaryNotes")}</span>
-                  </div>
-                  <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">{notesCount}</span>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <Camera className="h-4 w-4 text-purple-500" />
-                    <span className="text-sm font-medium text-muted-foreground">{t("inspections.details.summaryPhotos")}</span>
-                  </div>
-                  <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">{photosCount}</span>
-                </div>
-              </div>
-
-              {/* Pass Rate Indicator */}
-              <div className="pt-2 border-t">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-muted-foreground">{t("inspections.details.passRate")}</span>
-                  <span className="text-sm font-semibold">{Math.round((passedCount / (passedCount + failedCount)) * 100) || 0}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                  <div 
-                    className="bg-green-500 h-2 rounded-full transition-all duration-500" 
-                    style={{ width: `${Math.round((passedCount / (passedCount + failedCount)) * 100) || 0}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* Status Summary */}
-              {failedCount > 0 && (
-                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-900/20 dark:border-amber-800">
-                  <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5" />
-                  <div className="text-sm">
-                    <p className="font-medium text-amber-800 dark:text-amber-300">{t("inspections.details.attentionRequired")}</p>
-                    <p className="text-amber-700 dark:text-amber-400">{t("inspections.details.itemsNeedAttention", { count: failedCount })}</p>
-                  </div>
-                </div>
               )}
             </CardContent>
           </Card>

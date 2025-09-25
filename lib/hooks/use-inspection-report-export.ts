@@ -171,7 +171,10 @@ export function useInspectionReportExport({
       pdfContainer.style.padding = '0';
       pdfContainer.style.color = '#333';
       pdfContainer.style.backgroundColor = '#fff';
-      pdfContainer.style.width = '190mm';
+      pdfContainer.style.width = '100%';
+      pdfContainer.style.maxWidth = '100%';
+      pdfContainer.style.margin = '0';
+      pdfContainer.style.padding = '0';
       pdfContainer.style.boxSizing = 'border-box';
       pdfContainer.style.position = 'relative';
       pdfContainer.style.borderTop = '2px solid #FF2600';
@@ -181,9 +184,11 @@ export function useInspectionReportExport({
       document.head.appendChild(fontLink);
       const logoContainer = document.createElement('div');
       logoContainer.style.textAlign = 'left';
+      logoContainer.style.padding = '0';
+      logoContainer.style.margin = '0 0 10px 0';
       logoContainer.style.marginBottom = '20px';
       logoContainer.style.marginTop = '30px';
-      logoContainer.style.paddingLeft = '20px';
+      logoContainer.style.padding = '0';
       const logo = document.createElement('img');
       logo.src = '/img/driver-header-logo.png';
       logo.alt = 'Driver Logo';
@@ -203,12 +208,14 @@ export function useInspectionReportExport({
       logoContainer.appendChild(logo);
       pdfContainer.appendChild(logoContainer);
       const reportHeader = document.createElement('div');
-      reportHeader.style.padding = '0 20px';
+      reportHeader.style.padding = '0';
+      reportHeader.style.textAlign = 'left';
       const reportTitleElement = document.createElement('h1');
       reportTitleElement.textContent = t('inspections.details.printTitle');
       reportTitleElement.style.fontSize = '28px';
       reportTitleElement.style.fontWeight = 'bold';
       reportTitleElement.style.margin = '0 0 5px 0';
+      reportTitleElement.style.padding = '0';
       reportTitleElement.style.color = '#333';
       const inspectionDate = inspection.date ? new Date(inspection.date) : new Date();
       const formattedDateForPDF = formatDate(inspectionDate); // formatDate from hook's import
@@ -220,6 +227,7 @@ export function useInspectionReportExport({
       reportDateElement.textContent = `${t('inspections.dateLabel')}: ${formattedDateForPDF} ${formattedTime}`;
       reportDateElement.style.fontSize = '16px';
       reportDateElement.style.margin = '0 0 20px 0';
+      reportDateElement.style.padding = '0';
       reportDateElement.style.color = '#666';
       reportHeader.appendChild(reportTitleElement);
       reportHeader.appendChild(reportDateElement);
@@ -227,17 +235,17 @@ export function useInspectionReportExport({
       const separator = document.createElement('hr');
       separator.style.border = 'none';
       separator.style.borderBottom = '1px solid #e0e0e0';
-      separator.style.margin = '0 0 20px 0';
+      separator.style.margin = '0 0 10px 0';
       pdfContainer.appendChild(separator);
       const firstPageContent = document.createElement('div');
       const vehicleSection = document.createElement('div');
-      vehicleSection.style.margin = '0 20px 20px';
+      vehicleSection.style.margin = '0 0 15px 0';
       vehicleSection.style.padding = '0';
       vehicleSection.style.border = '1px solid #e0e0e0';
       vehicleSection.style.borderRadius = '4px';
       const vehicleTitleContainer = document.createElement('div');
       vehicleTitleContainer.style.backgroundColor = '#f9f9f9';
-      vehicleTitleContainer.style.padding = '10px 20px';
+      vehicleTitleContainer.style.padding = '8px 15px';
       vehicleTitleContainer.style.borderBottom = '1px solid #e0e0e0';
       const vehicleTitle = document.createElement('h2');
       vehicleTitle.textContent = t('inspections.details.vehicleInfo.title');
@@ -248,7 +256,7 @@ export function useInspectionReportExport({
       vehicleTitleContainer.appendChild(vehicleTitle);
       vehicleSection.appendChild(vehicleTitleContainer);
       const vehicleDetailsContainer = document.createElement('div');
-      vehicleDetailsContainer.style.padding = '15px 20px';
+      vehicleDetailsContainer.style.padding = '12px 15px';
       vehicleDetailsContainer.style.backgroundColor = '#fff';
       const vehicleGrid = document.createElement('div');
       vehicleGrid.style.display = 'grid';
@@ -280,13 +288,13 @@ export function useInspectionReportExport({
       vehicleSection.appendChild(vehicleDetailsContainer);
       firstPageContent.appendChild(vehicleSection);
       const summarySection = document.createElement('div');
-      summarySection.style.margin = '0 20px 20px';
+      summarySection.style.margin = '0 0 15px 0';
       summarySection.style.padding = '0';
       summarySection.style.border = '1px solid #e0e0e0';
       summarySection.style.borderRadius = '4px';
       const summaryTitleContainer = document.createElement('div');
       summaryTitleContainer.style.backgroundColor = '#f9f9f9';
-      summaryTitleContainer.style.padding = '10px 20px';
+      summaryTitleContainer.style.padding = '8px 15px';
       summaryTitleContainer.style.borderBottom = '1px solid #e0e0e0';
       const summaryTitle = document.createElement('h2');
       summaryTitle.textContent = t('inspections.details.summary.title');
@@ -297,7 +305,7 @@ export function useInspectionReportExport({
       summaryTitleContainer.appendChild(summaryTitle);
       summarySection.appendChild(summaryTitleContainer);
       const summaryDetailsContainer = document.createElement('div');
-      summaryDetailsContainer.style.padding = '15px 20px';
+      summaryDetailsContainer.style.padding = '12px 15px';
       summaryDetailsContainer.style.backgroundColor = '#fff';
       const summaryGrid = document.createElement('div');
       summaryGrid.style.display = 'grid';
@@ -309,8 +317,8 @@ export function useInspectionReportExport({
          t('common.notAvailable');
        summaryGrid.appendChild(createDetailItem(t('inspections.typeLabel'), typeTranslation));
       summaryGrid.appendChild(createDetailItem(t('inspections.statusLabel'), inspection.status ? t(`inspections.statusValues.${inspection.status.toLowerCase()}`) : t('common.notAvailable')));
-      summaryGrid.appendChild(createDetailItem(t('inspections.inspectorLabel'), inspection.inspector?.name || t('common.notAvailable')));
-      summaryGrid.appendChild(createDetailItem(t('inspections.inspectorEmailLabel'), inspection.inspector?.email || t('common.notAvailable')));
+      summaryGrid.appendChild(createDetailItem(t('inspections.inspectorLabel'), inspection.inspector?.name || 'N/A'));
+      summaryGrid.appendChild(createDetailItem(t('inspections.inspectorEmailLabel'), inspection.inspector?.email || 'N/A'));
       summaryGrid.appendChild(createDetailItem(t('inspections.details.summary.passedItems'), passedItemsCount.toString()));
       summaryGrid.appendChild(createDetailItem(t('inspections.details.summary.failedItems'), failedItemsCount.toString()));
       summaryGrid.appendChild(createDetailItem(t('inspections.details.summary.itemsWithNotes'), notesItemsCount.toString()));
@@ -318,14 +326,54 @@ export function useInspectionReportExport({
       summaryDetailsContainer.appendChild(summaryGrid);
       summarySection.appendChild(summaryDetailsContainer);
       firstPageContent.appendChild(summarySection);
+      
+      // Add small additional info block to fill void
+      const additionalInfoSection = document.createElement('div');
+      additionalInfoSection.style.margin = '0 0 15px 0';
+      additionalInfoSection.style.padding = '0';
+      additionalInfoSection.style.border = '1px solid #e0e0e0';
+      additionalInfoSection.style.borderRadius = '4px';
+      
+      const additionalInfoTitleContainer = document.createElement('div');
+      additionalInfoTitleContainer.style.backgroundColor = '#f9f9f9';
+      additionalInfoTitleContainer.style.padding = '8px 15px';
+      additionalInfoTitleContainer.style.borderBottom = '1px solid #e0e0e0';
+      
+      const additionalInfoTitle = document.createElement('h2');
+      additionalInfoTitle.textContent = 'Additional Information';
+      additionalInfoTitle.style.fontSize = '18px';
+      additionalInfoTitle.style.fontWeight = 'bold';
+      additionalInfoTitle.style.margin = '0';
+      additionalInfoTitle.style.color = '#333';
+      additionalInfoTitleContainer.appendChild(additionalInfoTitle);
+      additionalInfoSection.appendChild(additionalInfoTitleContainer);
+      
+      const additionalInfoDetailsContainer = document.createElement('div');
+      additionalInfoDetailsContainer.style.padding = '12px 15px';
+      additionalInfoDetailsContainer.style.backgroundColor = '#fff';
+      
+      const additionalInfoGrid = document.createElement('div');
+      additionalInfoGrid.style.display = 'grid';
+      additionalInfoGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+      additionalInfoGrid.style.gap = '10px 30px';
+      
+      // Add some useful additional information
+      additionalInfoGrid.appendChild(createDetailItem('Report Generated', new Date().toLocaleString()));
+      additionalInfoGrid.appendChild(createDetailItem('Location', inspection.location || 'Field Inspection'));
+      
+      additionalInfoDetailsContainer.appendChild(additionalInfoGrid);
+      additionalInfoSection.appendChild(additionalInfoDetailsContainer);
+      firstPageContent.appendChild(additionalInfoSection);
+      
       pdfContainer.appendChild(firstPageContent);
+      
       const itemsSection = document.createElement('div');
-      itemsSection.style.margin = '0 20px 20px';
+      itemsSection.style.margin = '0 0 0px 0';
       itemsSection.style.padding = '0';
       const itemsTitleContainer = document.createElement('div');
-      itemsTitleContainer.style.padding = '10px 0px';
+      itemsTitleContainer.style.padding = '0 0 20px 0';
       itemsTitleContainer.style.borderBottom = '1px solid #e0e0e0';
-      itemsTitleContainer.style.marginBottom = '15px';
+      itemsTitleContainer.style.marginBottom = '10px';
       const itemsTitleElement = document.createElement('h2');
       itemsTitleElement.textContent = t('inspections.details.items.title');
       itemsTitleElement.style.fontSize = '18px';
@@ -339,8 +387,8 @@ export function useInspectionReportExport({
       const itemsGridContainer = document.createElement('div');
       itemsGridContainer.style.display = 'grid';
       itemsGridContainer.style.gridTemplateColumns = '1fr 1fr';
-      itemsGridContainer.style.gap = '15px';
-      itemsGridContainer.style.marginBottom = '20px';
+      itemsGridContainer.style.gap = '10px';
+      itemsGridContainer.style.marginBottom = '0px';
       
       itemsWithTemplates.forEach((item, index) => {
         const itemCard = document.createElement('div');
@@ -401,21 +449,24 @@ export function useInspectionReportExport({
       });
       itemsSection.appendChild(itemsGridContainer);
       pdfContainer.appendChild(itemsSection);
-      // Create footer section with inspector info
+      
+      // Add proper PDF footer section with inspector info
       const footerSection = document.createElement('div');
-      footerSection.style.marginTop = '30px';
-      footerSection.style.padding = '20px';
-      footerSection.style.borderTop = '2px solid #e0e0e0';
+      footerSection.style.marginTop = '0px';
+      footerSection.style.padding = '5px 15px 15px 15px';
       footerSection.style.backgroundColor = '#f8f9fa';
       footerSection.style.textAlign = 'center';
+      footerSection.style.borderTop = '1px solid #e0e0e0';
+      footerSection.style.fontSize = '10px';
+      footerSection.style.color = '#666';
       
       const inspectorInfo = document.createElement('div');
-      inspectorInfo.style.fontSize = '14px';
+      inspectorInfo.style.fontSize = '10px';
       inspectorInfo.style.color = '#333';
-      inspectorInfo.style.marginBottom = '10px';
+      inspectorInfo.style.marginBottom = '0px';
       
       // Get inspector name - same logic as inspection details page
-      const inspectorName = inspection.inspector?.name || t('common.notAssigned');
+      const inspectorName = inspection.inspector?.name || 'N/A';
       const inspectionDateForDisplay = new Date(inspection.created_at || inspection.updated_at || new Date());
       const inspectionDateFormatted = (() => {
         const day = inspectionDateForDisplay.getDate().toString().padStart(2, '0')
@@ -425,7 +476,7 @@ export function useInspectionReportExport({
       })();
       
       inspectorInfo.innerHTML = `
-        <div style="font-weight: bold; margin-bottom: 5px;">Inspector: ${inspectorName}</div>
+        <div style="font-weight: bold; margin-bottom: 0px;">Inspector: ${inspectorName}</div>
         <div>Inspection Date: ${inspectionDateFormatted}</div>
       `;
       
@@ -461,7 +512,7 @@ export function useInspectionReportExport({
       
       const filename = `inspection-report-${dateFormatted}-${sanitizedBrand}-${sanitizedModel}-${sanitizedInspector}.pdf`;
       const opt = {
-        margin: [5, 5, 15, 5],
+        margin: [15, 15, 40, 15],
         filename: filename,
         image: { type: 'jpeg', quality: 0.95 },
         html2canvas: { scale: 2, useCORS: true, logging: false },

@@ -301,11 +301,21 @@ export default function QuotationList({
 
   // Check if quotation needs reminder
   const needsReminder = (quotation: Quotation) => {
-    // Don't show reminders for approved quotations (either by status or timestamp)
-    if (quotation.status === 'approved' || (quotation as any).approved_at) return false;
-    
-    // Only show reminders for 'sent' status (not converted, paid, rejected, expired)
+    // Only show reminders for quotations with 'sent' status
+    // Don't show for any other status: approved, rejected, converted, paid, draft, etc.
     if (quotation.status !== 'sent') return false;
+    
+    // Don't show reminders if quotation has been approved (check timestamp)
+    if ((quotation as any).approved_at) return false;
+    
+    // Don't show reminders if quotation has been rejected (check timestamp)
+    if ((quotation as any).rejected_at) return false;
+    
+    // Don't show reminders if quotation has been converted to booking (check timestamp)
+    if ((quotation as any).booking_created_at) return false;
+    
+    // Don't show reminders if quotation has been paid (check timestamp)
+    if ((quotation as any).payment_completed_at) return false;
     
     // If already expired, no reminder needed
     if (isExpired(quotation)) return false;
@@ -749,11 +759,8 @@ export default function QuotationList({
             <div className="col-span-3">
               <span className="text-sm font-medium text-muted-foreground">Customer</span>
             </div>
-            <div className="col-span-2">
+            <div className="col-span-3">
               <span className="text-sm font-medium text-muted-foreground">Date</span>
-            </div>
-            <div className="col-span-1">
-              <span className="text-sm font-medium text-muted-foreground">Reminder</span>
             </div>
             <div className="col-span-2">
               <span className="text-sm font-medium text-muted-foreground">Amount</span>
@@ -810,34 +817,29 @@ export default function QuotationList({
                   </div>
                 </div>
                 
-                {/* Date Column */}
-                <div className="col-span-2 space-y-1 flex flex-col items-start justify-start">
+                {/* Date Column with Integrated Reminder */}
+                <div className="col-span-3 space-y-1 flex flex-col items-start justify-start">
                   <div className="text-sm text-foreground">
                     {quotation.created_at && formatDateDDMMYYYY(quotation.created_at)}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     Expires: {getExpiryDate(quotation) ? formatDateDDMMYYYY(getExpiryDate(quotation)!) : '—'}
                   </div>
-                </div>
-                
-                {/* Reminder Column */}
-                <div className="col-span-1 flex items-center justify-center">
-                  {needsReminder(quotation) ? (
-                    <div className="flex items-center gap-2">
+                  {needsReminder(quotation) && (
+                    <div className="flex items-center gap-2 mt-1">
                       <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Needs Reminder</span>
                       <button
                         onClick={(e) => { 
                           e.stopPropagation(); 
                           if (onRemind) handleRemindClick(e, quotation.id); 
                         }}
-                        className="p-1 hover:bg-yellow-100 dark:hover:bg-yellow-900/20 rounded-full transition-colors"
-                        title="Send reminder"
+                        className="p-1 hover:bg-yellow-100 dark:hover:bg-yellow-900/20 rounded-full transition-colors group"
+                        title="Click to send reminder"
                       >
-                        <BellIcon className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                        <BellIcon className="h-3 w-3 text-yellow-600 dark:text-yellow-400 group-hover:scale-110 transition-transform" />
                       </button>
                     </div>
-                  ) : (
-                    <div className="text-xs text-muted-foreground">—</div>
                   )}
                 </div>
                 
@@ -948,10 +950,10 @@ export default function QuotationList({
                             e.stopPropagation(); 
                             if (onRemind) handleRemindClick(e, quotation.id); 
                           }}
-                          className="ml-1 p-1 hover:bg-yellow-100 dark:hover:bg-yellow-900/20 rounded-full transition-colors"
-                          title="Send reminder"
+                          className="ml-1 p-1 hover:bg-yellow-100 dark:hover:bg-yellow-900/20 rounded-full transition-colors group"
+                          title="Click to send reminder"
                         >
-                          <BellIcon className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
+                          <BellIcon className="h-3 w-3 text-yellow-600 dark:text-yellow-400 group-hover:scale-110 transition-transform" />
                         </button>
                       </div>
                     )}

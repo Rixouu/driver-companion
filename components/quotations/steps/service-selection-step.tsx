@@ -1170,10 +1170,10 @@ export function ServiceSelectionStep({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Car className="h-5 w-5" /> 
-          {t('quotations.form.serviceSection')}
-        </h2>
+      <h2 className="text-lg font-semibold flex items-center gap-2">
+        <Car className="h-5 w-5" /> 
+        {t('quotations.form.serviceSection')}
+      </h2>
         {serviceItems.length > 0 && (
           <div className="flex items-center gap-2">
             <Button
@@ -1199,9 +1199,9 @@ export function ServiceSelectionStep({
               {t('quotations.form.services.selectedServices')}
             </h3>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
-                {serviceItems.length} {serviceItems.length === 1 ? t('quotations.form.services.service') : t('quotations.form.services.services')}
-              </Badge>
+            <Badge variant="outline" className="text-xs">
+              {serviceItems.length} {serviceItems.length === 1 ? t('quotations.form.services.service') : t('quotations.form.services.services')}
+            </Badge>
               <Button
                 type="button"
                 variant="ghost"
@@ -1221,7 +1221,7 @@ export function ServiceSelectionStep({
                   </>
                 )}
               </Button>
-            </div>
+          </div>
           </div>
           {isServicesExpanded ? renderServiceItemsList() : renderCompactServiceItemsList()}
         </div>
@@ -1229,19 +1229,19 @@ export function ServiceSelectionStep({
        
       {/* Service Selection Form - Show when no services, when explicitly requested, or when editing */}
       {(serviceItems.length === 0 || showAddServiceForm || isEditingService) && (
-        <div id="service-form-section" className={cn(
-          "space-y-4 rounded-lg border p-3 sm:p-4",
-          serviceItems.length > 0 && "bg-muted/20"
-        )}>
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-medium">
-              {isEditingService 
-                ? t('quotations.form.services.editService')
-                : serviceItems.length > 0 
-                  ? t('quotations.form.services.addAnotherService') 
-                  : t('quotations.form.services.configureService')
-              }
-            </h3>
+      <div id="service-form-section" className={cn(
+        "space-y-4 rounded-lg border p-3 sm:p-4",
+        serviceItems.length > 0 && "bg-muted/20"
+      )}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-medium">
+            {isEditingService 
+              ? t('quotations.form.services.editService')
+              : serviceItems.length > 0 
+                ? t('quotations.form.services.addAnotherService') 
+                : t('quotations.form.services.configureService')
+            }
+          </h3>
             {serviceItems.length > 0 && (
               <Button
                 type="button"
@@ -1273,7 +1273,7 @@ export function ServiceSelectionStep({
                 <X className="h-4 w-4" />
               </Button>
             )}
-          </div>
+        </div>
         
         {/* Service or Package Selection */}
         <div className="space-y-4 sm:space-y-6">
@@ -1958,7 +1958,7 @@ export function ServiceSelectionStep({
           ))}
         </div>
 
-        </div>
+      </div>
       )}
 
       {/* Floating Add Service Button - Only show when there are existing services and form is hidden */}

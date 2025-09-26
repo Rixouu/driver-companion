@@ -9,6 +9,7 @@ import { useI18n } from '@/lib/i18n/context';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from "@/components/ui/button";
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/shared/status-badge';
 import { Separator } from "@/components/ui/separator";
 import { Progress } from '@/components/ui/progress';
 import LoadingModal from '@/components/ui/loading-modal';
@@ -740,53 +741,14 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                         </span>
                       )}
                     </p>
-                    {/* Only show status badge if not expired */}
-                    {(() => {
-                      const now = new Date();
-                      const createdDate = new Date(quotation.created_at);
-                      const properExpiryDate = addDays(createdDate, 3);
-                      const isExpired = now > properExpiryDate;
-                      
-                      // Hide the status badge if expired and it's a draft/sent quotation
-                      if (isExpired && (quotation.status === 'draft' || quotation.status === 'sent') && !(quotation as any).approved_at && !(quotation as any).rejected_at) {
-                        return null;
-                      }
-                      
-                      return (
-                        <Badge variant="outline" className={
-                          quotation.status === 'converted' ? "text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20" :
-                          (quotation.status === 'paid' || (quotation as any).payment_completed_at) ? "text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20" :
-                          (quotation.status === 'approved' || (quotation as any).approved_at) ? "text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20" :
-                          quotation.status === 'sent' ? "text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20" :
-                          (quotation.status === 'rejected' || (quotation as any).rejected_at) ? "text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20" :
-                          "text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20"
-                        }>
-                          {quotation.status === 'converted' ? (t('quotations.status.converted') || 'Converted to Booking') :
-                           (quotation.status === 'paid' || (quotation as any).payment_completed_at) ? (t('quotations.status.paid') || 'Paid') :
-                           (quotation.status === 'approved' || (quotation as any).approved_at) ? (t('quotations.status.approved') || 'Approved') :
-                           (quotation.status === 'rejected' || (quotation as any).rejected_at) ? (t('quotations.status.rejected') || 'Rejected') :
-                           t(`quotations.status.${quotation.status}`)}
-                        </Badge>
-                      );
-                    })()}
-                    
-                    {/* Expired Status Display - Only show if not expired, otherwise hide the Sent badge */}
-                    {(() => {
-                      const now = new Date();
-                      const createdDate = new Date(quotation.created_at);
-                      const properExpiryDate = addDays(createdDate, 3);
-                      const isExpired = now > properExpiryDate;
-                      
-                      // Only show expired status for draft/sent quotations that are not approved
-                      if (isExpired && (quotation.status === 'draft' || quotation.status === 'sent') && !(quotation as any).approved_at && !(quotation as any).rejected_at) {
-                        return (
-                          <Badge variant="outline" className="text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20">
-                            Expired
-                          </Badge>
-                        );
-                      }
-                      return null;
-                    })()}
+                    {/* Universal Status Badge */}
+                    <StatusBadge
+                      status={quotation.status}
+                      rejectedAt={(quotation as any).rejected_at}
+                      approvedAt={(quotation as any).approved_at}
+                      paymentCompletedAt={(quotation as any).payment_completed_at}
+                      createdAt={quotation.created_at}
+                    />
                 </div>
               </div>
         </div>
@@ -845,6 +807,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   return 'Send Invoice';
                 case 'paid':
                   return 'Convert to Booking';
+                case 'rejected':
+                  return 'REJECTED'; // Special case for rejected status
                 default:
                   return null;
               }
@@ -882,6 +846,19 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             }
             
             if (nextStep) {
+              // Special handling for rejected status - show red banner
+              if (nextStep === 'REJECTED' || quotation.status === 'rejected' || (quotation as any).rejected_at) {
+                return (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <div className="w-2 h-2 bg-red-600 rounded-full"></div>
+                    <span className="text-sm text-red-700 dark:text-red-300 font-medium">
+                      Quotation Rejected
+                    </span>
+                  </div>
+                );
+              }
+              
+              // Default blue banner for other next steps
               return (
                 <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <div className="w-2 h-2 bg-blue-600 rounded-full"></div>

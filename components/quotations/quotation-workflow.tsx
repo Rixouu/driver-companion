@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/shared/status-badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -1057,20 +1058,13 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Status:</span>
-               <Badge variant="outline" className={
-                 quotation.status === 'converted' ? 'text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20' :
-                 (quotation.status === 'paid' || quotation.payment_completed_at) ? 'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20' :
-                 (quotation.status === 'approved' || quotation.approved_at) ? 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20' :
-                 (quotation.status === 'rejected' || quotation.rejected_at) ? 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20' :
-                 quotation.status === 'sent' ? 'text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20' :
-                 'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
-               }>
-                 {quotation.status === 'converted' ? (t('quotations.status.converted') || 'Converted') :
-                  (quotation.status === 'paid' || quotation.payment_completed_at) ? (t('quotations.status.paid') || 'Paid') :
-                  (quotation.status === 'approved' || quotation.approved_at) ? (t('quotations.status.approved') || 'Approved') :
-                  (quotation.status === 'rejected' || quotation.rejected_at) ? (t('quotations.status.rejected') || 'Rejected') :
-                  t(`quotations.status.${quotation.status}`) || quotation.status}
-              </Badge>
+               <StatusBadge
+                 status={quotation.status}
+                 rejectedAt={quotation.rejected_at}
+                 approvedAt={quotation.approved_at}
+                 paymentCompletedAt={quotation.payment_completed_at}
+                 createdAt={quotation.created_at}
+               />
             </div>
             
             {quotation.created_at && !['approved', 'rejected', 'converted', 'paid'].includes(quotation.status) && !quotation.approved_at && !quotation.rejected_at && (

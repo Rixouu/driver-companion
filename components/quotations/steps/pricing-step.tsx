@@ -654,7 +654,7 @@ export function PricingStep({
                 {/* Promotion Discount */}
                 {selectedPromotion && (
                   <div className="flex justify-between items-center text-green-600">
-                    <span className="text-sm">Promotion ({selectedPromotion.name})</span>
+                    <span className="text-sm">Promotion ({selectedPromotion.discount_type === 'percentage' ? `-${selectedPromotion.discount_value}%` : `-${formatCurrency(selectedPromotion.discount_value)}`}): {selectedPromotion.name}</span>
                     <span className="font-medium">
                       -{formatCurrency(
                         selectedPromotion.discount_type === 'percentage' 

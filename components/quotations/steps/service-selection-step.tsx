@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { PACKAGE_SERVICE_TYPE_ID } from '@/lib/constants/service-types';
-import { Car, Calendar, Settings, Package, Plus, List, Timer, PencilIcon, Copy, Trash, X } from 'lucide-react';
+import { Car, Calendar, Settings, Package, Plus, List, Timer, PencilIcon, Copy, Trash, X, ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useI18n } from '@/lib/i18n/context';
 import { cn } from '@/lib/utils';
@@ -88,6 +88,8 @@ export function ServiceSelectionStep({
   const [isEditingService, setIsEditingService] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [serviceTimeBasedPricing, setServiceTimeBasedPricing] = useState<boolean>(true);
+  const [isServicesExpanded, setIsServicesExpanded] = useState(false);
+  const [showAddServiceForm, setShowAddServiceForm] = useState(false);
 
   // Optimized onChange handlers to prevent slow execution
   const handlePassengerChange = useCallback((value: string, onChange: (value: number | null) => void) => {
@@ -234,12 +236,13 @@ export function ServiceSelectionStep({
     ];
   };
 
-  const getVehicleTypesForCategory = () => {
-    if (!vehicleCategory) return [];
+  const getVehicleTypesForCategory = (categoryId?: string) => {
+    const targetCategory = categoryId || vehicleCategory;
+    if (!targetCategory) return [];
     
     // Use dynamic data if available
-    if (formData?.vehiclesByCategory && vehicleCategory) {
-      const categoryData = formData.vehiclesByCategory[vehicleCategory];
+    if (formData?.vehiclesByCategory && targetCategory) {
+      const categoryData = formData.vehiclesByCategory[targetCategory];
       if (categoryData && categoryData.vehicles && Array.isArray(categoryData.vehicles)) {
         // Return the full vehicle objects so we can access brand and model
         return categoryData.vehicles;
@@ -247,7 +250,7 @@ export function ServiceSelectionStep({
     }
     
     // Fallback to existing data - use actual database UUIDs
-    switch (vehicleCategory) {
+    switch (targetCategory) {
       case '611107df-a656-4812-b0c1-d54b8e67e7f1': // Elite
         return [
           { id: 'elite-1', brand: 'Mercedes', model: 'S580 Long', name: '品川 300 い 4182' },
@@ -644,7 +647,17 @@ export function ServiceSelectionStep({
     // Pre-fill form with the selected item's values
     form.setValue('service_type', item.service_type_id || '');
     form.setValue('vehicle_category', item.vehicle_category as string || '');
-    form.setValue('vehicle_type', item.vehicle_type || '');
+    
+    // Find the matching vehicle object from available vehicles
+    const vehicleCategory = item.vehicle_category as string;
+    const availableVehicles = getVehicleTypesForCategory(vehicleCategory);
+    
+    const matchingVehicle = availableVehicles.find((vehicle: any) => 
+      `${vehicle.brand} ${vehicle.model}` === item.vehicle_type
+    );
+    
+    // Set the vehicle type as the full object if found, otherwise as string
+    form.setValue('vehicle_type', matchingVehicle || item.vehicle_type || '');
     form.setValue('service_days', item.service_days || 1);
     form.setValue('hours_per_day', item.hours_per_day || undefined);
     form.setValue('duration_hours', item.duration_hours || 1);
@@ -665,8 +678,12 @@ export function ServiceSelectionStep({
     
     setIsEditingService(true);
     
-    // Force re-render to show pickup date/time and time adjustment immediately
+    // Scroll to the form section when editing
     setTimeout(() => {
+      const serviceSection = document.querySelector('[data-service-config]');
+      if (serviceSection) {
+        serviceSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
       // This will trigger a re-render of the component
       setServiceTimeBasedPricing(serviceTimeBasedPricing);
     }, 100);
@@ -835,7 +852,134 @@ export function ServiceSelectionStep({
     );
   };
 
-  // Render service items list
+  // Render compact service items list
+  const renderCompactServiceItemsList = () => {
+    if (serviceItems.length === 0) {
+      return (
+        <div className="text-center py-6 text-muted-foreground">
+          <Car className="mx-auto h-6 w-6 mb-2 opacity-50" />
+          <p className="text-sm">{t('quotations.form.services.noServicesAddedYet')}</p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-2">
+        {serviceItems.map((item, index) => {
+          const isCharter = item.service_type_name?.toLowerCase().includes('charter') || false;
+          const totalPrice = isCharter 
+            ? item.unit_price * (item.service_days || 1)
+            : (item.total_price || item.unit_price);
+          
+          // Calculate time-based adjustment display
+          const hasTimeAdjustment = item.time_based_adjustment && item.time_based_adjustment !== 0;
+          const timeAdjustmentText = hasTimeAdjustment 
+            ? `${item.time_based_adjustment! > 0 ? '+' : ''}${item.time_based_adjustment}%`
+            : '';
+          
+          return (
+            <div 
+              key={index}
+              className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer group"
+              onClick={() => handleEditServiceItem(index)}
+            >
+              <div className="flex items-center gap-3 flex-1 min-w-0 mr-4">
+                <div className="flex-shrink-0">
+                  {isCharter ? (
+                    <Car className="h-4 w-4 text-blue-600" />
+                  ) : (
+                    <Package className="h-4 w-4 text-green-600" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm truncate">
+                    {item.service_type_name}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {item.vehicle_type}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate mt-1">
+                    {item.pickup_date && item.pickup_time && (
+                      `${format(parseISO(item.pickup_date), 'MMM dd, yyyy')} at ${item.pickup_time}`
+                    )}
+                    {isCharter && item.service_days && item.hours_per_day && (
+                      ` • ${item.service_days} days × ${item.hours_per_day}h/day`
+                    )}
+                    {hasTimeAdjustment && (
+                      <span className="text-orange-500 dark:text-orange-400 font-medium">
+                        {timeAdjustmentText && ` • ${timeAdjustmentText}`}
+                        {item.time_based_rule_name && ` ${item.time_based_rule_name}`}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="text-right">
+                  <div className="font-semibold text-sm">
+                    {formatCurrency(totalPrice)}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditServiceItem(index);
+                    }}
+                  >
+                    <PencilIcon className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDuplicateServiceItem(index);
+                    }}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveServiceItem(index);
+                    }}
+                  >
+                    <Trash className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        
+        <div className="pt-2 pb-1 flex justify-between items-center font-medium text-sm border-t">
+          <span>{t('quotations.form.services.totalAmountBeforeDiscountTax')}</span>
+          <span>{formatCurrency(serviceItems.reduce((total, item) => {
+            // For Charter Services, calculate total based on duration (unit_price × service_days)
+            if (item.service_type_name?.toLowerCase().includes('charter')) {
+              const calculatedTotal = item.unit_price * (item.service_days || 1);
+              return total + calculatedTotal;
+            }
+            // For other services, use existing logic
+            return total + (item.total_price || item.unit_price);
+          }, 0))}</span>
+        </div>
+      </div>
+    );
+  };
+
+  // Render full service items list (for expanded view)
   const renderServiceItemsList = () => {
     if (serviceItems.length === 0) {
       return (
@@ -890,42 +1034,111 @@ export function ServiceSelectionStep({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold flex items-center gap-2">
-        <Car className="h-5 w-5" /> 
-        {t('quotations.form.serviceSection')}
-      </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <Car className="h-5 w-5" /> 
+          {t('quotations.form.serviceSection')}
+        </h2>
+        {serviceItems.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAddServiceForm(!showAddServiceForm)}
+              className="text-sm"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {showAddServiceForm ? 'Hide Form' : 'Add Service'}
+            </Button>
+          </div>
+        )}
+      </div>
        
       {/* Display existing services if any */}
       {serviceItems.length > 0 && (
-        <div className="space-y-3 sm:space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-medium flex items-center gap-2">
               <List className="h-4 w-4 text-muted-foreground" />
               {t('quotations.form.services.selectedServices')}
             </h3>
-            <Badge variant="outline" className="text-xs">
-              {serviceItems.length} {serviceItems.length === 1 ? t('quotations.form.services.service') : t('quotations.form.services.services')}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                {serviceItems.length} {serviceItems.length === 1 ? t('quotations.form.services.service') : t('quotations.form.services.services')}
+              </Badge>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsServicesExpanded(!isServicesExpanded)}
+                className="h-8 px-2"
+              >
+                {isServicesExpanded ? (
+                  <>
+                    <EyeOff className="h-4 w-4 mr-1" />
+                    Compact
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Expand
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
-          {renderServiceItemsList()}
+          {isServicesExpanded ? renderServiceItemsList() : renderCompactServiceItemsList()}
         </div>
       )}
        
-      {/* Service Selection Form */}
-      <div id="service-form-section" className={cn(
-        "space-y-4 rounded-lg border p-3 sm:p-4",
-        serviceItems.length > 0 && "bg-muted/20"
-      )}>
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-medium">
-            {isEditingService 
-              ? t('quotations.form.services.editService')
-              : serviceItems.length > 0 
-                ? t('quotations.form.services.addAnotherService') 
-                : t('quotations.form.services.configureService')
-            }
-          </h3>
-        </div>
+      {/* Service Selection Form - Show when no services, when explicitly requested, or when editing */}
+      {(serviceItems.length === 0 || showAddServiceForm || isEditingService) && (
+        <div id="service-form-section" className={cn(
+          "space-y-4 rounded-lg border p-3 sm:p-4",
+          serviceItems.length > 0 && "bg-muted/20"
+        )}>
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-medium">
+              {isEditingService 
+                ? t('quotations.form.services.editService')
+                : serviceItems.length > 0 
+                  ? t('quotations.form.services.addAnotherService') 
+                  : t('quotations.form.services.configureService')
+              }
+            </h3>
+            {serviceItems.length > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (isEditingService) {
+                    setIsEditingService(false);
+                    setEditingIndex(null);
+                    // Reset form fields
+                    form.setValue('service_type', '');
+                    form.setValue('vehicle_category', '');
+                    form.setValue('vehicle_type', '');
+                    form.setValue('service_days', 1);
+                    form.setValue('hours_per_day', undefined);
+                    form.setValue('pickup_date', undefined);
+                    form.setValue('pickup_time', '');
+                    form.setValue('pickup_location', '');
+                    form.setValue('dropoff_location', '');
+                    form.setValue('number_of_passengers', null);
+                    form.setValue('number_of_bags', null);
+                    form.setValue('flight_number', '');
+                  } else {
+                    setShowAddServiceForm(false);
+                  }
+                }}
+                className="h-8 px-2"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         
         {/* Service or Package Selection */}
         <div className="space-y-4 sm:space-y-6">
@@ -935,7 +1148,10 @@ export function ServiceSelectionStep({
               "cursor-pointer transition-all duration-300 hover:shadow-md border-2",
               !selectedPackage ? `${themeColors.primaryBorder} ${themeColors.primaryBg}` : `border-gray-200 ${themeColors.primaryHover}`
             )}
-            onClick={() => setSelectedPackage(null)}
+            onClick={(e) => {
+              e.preventDefault();
+              setSelectedPackage(null);
+            }}
           >
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-4">
@@ -1249,6 +1465,17 @@ export function ServiceSelectionStep({
                                   onFlightSelect={(flight) => {
                                     if (flight) {
                                       field.onChange(flight.flightNumber);
+                                      
+                                      // Auto-populate pickup date, time, and terminal
+                                      if (flight.pickupDate) {
+                                        form.setValue('pickup_date', parseISO(flight.pickupDate));
+                                      }
+                                      if (flight.pickupTime) {
+                                        form.setValue('pickup_time', flight.pickupTime);
+                                      }
+                                      if (flight.arrival?.terminal) {
+                                        form.setValue('terminal', flight.arrival.terminal);
+                                      }
                                     }
                                   }}
                                   placeholder={t('quotations.form.services.enterFlightNumber')}
@@ -1440,7 +1667,10 @@ export function ServiceSelectionStep({
                 "cursor-pointer transition-all hover:shadow-md border-2",
                 selectedPackage?.id === pkg.id ? "border-purple-500 bg-purple-50/30 dark:bg-purple-900/10" : "border-gray-200 hover:border-purple-300"
               )}
-              onClick={() => handlePackageSelect(pkg)}
+              onClick={(e) => {
+                e.preventDefault();
+                handlePackageSelect(pkg);
+              }}
             >
               <CardContent className="p-3 sm:p-4 md:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4">
@@ -1593,19 +1823,15 @@ export function ServiceSelectionStep({
           ))}
         </div>
 
-      </div>
+        </div>
+      )}
 
-      {/* Floating Add Service Button - Only show when there are existing services */}
-      {serviceItems.length > 0 && (
+      {/* Floating Add Service Button - Only show when there are existing services and form is hidden */}
+      {serviceItems.length > 0 && !showAddServiceForm && !isEditingService && (
         <div className="fixed bottom-6 right-6 z-50">
           <Button
-            onClick={() => {
-              // Scroll to the service configuration section
-              const serviceSection = document.querySelector('[data-service-config]');
-              if (serviceSection) {
-                serviceSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }
-            }}
+            type="button"
+            onClick={() => setShowAddServiceForm(true)}
             className={cn("rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-300 text-white", themeColors.primaryButton)}
             size="icon"
           >

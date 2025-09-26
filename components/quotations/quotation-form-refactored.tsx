@@ -909,7 +909,6 @@ export default function QuotationFormRefactored({
               <TabsTrigger
                 key={step.id}
                 value={step.id}
-                disabled={index > currentStep}
                 onClick={() => setCurrentStep(index)}
                 className={cn(
                   "flex items-center justify-center gap-2 py-3 px-4 rounded-none border-b-2",
@@ -917,7 +916,7 @@ export default function QuotationFormRefactored({
                   currentStep === index 
                     ? "border-primary data-[state=active]:border-primary" 
                     : "border-transparent hover:border-gray-600",
-                  index > currentStep ? "text-muted-foreground dark:text-muted-foreground cursor-not-allowed" : "cursor-pointer"
+                  "cursor-pointer"
                 )}
               >
                 <step.icon className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -935,7 +934,6 @@ export default function QuotationFormRefactored({
               <TabsTrigger
                 key={step.id}
                 value={step.id}
-                disabled={index > currentStep}
                 onClick={() => setCurrentStep(index)}
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-none border-t-2",
@@ -943,7 +941,7 @@ export default function QuotationFormRefactored({
                   currentStep === index 
                     ? "border-primary data-[state=active]:border-primary" 
                     : "border-transparent",
-                  index > currentStep ? "text-muted-foreground dark:text-muted-foreground cursor-not-allowed" : "cursor-pointer"
+                  "cursor-pointer"
                 )}
               >
                 <step.icon className="h-4 w-4" />

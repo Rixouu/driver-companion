@@ -289,9 +289,9 @@ export function ServiceCard({
                   </div>
                 )}
                 {item.time_based_adjustment && (
-                  <div className="flex items-center justify-between text-sm text-orange-600 dark:text-orange-400">
+                  <div className="flex items-center justify-between text-sm text-orange-500 dark:text-orange-400">
                     <span>
-                      Time Adjustment: {item.time_based_rule_name && `(${item.time_based_rule_name})`}
+                      Time Adjustment ({item.time_based_adjustment > 0 ? '+' : ''}{item.time_based_adjustment}%): {item.time_based_rule_name || 'Time-based adjustment'}
                     </span>
                     <span className="font-semibold">
                       {item.time_based_adjustment > 0 ? '+' : ''}

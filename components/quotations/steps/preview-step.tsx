@@ -284,9 +284,9 @@ export function PreviewStep({
             {/* Services Breakdown */}
             <div className="space-y-3">
               {serviceItems.map((item, index) => {
-                const itemTotal = item.service_type_name?.toLowerCase().includes('charter') 
-                  ? (item.unit_price * (item.service_days || 1))
-                  : (item.total_price || item.unit_price);
+                const basePrice = (item.unit_price || 0) * (item.service_days || 1);
+                const timeAdjustment = item.time_based_adjustment ? basePrice * (item.time_based_adjustment / 100) : 0;
+                const itemTotal = basePrice + timeAdjustment;
                 
                 return (
                   <div key={index} className="space-y-2">
@@ -298,6 +298,11 @@ export function PreviewStep({
                       <div className="flex justify-between">
                         <span>Unit Price: {formatCurrency(item.unit_price || 0)} × {item.service_days || 1} days</span>
                       </div>
+                      {timeAdjustment > 0 && (
+                        <div className="text-orange-500 dark:text-orange-400">
+                          <span>+{item.time_based_adjustment}% {item.time_based_rule_name || 'Time Adjustment'}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -319,18 +324,10 @@ export function PreviewStep({
                 <span className="font-semibold">{formatCurrency(totals.baseTotal)}</span>
               </div>
 
-              {/* Discount */}
-              {totals.totalDiscount > 0 && (
-                <div className="flex justify-between items-center text-green-600">
-                  <span className="text-sm">Discount ({watchedValues.discount_percentage || 0}%)</span>
-                  <span className="font-medium">-{formatCurrency(totals.totalDiscount)}</span>
-                </div>
-              )}
-
               {/* Promotion Discount */}
               {selectedPromotion && (
                 <div className="flex justify-between items-center text-green-600">
-                  <span className="text-sm">Promotion ({selectedPromotion.name})</span>
+                  <span className="text-sm">Promotion ({selectedPromotion.discount_type === 'percentage' ? `-${selectedPromotion.discount_value}%` : `-${formatCurrency(selectedPromotion.discount_value)}`}): {selectedPromotion.name}</span>
                   <span className="font-medium">
                     -{formatCurrency(
                       selectedPromotion.discount_type === 'percentage' 
@@ -338,6 +335,14 @@ export function PreviewStep({
                         : selectedPromotion.discount_value
                     )}
                   </span>
+                </div>
+              )}
+
+              {/* Regular Discount (only if no promotion) */}
+              {!selectedPromotion && totals.regularDiscount > 0 && (
+                <div className="flex justify-between items-center text-green-600">
+                  <span className="text-sm">Discount ({watchedValues.discount_percentage || 0}%)</span>
+                  <span className="font-medium">-{formatCurrency(totals.regularDiscount)}</span>
                 </div>
               )}
 

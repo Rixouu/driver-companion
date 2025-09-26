@@ -135,7 +135,7 @@ export function QuotationSummary({
                      item.service_type_name?.toLowerCase().includes('airport') && (
                       <div className="pt-2 border-t border-muted">
                         <div className="text-xs text-muted-foreground mb-2">Flight Details:</div>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="grid grid-cols-2 gap-2 text-xs pb-2">
                           {item.flight_number && (
                             <div className="flex items-center gap-1">
                               <Plane className="h-3 w-3 text-muted-foreground" />
@@ -255,8 +255,19 @@ export function QuotationSummary({
                 </div>
                 {calculatedPrice.discountAmount > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>{selectedPromotion ? 'Promotion' : 'Discount'}:</span>
+                    <span>
+                      {selectedPromotion 
+                        ? `Promotion (${selectedPromotion.discount_type === 'percentage' ? `-${selectedPromotion.discount_value}%` : `-${formatCurrency(selectedPromotion.discount_value, selectedCurrency)}`}): ${selectedPromotion.name}`
+                        : 'Discount:'
+                      }
+                    </span>
                     <span>-{formatCurrency(calculatedPrice.discountAmount, selectedCurrency)}</span>
+                  </div>
+                )}
+                {calculatedPrice.discountAmount > 0 && (
+                  <div className="flex justify-between text-sm font-medium border-t pt-2">
+                    <span>After Discounts:</span>
+                    <span>{formatCurrency(calculatedPrice.baseAmount - calculatedPrice.discountAmount, selectedCurrency)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm text-white">

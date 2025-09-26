@@ -151,9 +151,9 @@ export function PricingSummary({
                   <span>{formatCurrency(totals.serviceTotal)}</span>
                 </div>
                 
-                {totals.promotionDiscount > 0 && (
+                {totals.promotionDiscount > 0 && selectedPromotion && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>Promotion: {selectedPromotion?.name}</span>
+                    <span>Promotion ({selectedPromotion.discount_type === 'percentage' ? `-${selectedPromotion.discount_value}%` : `-${formatCurrency(selectedPromotion.discount_value)}`}): {selectedPromotion.name}</span>
                     <span>-{formatCurrency(totals.promotionDiscount)}</span>
                   </div>
                 )}

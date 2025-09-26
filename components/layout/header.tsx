@@ -86,6 +86,17 @@ export function Header() {
       return { href: '/quotations', label: t('navigation.quotations') }
     }
     
+    // Quotation edit pages
+    if (pathname.match(/^\/quotations\/[^\/]+\/edit$/)) {
+      const quotationId = pathname.split('/')[2]
+      return { href: `/quotations/${quotationId}`, label: t('common.back') }
+    }
+    
+    // New quotation page
+    if (pathname === '/quotations/create') {
+      return { href: '/quotations', label: t('navigation.quotations') }
+    }
+    
     // Customer detail pages
     if (pathname.match(/^\/customers\/[^\/]+$/)) {
       return { href: '/customers', label: t('navigation.customers') }

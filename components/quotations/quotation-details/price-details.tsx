@@ -501,7 +501,7 @@ export function PriceDetails({
             {/* Promotion Discount (if applied) */}
             {promotionDiscount > 0 && (
               <div className="flex justify-between text-sm text-green-600">
-                <span>Promotion Discount ({selectedPromotion?.name})</span>
+                <span>Promotion ({selectedPromotion?.discount_type === 'percentage' ? `-${selectedPromotion.discount_value}%` : `-${formatCurrency(selectedPromotion.discount_value)}`}): {selectedPromotion?.name}</span>
                 <span>-{formatCurrency(promotionDiscount)}</span>
               </div>
             )}

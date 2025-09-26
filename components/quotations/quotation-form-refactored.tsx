@@ -290,7 +290,7 @@ export default function QuotationFormRefactored({
       tax_percentage: initialData?.tax_percentage || 0,
       merchant_notes: initialData?.merchant_notes || '',
       customer_notes: initialData?.customer_notes || '',
-      internal_notes: initialData?.internal_notes || '',
+      internal_notes: initialData?.merchant_notes || '',
       general_notes: initialData?.general_notes || '',
       passenger_count: initialData?.passenger_count || null,
       display_currency: initialData?.display_currency || 'JPY',

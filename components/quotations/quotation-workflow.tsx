@@ -764,133 +764,131 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       date: quotation.approved_at || quotation.rejected_at
     });
 
-    // Add post-approval steps only if quotation is approved or paid
-    if (quotation.status === 'approved' || quotation.status === 'paid' || quotation.approved_at || quotation.invoice_generated_at || quotation.payment_completed_at || quotation.booking_created_at) {
-      steps.push(
-        {
-          id: 'payment_link_sent',
-          title: 'Payment',
-          description: 'Payment link sent to customer or bank transfer method selected',
-          icon: <Mail className="h-4 w-4" />,
-          status: quotation.payment_completed_at ? 'completed' : 
-                  quotation.payment_link_sent_at ? 'completed' : 
-                  (quotation.status === 'paid' || quotation.payment_completed_at) ? 'completed' :
-                  (quotation.status === 'approved' || quotation.approved_at) ? 'current' : 'pending',
-          date: quotation.payment_link_sent_at,
-          ...((quotation.status === 'approved' || quotation.status === 'paid' || quotation.approved_at) && !quotation.payment_link_sent_at && !quotation.payment_completed_at && isOrganizationMember ? {
-            action: {
-              label: 'Send Payment Link',
-              onClick: () => setIsPaymentLinkDialogOpen(true),
-              variant: 'default' as const
-            }
-          } : {})
-        },
-        {
-          id: 'paid',
-          title: 'Confirmed',
-          description: 'Quotation has been marked as paid',
-          icon: <CheckCircle className="h-4 w-4" />,
-          status: (quotation.status === 'paid' || quotation.payment_completed_at) ? 'completed' : 'pending',
-          date: quotation.payment_completed_at,
-          ...((quotation.payment_link_sent_at || quotation.status === 'sent') && quotation.status !== 'paid' && !quotation.payment_completed_at && isOrganizationMember ? {
-            action: {
-              label: 'Mark As Paid',
-              onClick: () => setIsMarkAsPaidDialogOpen(true),
-              variant: 'default' as const
-            }
-          } : {})
-        },
-        {
-          id: 'booking',
-          title: 'Converted',
-          description: 'Convert approved quotation to a booking',
-          icon: <Calendar className="h-4 w-4" />,
-          status: quotation.booking_created_at ? 'completed' :
-                  (quotation.status === 'paid' || quotation.payment_completed_at) ? 'current' : 'pending',
-          date: quotation.booking_created_at,
-          ...((quotation.status === 'paid' || quotation.payment_completed_at) && !quotation.booking_created_at && isOrganizationMember ? {
-            action: {
-              label: isConvertingToBooking ? 'Converting...' : 'Convert to Booking',
-              onClick: async () => {
-                if (isConvertingToBooking) return; // Prevent multiple clicks
+    // Always add post-approval steps - show them with appropriate status based on quotation state
+    steps.push(
+      {
+        id: 'payment_link_sent',
+        title: 'Payment',
+        description: 'Payment link sent to customer or bank transfer method selected',
+        icon: <Mail className="h-4 w-4" />,
+        status: quotation.payment_completed_at ? 'completed' : 
+                quotation.payment_link_sent_at ? 'completed' : 
+                (quotation.status === 'paid' || quotation.payment_completed_at) ? 'completed' :
+                (quotation.status === 'approved' || quotation.approved_at) ? 'current' : 'pending',
+        date: quotation.payment_link_sent_at,
+        ...((quotation.status === 'approved' || quotation.status === 'paid' || quotation.approved_at) && !quotation.payment_link_sent_at && !quotation.payment_completed_at && isOrganizationMember ? {
+          action: {
+            label: 'Send Payment Link',
+            onClick: () => setIsPaymentLinkDialogOpen(true),
+            variant: 'default' as const
+          }
+        } : {})
+      },
+      {
+        id: 'paid',
+        title: 'Confirmed',
+        description: 'Quotation has been marked as paid',
+        icon: <CheckCircle className="h-4 w-4" />,
+        status: (quotation.status === 'paid' || quotation.payment_completed_at) ? 'completed' : 'pending',
+        date: quotation.payment_completed_at,
+        ...((quotation.payment_link_sent_at || quotation.status === 'sent') && quotation.status !== 'paid' && !quotation.payment_completed_at && isOrganizationMember ? {
+          action: {
+            label: 'Mark As Paid',
+            onClick: () => setIsMarkAsPaidDialogOpen(true),
+            variant: 'default' as const
+          }
+        } : {})
+      },
+      {
+        id: 'booking',
+        title: 'Converted',
+        description: 'Convert approved quotation to a booking',
+        icon: <Calendar className="h-4 w-4" />,
+        status: quotation.booking_created_at ? 'completed' :
+                (quotation.status === 'paid' || quotation.payment_completed_at) ? 'current' : 'pending',
+        date: quotation.booking_created_at,
+        ...((quotation.status === 'paid' || quotation.payment_completed_at) && !quotation.booking_created_at && isOrganizationMember ? {
+          action: {
+            label: isConvertingToBooking ? 'Converting...' : 'Convert to Booking',
+            onClick: async () => {
+              if (isConvertingToBooking) return; // Prevent multiple clicks
+              
+              try {
+                // Create booking from quotation
+                setIsConvertingToBooking(true);
+                setProgressOpen(true);
+                setProgressVariant('approval');
+                setProgressTitle('Converting to Booking');
                 
-                try {
-                  // Create booking from quotation
-                  setIsConvertingToBooking(true);
-                  setProgressOpen(true);
-                  setProgressVariant('approval');
-                  setProgressTitle('Converting to Booking');
+                // Start progress simulation
+                const progressPromise = startProgress(progressConfigs.convertToBooking);
+                
+                const response = await fetch('/api/quotations/convert', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    quotation_id: quotation.id
+                  })
+                });
+                
+                // Wait for progress to complete
+                await progressPromise;
+                
+                if (response.ok) {
+                  const result = await response.json();
                   
-                  // Start progress simulation
-                  const progressPromise = startProgress(progressConfigs.convertToBooking);
-                  
-                  const response = await fetch('/api/quotations/convert', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      quotation_id: quotation.id
-                    })
-                  });
-                  
-                  // Wait for progress to complete
-                  await progressPromise;
-                  
-                  if (response.ok) {
-                    const result = await response.json();
-                    
-                    // Call the onCreateBooking callback if provided
-                    if (onCreateBooking) {
-                      onCreateBooking();
-                    }
-                    
-                    // Show success message based on number of bookings created
-                    if (result.total_bookings > 1) {
-                      toast({
-                        title: "Successfully converted to bookings",
-                        description: `${result.total_bookings} bookings have been created from this quotation`,
-                        variant: "default",
-                      });
-                    } else {
-                      toast({
-                        title: "Successfully converted to booking",
-                        description: `Booking has been created successfully`,
-                        variant: "default",
-                      });
-                    }
-                    
-                    // Redirect to the first booking page using beautiful URL
-                    if (result.booking_wp_ids && result.booking_wp_ids.length > 0) {
-                      window.location.href = `/bookings/${result.booking_wp_ids[0]}`;
-                    } else if (result.booking_ids && result.booking_ids.length > 0) {
-                      // Fallback to UUID if wp_id not available
-                      window.location.href = `/bookings/${result.booking_ids[0]}`;
-                    } else {
-                      // Fallback: refresh the page to show updated status
-                      window.location.reload();
-                    }
-                  } else {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Failed to convert quotation');
+                  // Call the onCreateBooking callback if provided
+                  if (onCreateBooking) {
+                    onCreateBooking();
                   }
-                } catch (error) {
-                  console.error('Error converting to booking:', error);
-                  toast({
-                    title: "Failed to convert to booking",
-                    description: error instanceof Error ? error.message : "Please try again later",
-                    variant: "destructive",
-                  });
-                } finally {
-                  setIsConvertingToBooking(false);
+                  
+                  // Show success message based on number of bookings created
+                  if (result.total_bookings > 1) {
+                    toast({
+                      title: "Successfully converted to bookings",
+                      description: `${result.total_bookings} bookings have been created from this quotation`,
+                      variant: "default",
+                    });
+                  } else {
+                    toast({
+                      title: "Successfully converted to booking",
+                      description: `Booking has been created successfully`,
+                      variant: "default",
+                    });
+                  }
+                  
+                  // Redirect to the first booking page using beautiful URL
+                  if (result.booking_wp_ids && result.booking_wp_ids.length > 0) {
+                    window.location.href = `/bookings/${result.booking_wp_ids[0]}`;
+                  } else if (result.booking_ids && result.booking_ids.length > 0) {
+                    // Fallback to UUID if wp_id not available
+                    window.location.href = `/bookings/${result.booking_ids[0]}`;
+                  } else {
+                    // Fallback: refresh the page to show updated status
+                    window.location.reload();
+                  }
+                } else {
+                  const error = await response.json();
+                  throw new Error(error.error || 'Failed to convert quotation');
                 }
-              },
-              variant: 'default' as const,
-              disabled: isConvertingToBooking,
-              icon: isConvertingToBooking ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined
-            }
-          } : {})
-        }
-      );
-    }
+              } catch (error) {
+                console.error('Error converting to booking:', error);
+                toast({
+                  title: "Failed to convert to booking",
+                  description: error instanceof Error ? error.message : "Please try again later",
+                  variant: "destructive",
+                });
+              } finally {
+                setIsConvertingToBooking(false);
+              }
+            },
+            variant: 'default' as const,
+            disabled: isConvertingToBooking,
+            icon: isConvertingToBooking ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined
+          }
+        } : {})
+      }
+    );
 
     // Add converted status step if quotation is converted
     if (quotation.status === 'converted') {
@@ -963,13 +961,14 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
               <div key={step.id} className="relative flex-1">
                 {/* Step Content */}
                 <div 
-                  className="flex items-start gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-colors"
+                  className="flex items-start gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-all duration-200 hover:shadow-sm hover:scale-[1.01] active:scale-[0.99]"
                   onClick={() => setSelectedStep(selectedStep === step.id ? null : step.id)}
                 >
                   {/* Icon with status indicator */}
                   <div className={cn(
-                    "relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors flex-shrink-0",
-                    getStepStatusColor(step.status)
+                    "relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-200 flex-shrink-0",
+                    getStepStatusColor(step.status),
+                    selectedStep === step.id ? "ring-2 ring-blue-500/20 scale-105" : "hover:scale-105"
                   )}>
                     {step.icon}
                     {step.status === 'completed' && (
@@ -980,16 +979,16 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                   </div>
                   
                   {/* Step Details */}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 transition-all duration-200">
                     <h4 className={cn(
-                      "font-medium text-sm mb-1",
+                      "font-medium text-sm mb-1 transition-colors duration-200",
                       step.status === 'completed' ? 'text-green-700 dark:text-green-300' :
                       step.status === 'current' ? 'text-blue-700 dark:text-blue-300' :
                       'text-gray-500 dark:text-gray-400'
                     )}>
                       {step.title}
                     </h4>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground transition-colors duration-200">
                       Click for details
                     </p>
                     
@@ -1009,21 +1008,25 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
           })}
         </div>
 
-        {/* Details Panel */}
-        {selectedStep && (() => {
-          const step = workflowSteps.find(s => s.id === selectedStep);
-          if (!step) return null;
-          
+        {/* Details Panel with Animation */}
+        <div className={cn(
+          "overflow-hidden transition-all duration-300 ease-in-out",
+          selectedStep ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+        )}>
+          {selectedStep && (() => {
+            const step = workflowSteps.find(s => s.id === selectedStep);
+            if (!step) return null;
+            
             return (
-              <div className="mt-4 p-4 bg-muted/30 rounded-lg border">
+              <div className="mt-4 p-4 bg-muted/30 rounded-lg border transform transition-all duration-300 ease-in-out animate-in slide-in-from-top-2 fade-in-0">
                 <div className="space-y-2">
                   <h4 className={cn(
-                    "font-semibold",
+                    "font-semibold transition-colors duration-200",
                     step.status === 'completed' ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
                   )}>
                     {step.status === 'completed' ? '✓' : '⏳'} {step.title}
                   </h4>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground transition-colors duration-200">
                     {step.status === 'completed' && step.date 
                       ? `${step.description} on ${format(parseISO(step.date), 'MMM dd, yyyy \'at\' h:mm:ss a')}`
                       : step.status === 'current'
@@ -1032,11 +1035,11 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                     }
                   </p>
                   {step.status === 'current' && step.action && (
-                    <div className="mt-3">
+                    <div className="mt-3 transform transition-all duration-200 ease-in-out animate-in slide-in-from-bottom-1 fade-in-0 delay-100">
                       <Button
                         onClick={step.action.onClick}
                         disabled={step.action.disabled}
-                        className="w-full"
+                        className="w-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                       >
                         {step.action.label}
                       </Button>
@@ -1045,7 +1048,8 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                 </div>
               </div>
             );
-        })()}
+          })()}
+        </div>
 
         {/* Summary Status */}
         <Separator className="my-4" />

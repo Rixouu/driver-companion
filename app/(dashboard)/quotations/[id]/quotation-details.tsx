@@ -46,8 +46,13 @@ import {
   DollarSign,
   Calculator,
   Eye,
+  EyeOff,
   Receipt,
-  Loader2
+  Loader2,
+  List,
+  Plane,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Quotation, QuotationItem, QuotationStatus, PricingPackage, PricingPromotion, PackageType } from '@/types/quotations';
 import { useQuotationService } from "@/lib/hooks/useQuotationService";
@@ -129,10 +134,232 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
   const [selectedCurrency, setSelectedCurrency] = useState<string>(quotation?.display_currency || quotation?.currency || 'JPY');
   const [shouldMoveToMainContent, setShouldMoveToMainContent] = useState(false);
   
+  // State for collapsible services
+  const [isServicesExpanded, setIsServicesExpanded] = useState(false);
+  const [expandedServices, setExpandedServices] = useState<Set<string>>(new Set());
+  
   // Use dynamic currency service
   const { currencyData, isLoading: currencyLoading, formatCurrency: dynamicFormatCurrency, convertCurrency } = useCurrency('JPY');
   
   // Add state for packages, promotions, and time-based pricing
+  
+  // Toggle individual service expansion
+  const toggleServiceExpansion = (serviceId: string) => {
+    setExpandedServices(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(serviceId)) {
+        newSet.delete(serviceId);
+      } else {
+        newSet.add(serviceId);
+      }
+      return newSet;
+    });
+  };
+  
+  // Render compact service items list
+  const renderCompactServiceItemsList = () => {
+    if (!quotation.quotation_items || quotation.quotation_items.length === 0) {
+      return (
+        <div className="text-center py-6 text-muted-foreground">
+          <Car className="mx-auto h-6 w-6 mb-2 opacity-50" />
+          <p className="text-sm">No services added yet</p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-2">
+        {quotation.quotation_items.map((item, index) => {
+          const isCharter = item.service_type_name?.toLowerCase().includes('charter') || false;
+          const totalPrice = isCharter 
+            ? item.unit_price * (item.service_days || 1)
+            : (item.total_price || item.unit_price);
+          
+          // Calculate time-based adjustment display
+          const hasTimeAdjustment = (item as any).time_based_adjustment && (item as any).time_based_adjustment !== 0;
+          const timeAdjustmentText = hasTimeAdjustment 
+            ? `${(item as any).time_based_adjustment! > 0 ? '+' : ''}${(item as any).time_based_adjustment}%`
+            : '';
+          
+          const isExpanded = expandedServices.has(item.id);
+          
+          return (
+            <div key={item.id} className="space-y-2">
+              {/* Compact Service Card */}
+              <div 
+                className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border hover:bg-muted/50 transition-all duration-300 cursor-pointer group hover:shadow-sm hover:scale-[1.01] active:scale-[0.99]"
+                onClick={() => toggleServiceExpansion(item.id)}
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0 mr-4">
+                  <div className="flex-shrink-0">
+                    {isCharter ? (
+                      <Car className="h-4 w-4 text-blue-600" />
+                    ) : item.service_type_name?.toLowerCase().includes('airport') ? (
+                      <Plane className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Package className="h-4 w-4 text-green-600" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">
+                      {item.service_type_name}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {item.vehicle_type}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate mt-1">
+                      {item.pickup_date && item.pickup_time && (
+                        `${format(parseISO(item.pickup_date), 'MMM dd, yyyy')} at ${item.pickup_time}`
+                      )}
+                      {isCharter && item.service_days && item.hours_per_day && (
+                        ` • ${item.service_days} days × ${item.hours_per_day}h/day`
+                      )}
+                      {hasTimeAdjustment && (
+                        <span className="text-orange-500 dark:text-orange-400 font-medium">
+                          {timeAdjustmentText && ` • ${timeAdjustmentText}`}
+                          {(item as any).time_based_rule_name && ` ${(item as any).time_based_rule_name}`}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="text-right">
+                    <div className="font-semibold text-sm">
+                      {formatCurrency(totalPrice)}
+                    </div>
+                  </div>
+                  <div className="ml-2 transition-all duration-300 ease-in-out">
+                    <div className={cn(
+                      "transform transition-all duration-300 ease-in-out",
+                      isExpanded ? "rotate-180 scale-110" : "rotate-0 scale-100"
+                    )}>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors duration-200" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Expanded Service Details with Animation */}
+              <div className={cn(
+                "overflow-hidden transition-all duration-500 ease-in-out",
+                isExpanded ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
+              )}>
+                {isExpanded && (
+                  <div className="ml-7 p-4 bg-muted/20 rounded-lg border border-muted/50 transform transition-all duration-500 ease-in-out animate-in slide-in-from-top-4 fade-in-0 zoom-in-95 delay-100">
+                    <div className="space-y-3">
+                      {/* Service Details */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="font-medium text-muted-foreground">Service Type:</span>
+                          <p className="font-medium">{item.service_type_name}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-muted-foreground">Vehicle:</span>
+                          <p className="font-medium">{item.vehicle_type}</p>
+                        </div>
+                        {item.pickup_date && item.pickup_time && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Date & Time:</span>
+                            <p className="font-medium">
+                              {format(parseISO(item.pickup_date), 'MMM dd, yyyy')} at {item.pickup_time}
+                            </p>
+                          </div>
+                        )}
+                        {isCharter && item.service_days && item.hours_per_day && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Duration:</span>
+                            <p className="font-medium">{item.service_days} days × {item.hours_per_day}h/day</p>
+                          </div>
+                        )}
+                        {(item as any).pickup_location && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Pickup Location:</span>
+                            <p className="font-medium">{(item as any).pickup_location}</p>
+                          </div>
+                        )}
+                        {(item as any).dropoff_location && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Dropoff Location:</span>
+                            <p className="font-medium">{(item as any).dropoff_location}</p>
+                          </div>
+                        )}
+                        {(item as any).flight_number && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Flight Number:</span>
+                            <p className="font-medium">{(item as any).flight_number}</p>
+                          </div>
+                        )}
+                        {(item as any).terminal && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Terminal:</span>
+                            <p className="font-medium">{(item as any).terminal}</p>
+                          </div>
+                        )}
+                        {(item as any).number_of_passengers && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Passengers:</span>
+                            <p className="font-medium">{(item as any).number_of_passengers}</p>
+                          </div>
+                        )}
+                        {(item as any).number_of_bags && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Bags:</span>
+                            <p className="font-medium">{(item as any).number_of_bags}</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Pricing Details */}
+                      <div className="pt-3 border-t border-muted/50 animate-in slide-in-from-bottom-2 fade-in-0 delay-200">
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Unit Price:</span>
+                            <span className="font-medium">{formatCurrency(item.unit_price)}</span>
+                          </div>
+                          {isCharter && item.service_days && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">× {item.service_days} days:</span>
+                              <span className="font-medium">{formatCurrency(item.unit_price * item.service_days)}</span>
+                            </div>
+                          )}
+                          {hasTimeAdjustment && (
+                            <div className="flex justify-between text-orange-500 dark:text-orange-400">
+                              <span>Time Adjustment ({timeAdjustmentText}):</span>
+                              <span className="font-medium">
+                                {formatCurrency(Math.abs((item.unit_price || 0) * (item.service_days || 1) * ((item as any).time_based_adjustment / 100)))}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex justify-between font-semibold text-base pt-2 border-t border-muted/50">
+                            <span>Total:</span>
+                            <span>{formatCurrency(totalPrice)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        
+        <div className="pt-2 pb-1 flex justify-between items-center font-medium text-sm border-t">
+          <span>Total Amount (before discount/tax):</span>
+          <span>{formatCurrency(quotation.quotation_items.reduce((total, item) => {
+            // For Charter Services, calculate total based on duration (unit_price × service_days)
+            if (item.service_type_name?.toLowerCase().includes('charter')) {
+              const calculatedTotal = item.unit_price * (item.service_days || 1);
+              return total + calculatedTotal;
+            }
+            // For other services, use existing logic
+            return total + (item.total_price || item.unit_price);
+          }, 0))}</span>
+        </div>
+      </div>
+    );
+  };
   const [selectedPackage, setSelectedPackage] = useState<PricingPackage | null>(null);
   const [selectedPromotion, setSelectedPromotion] = useState<PricingPromotion | null>(null);
   const [appliedTimeBasedRules, setAppliedTimeBasedRules] = useState<any[]>([]);
@@ -568,7 +795,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               <div className="flex flex-col sm:flex-row flex-wrap gap-2 flex-shrink-0">
                 <QuotationShareButtons quotation={quotation} />
                 {isOrganizationMember && !['approved', 'rejected', 'converted', 'paid'].includes(quotation.status) && !(quotation as any).converted_to_booking_id && !(quotation as any).payment_completed_at && (
-                  <Button variant="outline" asChild className="w-full sm:w-auto gap-2">
+                  <Button variant="outline" size="sm" asChild className="w-full sm:w-auto gap-2">
                     <Link href={getQuotationEditUrl(quotation) as any}>
                       <Edit className="h-4 w-4" />
                       {t('quotations.actions.edit')}
@@ -1000,7 +1227,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                               <User className="h-5 w-5 text-foreground" />
                             </div>
                             <div className="flex-1">
-                              <div className="font-semibold text-lg">{quotation.customer_name || t('common.notAvailable')}</div>
+                              <div className="text-lg text-foreground">{quotation.customer_name || t('common.notAvailable')}</div>
                               <span className="text-xs text-muted-foreground font-normal">Full Name</span>
                             </div>
                       </div>
@@ -1010,7 +1237,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                               <Mail className="h-5 w-5 text-foreground" />
                         </div>
                             <div className="flex-1">
-                              <div className="font-semibold text-lg">{quotation.customer_email}</div>
+                              <div className="text-lg text-foreground">{quotation.customer_email}</div>
                               <span className="text-xs text-muted-foreground font-normal">{t('quotations.details.email')}</span>
                             </div>
                           </div>
@@ -1021,7 +1248,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                                 <Phone className="h-5 w-5 text-foreground" />
                               </div>
                               <div className="flex-1">
-                                <div className="font-semibold text-lg">{quotation.customer_phone}</div>
+                                <div className="text-lg text-foreground">{quotation.customer_phone}</div>
                                 <span className="text-xs text-muted-foreground font-normal">{t('quotations.details.phone')}</span>
                               </div>
                         </div>
@@ -1062,7 +1289,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                                   <CreditCard className="h-5 w-5 text-foreground" />
                     </div>
                                 <div className="flex-1">
-                                  <div className="font-semibold text-lg">{quotation.billing_tax_number}</div>
+                                  <div className="text-lg text-foreground">{quotation.billing_tax_number}</div>
                                   <span className="text-xs text-muted-foreground font-normal">{t('quotations.details.taxId')}</span>
                   </div>
                 </div>
@@ -1074,7 +1301,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                                   <MapPin className="h-5 w-5 text-foreground" />
                           </div>
                                 <div className="flex-1">
-                                  <div className="space-y-0.5 font-semibold text-lg">
+                                  <div className="space-y-0.5 text-lg text-foreground">
                                     {quotation.billing_street_name && (
                                       <div className="font-medium">
                                         {quotation.billing_street_name} {quotation.billing_street_number || ''}
@@ -1138,69 +1365,96 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   {/* Selected Services Section using ServiceCard */}
                   {quotation.quotation_items && quotation.quotation_items.length > 0 && (
                     <div className="mb-6">
-                      <div className="flex items-center mb-4">
-                        <Car className="h-6 w-6 mr-3 text-primary" />
-                        <div>
-                          <h2 className="text-xl font-semibold">{t('quotations.details.selectedServices')}</h2>
-                          <p className="text-sm text-muted-foreground">{quotation.quotation_items.length} services selected</p>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center">
+                          <Car className="h-6 w-6 mr-3 text-primary" />
+                          <div>
+                            <h2 className="text-xl font-semibold">{t('quotations.details.selectedServices')}</h2>
+                            <p className="text-sm text-muted-foreground">{quotation.quotation_items.length} services selected</p>
+                          </div>
                         </div>
-              </div>
-              
-                      <div className="space-y-3">
-                        {quotation.quotation_items.map((item, index) => {
-                          // Convert QuotationItem to ServiceItemInput format for ServiceCard
-                          const serviceItem = {
-                            description: item.description,
-                            service_type_id: item.service_type_id || '',
-                            service_type_name: item.service_type_name || '',
-                            vehicle_category: item.vehicle_category as string || '',
-                            vehicle_type: item.vehicle_type || '',
-                            duration_hours: item.duration_hours || 1,
-                            service_days: item.service_days || 1,
-                            hours_per_day: item.hours_per_day || null,
-                            unit_price: item.unit_price,
-                            total_price: item.total_price,
-                            quantity: item.quantity,
-                            sort_order: item.sort_order || index,
-                            is_service_item: item.is_service_item !== false,
-                            pickup_date: item.pickup_date || null,
-                            pickup_time: item.pickup_time || null,
-                            pickup_location: (item as any).pickup_location || '',
-                            dropoff_location: (item as any).dropoff_location || '',
-                            number_of_passengers: (item as any).number_of_passengers || null,
-                            number_of_bags: (item as any).number_of_bags || null,
-                            flight_number: (item as any).flight_number || '',
-                            terminal: (item as any).terminal || '',
-                            time_based_adjustment: (item as any).time_based_adjustment,
-                            time_based_rule_name: (item as any).time_based_rule_name,
-                          };
-                          
-                          return (
-                            <ServiceCard
-                              key={item.id}
-                              item={serviceItem}
-                              index={index}
-                              formatCurrency={formatCurrency}
-                              packages={selectedPackage ? [selectedPackage] : []}
-                              selectedPackage={selectedPackage}
-                              showActions={false}
-                            />
-                          );
-                        })}
-                        
-                        <div className="pt-2 pb-4 flex justify-between items-center font-medium text-sm border-t">
-                          <span>Total Amount (before discount/tax):</span>
-                          <span>{formatCurrency(quotation.quotation_items.reduce((total, item) => {
-                            // For Charter Services, calculate total based on duration (unit_price × service_days)
-                            if (item.service_type_name?.toLowerCase().includes('charter')) {
-                              const calculatedTotal = item.unit_price * (item.service_days || 1);
-                              return total + calculatedTotal;
-                            }
-                            // For other services, use existing logic
-                            return total + (item.total_price || item.unit_price);
-                          }, 0))}</span>
-                </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsServicesExpanded(!isServicesExpanded)}
+                            className="h-8 px-2"
+                          >
+                            {isServicesExpanded ? (
+                              <>
+                                <EyeOff className="h-4 w-4 mr-1" />
+                                Compact
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="h-4 w-4 mr-1" />
+                                Expand
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
+              
+                      {isServicesExpanded ? (
+                        <div className="space-y-3">
+                          {quotation.quotation_items.map((item, index) => {
+                            // Convert QuotationItem to ServiceItemInput format for ServiceCard
+                            const serviceItem = {
+                              description: item.description,
+                              service_type_id: item.service_type_id || '',
+                              service_type_name: item.service_type_name || '',
+                              vehicle_category: item.vehicle_category as string || '',
+                              vehicle_type: item.vehicle_type || '',
+                              duration_hours: item.duration_hours || 1,
+                              service_days: item.service_days || 1,
+                              hours_per_day: item.hours_per_day || null,
+                              unit_price: item.unit_price,
+                              total_price: item.total_price,
+                              quantity: item.quantity,
+                              sort_order: item.sort_order || index,
+                              is_service_item: item.is_service_item !== false,
+                              pickup_date: item.pickup_date || null,
+                              pickup_time: item.pickup_time || null,
+                              pickup_location: (item as any).pickup_location || '',
+                              dropoff_location: (item as any).dropoff_location || '',
+                              number_of_passengers: (item as any).number_of_passengers || null,
+                              number_of_bags: (item as any).number_of_bags || null,
+                              flight_number: (item as any).flight_number || '',
+                              terminal: (item as any).terminal || '',
+                              time_based_adjustment: (item as any).time_based_adjustment,
+                              time_based_rule_name: (item as any).time_based_rule_name,
+                            };
+                            
+                            return (
+                              <ServiceCard
+                                key={item.id}
+                                item={serviceItem}
+                                index={index}
+                                formatCurrency={formatCurrency}
+                                packages={selectedPackage ? [selectedPackage] : []}
+                                selectedPackage={selectedPackage}
+                                showActions={false}
+                              />
+                            );
+                          })}
+                          
+                          <div className="pt-2 pb-4 flex justify-between items-center font-medium text-sm border-t">
+                            <span>Total Amount (before discount/tax):</span>
+                            <span>{formatCurrency(quotation.quotation_items.reduce((total, item) => {
+                              // For Charter Services, calculate total based on duration (unit_price × service_days)
+                              if (item.service_type_name?.toLowerCase().includes('charter')) {
+                                const calculatedTotal = item.unit_price * (item.service_days || 1);
+                                return total + calculatedTotal;
+                              }
+                              // For other services, use existing logic
+                              return total + (item.total_price || item.unit_price);
+                            }, 0))}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        renderCompactServiceItemsList()
+                      )}
                     </div>
                   )}
                 </CardContent>

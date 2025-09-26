@@ -93,11 +93,13 @@ export function QuotationSummary({
                     {/* Service Header */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <div className="w-6 h-6 rounded-lg flex items-center justify-center">
                           {item.service_type_name?.toLowerCase().includes('airport') ? (
-                            <Plane className="h-4 w-4 text-primary" />
+                            <Plane className="h-4 w-4 text-green-600" />
+                          ) : item.service_type_name?.toLowerCase().includes('charter') ? (
+                            <Car className="h-4 w-4 text-blue-600" />
                           ) : (
-                            <Car className="h-4 w-4 text-primary" />
+                            <Car className="h-4 w-4 text-green-600" />
                           )}
                         </div>
                         <span className="text-sm font-medium">{item.service_type_name || 'Service'}</span>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { PACKAGE_SERVICE_TYPE_ID } from '@/lib/constants/service-types';
-import { Car, Calendar, Settings, Package, Plus, List, Timer, PencilIcon, Copy, Trash, X, ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
+import { Car, Calendar, Settings, Package, Plus, List, Timer, PencilIcon, Copy, Trash, X, ChevronDown, ChevronUp, Eye, EyeOff, Plane } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useI18n } from '@/lib/i18n/context';
 import { cn } from '@/lib/utils';
@@ -90,6 +90,20 @@ export function ServiceSelectionStep({
   const [serviceTimeBasedPricing, setServiceTimeBasedPricing] = useState<boolean>(true);
   const [isServicesExpanded, setIsServicesExpanded] = useState(false);
   const [showAddServiceForm, setShowAddServiceForm] = useState(false);
+  const [expandedServices, setExpandedServices] = useState<Set<number>>(new Set());
+
+  // Toggle individual service expansion
+  const toggleServiceExpansion = (index: number) => {
+    setExpandedServices(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
 
   // Optimized onChange handlers to prevent slow execution
   const handlePassengerChange = useCallback((value: string, onChange: (value: number | null) => void) => {
@@ -877,87 +891,208 @@ export function ServiceSelectionStep({
             ? `${item.time_based_adjustment! > 0 ? '+' : ''}${item.time_based_adjustment}%`
             : '';
           
+          const isExpanded = expandedServices.has(index);
+          
           return (
-            <div 
-              key={index}
-              className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer group"
-              onClick={() => handleEditServiceItem(index)}
-            >
-              <div className="flex items-center gap-3 flex-1 min-w-0 mr-4">
-                <div className="flex-shrink-0">
-                  {isCharter ? (
-                    <Car className="h-4 w-4 text-blue-600" />
-                  ) : (
-                    <Package className="h-4 w-4 text-green-600" />
-                  )}
+            <div key={index} className="space-y-2">
+              {/* Compact Service Card */}
+              <div 
+                className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border hover:bg-muted/50 transition-all duration-300 cursor-pointer group hover:shadow-sm hover:scale-[1.01] active:scale-[0.99]"
+                onClick={() => toggleServiceExpansion(index)}
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0 mr-4">
+                  <div className="flex-shrink-0">
+                    {isCharter ? (
+                      <Car className="h-4 w-4 text-blue-600" />
+                    ) : item.service_type_name?.toLowerCase().includes('airport') ? (
+                      <Plane className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Package className="h-4 w-4 text-green-600" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">
+                      {item.service_type_name}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {item.vehicle_type}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate mt-1">
+                      {item.pickup_date && item.pickup_time && (
+                        `${format(parseISO(item.pickup_date), 'MMM dd, yyyy')} at ${item.pickup_time}`
+                      )}
+                      {isCharter && item.service_days && item.hours_per_day && (
+                        ` • ${item.service_days} days × ${item.hours_per_day}h/day`
+                      )}
+                      {hasTimeAdjustment && (
+                        <span className="text-orange-500 dark:text-orange-400 font-medium">
+                          {timeAdjustmentText && ` • ${timeAdjustmentText}`}
+                          {item.time_based_rule_name && ` ${item.time_based_rule_name}`}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm truncate">
-                    {item.service_type_name}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="text-right">
+                    <div className="font-semibold text-sm">
+                      {formatCurrency(totalPrice)}
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {item.vehicle_type}
-                  </div>
-                  <div className="text-xs text-muted-foreground truncate mt-1">
-                    {item.pickup_date && item.pickup_time && (
-                      `${format(parseISO(item.pickup_date), 'MMM dd, yyyy')} at ${item.pickup_time}`
-                    )}
-                    {isCharter && item.service_days && item.hours_per_day && (
-                      ` • ${item.service_days} days × ${item.hours_per_day}h/day`
-                    )}
-                    {hasTimeAdjustment && (
-                      <span className="text-orange-500 dark:text-orange-400 font-medium">
-                        {timeAdjustmentText && ` • ${timeAdjustmentText}`}
-                        {item.time_based_rule_name && ` ${item.time_based_rule_name}`}
-                      </span>
-                    )}
+                  <div className="ml-2 transition-all duration-300 ease-in-out">
+                    <div className={cn(
+                      "transform transition-all duration-300 ease-in-out",
+                      isExpanded ? "rotate-180 scale-110" : "rotate-0 scale-100"
+                    )}>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors duration-200" />
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <div className="text-right">
-                  <div className="font-semibold text-sm">
-                    {formatCurrency(totalPrice)}
+              
+              {/* Action Buttons - Always visible */}
+              <div className="flex items-center justify-end gap-1 ml-7">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditServiceItem(index);
+                  }}
+                >
+                  <PencilIcon className="h-3 w-3 mr-1" />
+                  Edit
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDuplicateServiceItem(index);
+                  }}
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  Copy
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveServiceItem(index);
+                  }}
+                >
+                  <Trash className="h-3 w-3 mr-1" />
+                  Delete
+                </Button>
+              </div>
+              
+              {/* Expanded Service Details with Animation */}
+              <div className={cn(
+                "overflow-hidden transition-all duration-500 ease-in-out",
+                isExpanded ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
+              )}>
+                {isExpanded && (
+                  <div className="ml-7 p-4 bg-muted/20 rounded-lg border border-muted/50 transform transition-all duration-500 ease-in-out animate-in slide-in-from-top-4 fade-in-0 zoom-in-95 delay-100">
+                    <div className="space-y-3">
+                      {/* Service Details */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="font-medium text-muted-foreground">Service Type:</span>
+                          <p className="font-medium">{item.service_type_name}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-muted-foreground">Vehicle:</span>
+                          <p className="font-medium">{item.vehicle_type}</p>
+                        </div>
+                        {item.pickup_date && item.pickup_time && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Date & Time:</span>
+                            <p className="font-medium">
+                              {format(parseISO(item.pickup_date), 'MMM dd, yyyy')} at {item.pickup_time}
+                            </p>
+                          </div>
+                        )}
+                        {isCharter && item.service_days && item.hours_per_day && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Duration:</span>
+                            <p className="font-medium">{item.service_days} days × {item.hours_per_day}h/day</p>
+                          </div>
+                        )}
+                        {item.pickup_location && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Pickup Location:</span>
+                            <p className="font-medium">{item.pickup_location}</p>
+                          </div>
+                        )}
+                        {item.dropoff_location && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Dropoff Location:</span>
+                            <p className="font-medium">{item.dropoff_location}</p>
+                          </div>
+                        )}
+                        {item.flight_number && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Flight Number:</span>
+                            <p className="font-medium">{item.flight_number}</p>
+                          </div>
+                        )}
+                        {item.terminal && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Terminal:</span>
+                            <p className="font-medium">{item.terminal}</p>
+                          </div>
+                        )}
+                        {item.number_of_passengers && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Passengers:</span>
+                            <p className="font-medium">{item.number_of_passengers}</p>
+                          </div>
+                        )}
+                        {item.number_of_bags && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Bags:</span>
+                            <p className="font-medium">{item.number_of_bags}</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Pricing Details */}
+                      <div className="pt-3 border-t border-muted/50 animate-in slide-in-from-bottom-2 fade-in-0 delay-200">
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Unit Price:</span>
+                            <span className="font-medium">{formatCurrency(item.unit_price)}</span>
+                          </div>
+                          {isCharter && item.service_days && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">× {item.service_days} days:</span>
+                              <span className="font-medium">{formatCurrency(item.unit_price * item.service_days)}</span>
+                            </div>
+                          )}
+                          {hasTimeAdjustment && (
+                            <div className="flex justify-between text-orange-500 dark:text-orange-400">
+                              <span>Time Adjustment ({timeAdjustmentText}):</span>
+                              <span className="font-medium">
+                                {formatCurrency(Math.abs((item.unit_price || 0) * (item.service_days || 1) * ((item.time_based_adjustment || 0) / 100)))}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex justify-between font-semibold text-base pt-2 border-t border-muted/50">
+                            <span>Total:</span>
+                            <span>{formatCurrency(totalPrice)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 w-6 p-0"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditServiceItem(index);
-                    }}
-                  >
-                    <PencilIcon className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 w-6 p-0"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDuplicateServiceItem(index);
-                    }}
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveServiceItem(index);
-                    }}
-                  >
-                    <Trash className="h-3 w-3" />
-                  </Button>
-                </div>
+                )}
               </div>
             </div>
           );

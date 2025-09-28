@@ -418,7 +418,7 @@ export default function RealTimeDispatchCenter() {
       const pendingEntries = validBookings.map(booking => ({
         id: `pending-${booking.id}`, // Generate unique ID for pending entries
         booking_id: booking.id,
-        status: 'pending' as const,
+        status: booking.status as DispatchStatus, // Use actual booking status instead of hardcoded 'pending'
         driver_id: booking.driver_id,
         vehicle_id: booking.vehicle_id,
         start_time: null, // Don't set start_time for pending entries, let the UI handle it

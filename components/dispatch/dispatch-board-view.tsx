@@ -307,6 +307,77 @@ function Column({ title, status, entries, count, emptyMessage, onCardClick, onQu
   );
 }
 
+// Draggable column wrapper
+function DraggableColumn({ 
+  title, 
+  status, 
+  entries, 
+  count, 
+  emptyMessage, 
+  onCardClick, 
+  onQuickAssign, 
+  onUnassign,
+  index 
+}: ColumnProps & { index: number }) {
+  return (
+    <Draggable draggableId={`column-${status}`} index={index}>
+      {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          className={cn(
+            "flex flex-col h-full",
+            snapshot.isDragging && "opacity-50"
+          )}
+        >
+          <div
+            {...provided.dragHandleProps}
+            className="flex items-center justify-between mb-4 sticky top-0 bg-background z-10 pb-2 border-b border-border/50 cursor-move hover:bg-muted/50 rounded-md p-2 -m-2 transition-colors"
+          >
+            <h3 className="font-semibold text-sm text-foreground">{title}</h3>
+            <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">
+              {count}
+            </Badge>
+          </div>
+          
+          <Droppable droppableId={status}>
+            {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
+              <div 
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className={cn(
+                  "flex-1 min-h-0 transition-colors rounded-lg",
+                  snapshot.isDraggingOver && "bg-muted/30 border-2 border-dashed border-primary/50"
+                )}
+              >
+                {entries.filter((entry) => entry.status === status).length === 0 ? (
+                  <div className="flex items-center justify-center h-32 text-center text-muted-foreground text-sm border-2 border-dashed border-border/30 rounded-lg">
+                    <span className="p-4">{emptyMessage}</span>
+                  </div>
+                ) : (
+                  <div className="space-y-0 pr-2 pb-4">
+                    {entries.filter((entry) => entry.status === status).map((entry, index) => (
+                      <DispatchCard 
+                        key={entry.id} 
+                        entry={entry} 
+                        onClick={() => onCardClick(entry)}
+                        onQuickAssign={onQuickAssign}
+                        onUnassign={onUnassign}
+                        index={index}
+                      />
+                    ))}
+                  </div>
+                )}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </div>
+      )}
+    </Draggable>
+  );
+}
+
 export default function DispatchBoardView({ 
   entries,
   onAssignDriver,
@@ -321,6 +392,21 @@ export default function DispatchBoardView({
   const { t } = useI18n();
   const [selectedEntry, setSelectedEntry] = useState<DispatchEntryWithRelations | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  
+  // Column order state - default order
+  const [columnOrder, setColumnOrder] = useState<DispatchStatus[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('dispatch-column-order');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          // Fallback to default if parsing fails
+        }
+      }
+    }
+    return ['pending', 'assigned', 'confirmed', 'completed', 'cancelled'];
+  });
 
   const handleCardClick = useCallback((entry: DispatchEntryWithRelations) => {
     setSelectedEntry(entry);
@@ -328,9 +414,29 @@ export default function DispatchBoardView({
   }, []);
 
   const handleDragEnd = useCallback(async (result: DropResult) => {
-    const { destination, source, draggableId } = result;
+    const { destination, source, draggableId, type } = result;
 
     if (!destination) return;
+
+    // Handle column reordering
+    if (type === 'COLUMN') {
+      if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+      
+      const newColumnOrder = Array.from(columnOrder);
+      const [reorderedColumn] = newColumnOrder.splice(source.index, 1);
+      newColumnOrder.splice(destination.index, 0, reorderedColumn);
+      
+      setColumnOrder(newColumnOrder);
+      
+      // Save to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('dispatch-column-order', JSON.stringify(newColumnOrder));
+      }
+      
+      return;
+    }
+
+    // Handle card reordering between columns
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
     const newStatus = destination.droppableId as DispatchStatus;
@@ -340,7 +446,7 @@ export default function DispatchBoardView({
     if (onStatusChange) {
       onStatusChange(entryId, newStatus);
     }
-  }, [onStatusChange]);
+  }, [onStatusChange, columnOrder]);
 
   const statusCounts = {
     pending: entries.filter(e => e.status === 'pending').length,
@@ -352,62 +458,52 @@ export default function DispatchBoardView({
     completed: entries.filter(e => e.status === 'completed').length,
     cancelled: entries.filter(e => e.status === 'cancelled').length,
   };
+
+  // Column configuration
+  const columnConfig = {
+    pending: { title: "Pending", emptyMessage: "No pending bookings" },
+    assigned: { title: "Assigned", emptyMessage: "No assigned bookings" },
+    confirmed: { title: "Confirmed", emptyMessage: "No confirmed bookings" },
+    en_route: { title: "En Route", emptyMessage: "No en route bookings" },
+    arrived: { title: "Arrived", emptyMessage: "No arrived bookings" },
+    in_progress: { title: "In Progress", emptyMessage: "No in progress bookings" },
+    completed: { title: "Completed", emptyMessage: "No completed trips" },
+    cancelled: { title: "Cancelled", emptyMessage: "No cancelled bookings" },
+  };
   
   return (
     <>
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 h-full overflow-visible">
-          <Column
-            title="Pending"
-            status="pending"
-            entries={entries}
-            count={statusCounts.pending}
-            emptyMessage="No pending bookings"
-            onCardClick={handleCardClick}
-            onQuickAssign={onQuickAssign}
-            onUnassign={onUnassign}
-          />
-          <Column
-            title="Assigned"
-            status="assigned"
-            entries={entries}
-            count={statusCounts.assigned}
-            emptyMessage="No assigned bookings"
-            onCardClick={handleCardClick}
-            onQuickAssign={onQuickAssign}
-            onUnassign={onUnassign}
-          />
-          <Column
-            title="Confirmed"
-            status="confirmed"
-            entries={entries}
-            count={statusCounts.confirmed}
-            emptyMessage="No confirmed bookings"
-            onCardClick={handleCardClick}
-            onQuickAssign={onQuickAssign}
-            onUnassign={onUnassign}
-          />
-          <Column
-            title="Completed"
-            status="completed"
-            entries={entries}
-            count={statusCounts.completed}
-            emptyMessage="No completed trips"
-            onCardClick={handleCardClick}
-            onQuickAssign={onQuickAssign}
-            onUnassign={onUnassign}
-          />
-          <Column
-            title="Cancelled"
-            status="cancelled"
-            entries={entries}
-            count={statusCounts.cancelled}
-            emptyMessage="No cancelled bookings"
-            onCardClick={handleCardClick}
-            onQuickAssign={onQuickAssign}
-            onUnassign={onUnassign}
-          />
-        </div>
+        <Droppable droppableId="columns" direction="horizontal">
+          {(provided: DroppableProvided) => (
+            <div 
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 h-full overflow-visible"
+            >
+              {columnOrder.map((status, index) => {
+                const config = columnConfig[status];
+                if (!config) return null;
+                
+                return (
+                  <DraggableColumn
+                    key={status}
+                    title={config.title}
+                    status={status}
+                    entries={entries}
+                    count={statusCounts[status]}
+                    emptyMessage={config.emptyMessage}
+                    onCardClick={handleCardClick}
+                    onQuickAssign={onQuickAssign}
+                    onUnassign={onUnassign}
+                    index={index}
+                  />
+                );
+              })}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
       </DragDropContext>
 
       <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>

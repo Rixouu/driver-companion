@@ -1,596 +1,184 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { GoogleMap, useLoadScript, Marker, InfoWindow, DirectionsRenderer } from '@react-google-maps/api';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  CarIcon,
-  UserIcon,
-  NavigationIcon,
-  RefreshCwIcon,
-  ZoomInIcon,
-  ZoomOutIcon,
-  MapPinIcon,
-  RouteIcon,
-  EyeIcon,
-  EyeOffIcon
-} from 'lucide-react';
-import { useI18n } from '@/lib/i18n/context';
-import { toast } from '@/components/ui/use-toast';
-import { cn } from '@/lib/utils/styles';
-import { 
-  DispatchEntryWithRelations, 
-  VehicleTracking, 
-  MapViewport, 
-  MapSettings,
-  DispatchStatus 
-} from '@/types/dispatch';
-import { useRealTimeTracking } from '@/lib/hooks/use-real-time-tracking';
-
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
-
-// Map container style
-const mapContainerStyle = {
-  width: '100%',
-  height: '100%'
-};
-
-// Default map center (Tokyo)
-const defaultCenter = {
-  lat: 35.6762,
-  lng: 139.6503
-};
-
-// Google Maps libraries to load
-const libraries: Array<"places" | "geometry" | "drawing"> = ["places", "geometry"];
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { MapPinIcon, CarIcon, UserIcon, ClockIcon, PhoneIcon } from "lucide-react";
+import { cn } from "@/lib/utils/styles";
+import { DispatchEntryWithRelations } from "@/types/dispatch";
+import { format } from "date-fns";
 
 interface DispatchMapProps {
   assignments: DispatchEntryWithRelations[];
   selectedAssignment?: DispatchEntryWithRelations | null;
-  onAssignmentSelect: (assignment: DispatchEntryWithRelations) => void;
-  onVehicleSelect: (vehicleId: string) => void;
+  onAssignmentSelect?: (assignment: DispatchEntryWithRelations) => void;
+  onVehicleSelect?: (vehicleId: string) => void;
   className?: string;
 }
 
-interface MarkerData {
-  id: string;
-  position: google.maps.LatLngLiteral;
-  type: 'vehicle' | 'pickup' | 'dropoff';
-  data: any;
-  status?: DispatchStatus;
-}
-
 export default function DispatchMap({ 
-  assignments,
-  selectedAssignment,
-  onAssignmentSelect, 
+  assignments, 
+  selectedAssignment, 
+  onAssignmentSelect,
   onVehicleSelect,
   className 
 }: DispatchMapProps) {
-  const { t } = useI18n();
-  
-  // Map state
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries,
-  });
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [viewport, setViewport] = useState<MapViewport>({
-    latitude: defaultCenter.lat,
-    longitude: defaultCenter.lng,
-    zoom: 11
-  });
-  
-  // Settings state
-  const [mapSettings, setMapSettings] = useState<MapSettings>({
-    map_type: 'roadmap',
-    show_traffic: true,
-    show_vehicle_icons: true,
-    show_routes: true,
-    auto_center: true,
-    refresh_interval: 30
-  });
-  
-  // UI state
-  const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
-  const [selectedRoute, setSelectedRoute] = useState<google.maps.DirectionsResult | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  
-  // Ref to track current route request to prevent race conditions
-  const currentRouteRequest = useRef<string | null>(null);
-  
-  // Real-time tracking
-  const { 
-    vehicleLocations, 
-    isTracking, 
-    startTracking, 
-    stopTracking,
-    getVehicleTracking 
-  } = useRealTimeTracking();
+  const [mapCenter, setMapCenter] = useState({ lat: 35.6762, lng: 139.6503 }); // Tokyo coordinates
+  const [zoom, setZoom] = useState(10);
 
-  // Create markers for vehicles, pickups, and dropoffs
-  const markers = useMemo(() => {
-    const markerData: MarkerData[] = [];
-
-    // Add vehicle markers
-    if (mapSettings.show_vehicle_icons) {
-      vehicleLocations.forEach(location => {
-        if (location.vehicle_id && location.latitude && location.longitude) {
-          markerData.push({
-            id: `vehicle-${location.vehicle_id}`,
-            position: { lat: location.latitude, lng: location.longitude },
-            type: 'vehicle',
-            data: location
-          });
-        }
-      });
-    }
-
-    // Location markers are disabled because `pickup_location` and `dropoff_location` 
-    // are string addresses and require geocoding to be displayed on the map.
-    // The previous implementation incorrectly assumed lat/lng objects were available.
-    
-    // assignments.forEach(assignment => {
-    //   if (assignment.pickup_location) {
-    //     markerData.push({
-    //       id: `pickup-${assignment.id}`,
-    //       position: { 
-    //         lat: assignment.pickup_location.lat, 
-    //         lng: assignment.pickup_location.lng 
-    //       },
-    //       type: 'pickup',
-    //       data: assignment,
-    //       status: assignment.status
-    //     });
-    //   }
-
-    //   if (assignment.dropoff_location) {
-    //     markerData.push({
-    //       id: `dropoff-${assignment.id}`,
-    //       position: { 
-    //         lat: assignment.dropoff_location.lat, 
-    //         lng: assignment.dropoff_location.lng 
-    //       },
-    //       type: 'dropoff',
-    //       data: assignment,
-    //       status: assignment.status
-    //     });
-    //   }
-    // });
-
-    return markerData;
-  }, [vehicleLocations, assignments, mapSettings.show_vehicle_icons]);
-
-  // Get marker icon based on type and status
-  const getMarkerIcon = (marker: MarkerData): google.maps.Icon | string => {
-    const baseUrl = '/img/map-markers/';
-    
-    switch (marker.type) {
-      case 'vehicle':
-        return {
-          url: `${baseUrl}vehicle-marker.png`,
-          scaledSize: new google.maps.Size(32, 32),
-          anchor: new google.maps.Point(16, 32)
-        };
-      case 'pickup':
-        const pickupColor = marker.status === 'completed' ? 'green' : 
-                           marker.status === 'en_route' ? 'blue' : 'orange';
-        return {
-          url: `${baseUrl}pickup-${pickupColor}.png`,
-          scaledSize: new google.maps.Size(28, 28),
-          anchor: new google.maps.Point(14, 28)
-        };
-      case 'dropoff':
-        const dropoffColor = marker.status === 'completed' ? 'green' : 
-                             marker.status === 'en_route' ? 'blue' : 'red';
-        return {
-          url: `${baseUrl}dropoff-${dropoffColor}.png`,
-          scaledSize: new google.maps.Size(28, 28),
-          anchor: new google.maps.Point(14, 28)
-        };
-      default:
-        return 'https://maps.google.com/mapfiles/ms/icons/red-dot.png';
+  // Mock map implementation - in a real app, this would integrate with Google Maps or similar
+  const handleAssignmentClick = (assignment: DispatchEntryWithRelations) => {
+    if (onAssignmentSelect) {
+      onAssignmentSelect(assignment);
     }
   };
-
-  // Handle marker click
-  const handleMarkerClick = (marker: MarkerData) => {
-    setSelectedMarker(marker);
-    
-    if (marker.type === 'vehicle' && marker.data.vehicle_id) {
-      onVehicleSelect(marker.data.vehicle_id);
-    } else if ((marker.type === 'pickup' || marker.type === 'dropoff') && marker.data) {
-      // Show route for this assignment instead of navigating
-      showRoute(marker.data);
-    }
-  };
-
-  // This will be moved after showRoute definition
-
-  // Show route between pickup and dropoff with smooth animation
-  const showRoute = useCallback(async (assignment: DispatchEntryWithRelations) => {
-    if (!map || !assignment.booking?.pickup_location || !assignment.booking?.dropoff_location) return;
-
-    // Create unique request ID to prevent race conditions
-    const requestId = assignment.id;
-    currentRouteRequest.current = requestId;
-
-    setIsLoading(true);
-    
-    // Clear any existing route immediately to prevent flickering
-    setSelectedRoute(null);
-    
-    try {
-      const directionsService = new google.maps.DirectionsService();
-      
-      const result = await directionsService.route({
-        origin: assignment.booking.pickup_location,
-        destination: assignment.booking.dropoff_location,
-        travelMode: google.maps.TravelMode.DRIVING,
-        avoidHighways: false,
-        avoidTolls: false,
-        optimizeWaypoints: true
-      });
-
-      // Only set the route if this is still the current request
-      if (currentRouteRequest.current === requestId) {
-        setSelectedRoute(result);
-        
-        // Small delay before fitting bounds to ensure route is rendered
-        requestAnimationFrame(() => {
-          if (currentRouteRequest.current === requestId && result.routes[0]?.bounds) {
-            map.fitBounds(result.routes[0].bounds, {
-              top: 50,
-              right: 50,
-              bottom: 50,
-              left: 50
-            });
-          }
-        });
-        
-        // Show success message
-        toast({
-          title: "Route Displayed",
-          description: `Route from ${assignment.booking.pickup_location} to ${assignment.booking.dropoff_location}`,
-        });
-      }
-
-    } catch (error) {
-      console.error('Error calculating route:', error);
-      if (currentRouteRequest.current === requestId) {
-        toast({
-          title: "Route Error",
-          description: "Unable to calculate route between the specified locations",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      if (currentRouteRequest.current === requestId) {
-        setIsLoading(false);
-      }
-    }
-  }, [map]);
-
-  // Handle assignment selection from sidebar
-  useEffect(() => {
-    if (selectedAssignment && selectedAssignment.booking?.pickup_location && selectedAssignment.booking?.dropoff_location) {
-      // Show route for the selected assignment
-      showRoute(selectedAssignment);
-    } else if (selectedAssignment && (!selectedAssignment.booking?.pickup_location || !selectedAssignment.booking?.dropoff_location)) {
-      // Clear route if assignment doesn't have valid locations
-      setSelectedRoute(null);
-      toast({
-        title: "Route Unavailable", 
-        description: "This booking doesn't have pickup and dropoff locations specified",
-        variant: "destructive",
-      });
-    } else if (!selectedAssignment) {
-      // Clear route when no assignment is selected
-      setSelectedRoute(null);
-    }
-  }, [selectedAssignment, showRoute]);
-
-  // Auto-center map to show all markers
-  const centerMapToMarkers = useCallback(() => {
-    if (!map || markers.length === 0) return;
-
-    const bounds = new google.maps.LatLngBounds();
-    markers.forEach(marker => {
-      bounds.extend(marker.position);
-    });
-
-    map.fitBounds(bounds);
-  }, [map, markers]);
-
-  // Handle map load
-  const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
-    setMap(mapInstance);
-  }, []);
-
-  // Start/stop tracking
-  useEffect(() => {
-    if (mapSettings.auto_center) {
-      startTracking();
-    } else {
-      stopTracking();
-    }
-  }, [mapSettings.auto_center, startTracking, stopTracking]);
-
-  // Auto-center when markers change
-  useEffect(() => {
-    if (mapSettings.auto_center) {
-      centerMapToMarkers();
-    }
-  }, [markers, mapSettings.auto_center, centerMapToMarkers]);
-
-  if (!GOOGLE_MAPS_API_KEY) {
-    return (
-      <div className="flex items-center justify-center h-full bg-muted/10">
-        <div className="text-center">
-          <MapPinIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-2">Google Maps API Key Required</h3>
-          <p className="text-sm text-muted-foreground max-w-md">
-            Please add your Google Maps API key to the environment variables to enable map functionality.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <div className="flex items-center justify-center h-full bg-muted/10">
-        <div className="text-center text-red-500">
-          <MapPinIcon className="h-12 w-12 mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-2">Error Loading Map</h3>
-          <p className="text-sm">Could not load Google Maps scripts.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div>Loading Map...</div>
-      </div>
-    );
-  }
 
   return (
-    <div className={cn("relative h-full", className)}>
-      {/* Map Controls */}
-      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 space-y-2">
-        {/* Map Status */}
-        <div className="border-2 border-primary/20 rounded-lg p-2 backdrop-blur-sm bg-background/90">
-          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <div className={cn(
-              "w-2 h-2 rounded-full",
-              isTracking ? "bg-green-500" : "bg-gray-400"
-            )} />
-            <span>{isTracking ? t('dispatch.mapView.liveTracking') : t('dispatch.mapView.offline')}</span>
-            <Badge variant="outline" className="bg-background/90 backdrop-blur-sm border-primary/30">
-              {markers.filter(m => m.type === 'vehicle').length} vehicles
-            </Badge>
-          </div>
+    <div className={cn("relative bg-muted/20 border rounded-lg overflow-hidden", className)}>
+      {/* Map Header */}
+      <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
+        <div className="bg-background/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm">
+          <h3 className="font-semibold text-sm">Dispatch Map</h3>
+          <p className="text-xs text-muted-foreground">{assignments.length} active assignments</p>
         </div>
-        
-        <div className="border-2 border-primary/20 rounded-lg p-2 backdrop-blur-sm bg-background/90">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={centerMapToMarkers}
-              disabled={markers.length === 0}
-              className="bg-background/90 backdrop-blur-sm border-primary/30"
-            >
-              <NavigationIcon className="h-4 w-4" />
-            </Button>
-            
-            <Select
-              value={mapSettings.map_type}
-              onValueChange={(value) => 
-                setMapSettings(prev => ({ ...prev, map_type: value as any }))
-              }
-            >
-              <SelectTrigger className="w-24 bg-background/90 backdrop-blur-sm border-primary/30">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="roadmap">Road</SelectItem>
-                <SelectItem value="satellite">Satellite</SelectItem>
-                <SelectItem value="hybrid">Hybrid</SelectItem>
-                <SelectItem value="terrain">Terrain</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="bg-background/90 backdrop-blur-sm">
+            <MapPinIcon className="h-4 w-4 mr-1" />
+            Center
+          </Button>
+          <Button size="sm" variant="outline" className="bg-background/90 backdrop-blur-sm">
+            <ClockIcon className="h-4 w-4 mr-1" />
+            Live
+          </Button>
         </div>
-
-        <div className="border-2 border-primary/20 rounded-lg p-2 sm:p-3 backdrop-blur-sm bg-background/90">
-          <div className="space-y-2 sm:space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="traffic" className="text-sm font-medium text-foreground dark:text-foreground">{t('dispatch.mapView.traffic')}</Label>
-              <Switch
-                id="traffic"
-                checked={mapSettings.show_traffic}
-                onCheckedChange={(checked) =>
-                  setMapSettings(prev => ({ ...prev, show_traffic: checked }))
-                }
-              />
-            </div>
-            
-            <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="vehicles" className="text-sm font-medium text-foreground dark:text-foreground">{t('dispatch.mapView.vehicles')}</Label>
-              <Switch
-                id="vehicles"
-                checked={mapSettings.show_vehicle_icons}
-                onCheckedChange={(checked) =>
-                  setMapSettings(prev => ({ ...prev, show_vehicle_icons: checked }))
-                }
-              />
-            </div>
-            
-            <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="routes" className="text-sm font-medium text-foreground dark:text-foreground">{t('dispatch.mapView.routes')}</Label>
-              <Switch
-                id="routes"
-                checked={mapSettings.show_routes}
-                onCheckedChange={(checked) =>
-                  setMapSettings(prev => ({ ...prev, show_routes: checked }))
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="auto-center" className="text-sm font-medium text-foreground dark:text-foreground">{t('dispatch.mapView.autoCenter')}</Label>
-              <Switch
-                id="auto-center"
-                checked={mapSettings.auto_center}
-                onCheckedChange={(checked) =>
-                  setMapSettings(prev => ({ ...prev, auto_center: checked }))
-                }
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Route Controls */}
-        {selectedRoute && (
-          <div className="border-2 border-primary/20 rounded-lg p-2 backdrop-blur-sm bg-background/90">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                currentRouteRequest.current = null;
-                setSelectedRoute(null);
-                toast({
-                  title: "Route Cleared",
-                  description: "Route has been removed from the map",
-                });
-              }}
-              className="bg-background/90 backdrop-blur-sm border-primary/30 text-foreground"
-            >
-              <EyeOffIcon className="h-4 w-4 mr-1" />
-              Clear Route
-            </Button>
-          </div>
-        )}
       </div>
 
-      {/* Google Map */}
-      <GoogleMap
-        mapContainerStyle={mapContainerStyle}
-        center={{ lat: viewport.latitude, lng: viewport.longitude }}
-        zoom={viewport.zoom}
-        mapTypeId={mapSettings.map_type}
-        onLoad={onMapLoad}
-        options={{
-          zoomControl: true,
-          mapTypeControl: false,
-          scaleControl: true,
-          streetViewControl: false,
-          rotateControl: false,
-          fullscreenControl: true,
-          disableDefaultUI: false
-        }}
-      >
-        {/* Markers */}
-        {markers.map((marker) => (
-          <Marker
-            key={marker.id}
-            position={marker.position}
-            icon={getMarkerIcon(marker)}
-            onClick={() => handleMarkerClick(marker)}
-          />
-        ))}
+      {/* Mock Map Area */}
+      <div className="w-full h-full min-h-[400px] bg-gradient-to-br from-blue-50 to-green-50 dark:from-blue-950/20 dark:to-green-950/20 relative">
+        {/* Grid pattern to simulate map */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="w-full h-full" style={{
+            backgroundImage: `
+              linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)
+            `,
+            backgroundSize: '20px 20px'
+          }} />
+        </div>
 
-        {/* Info Window */}
-        {selectedMarker && (
-          <InfoWindow
-            position={selectedMarker.position}
-            onCloseClick={() => setSelectedMarker(null)}
-          >
-            <div className="p-2 min-w-[200px]">
-              {selectedMarker.type === 'vehicle' ? (
-                <div>
-                  <h3 className="font-medium">Vehicle</h3>
-                  <p className="text-sm text-gray-600">
-                    Last update: {new Date(selectedMarker.data.timestamp).toLocaleTimeString()}
-                  </p>
-                  <p className="text-sm">
-                    Speed: {selectedMarker.data.speed || 0} km/h
-                  </p>
-                  {selectedMarker.data.battery_level && (
-                    <p className="text-sm">
-                      Battery: {selectedMarker.data.battery_level}%
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <h3 className="font-medium">
-                    {selectedMarker.type === 'pickup' ? 'Pickup' : 'Dropoff'}
-                  </h3>
-                  <p className="text-sm">
-                    {selectedMarker.data.booking?.customer_name}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {selectedMarker.data.booking?.date} {selectedMarker.data.booking?.time}
-                  </p>
-                  <Badge className="mt-1" variant="outline">
-                    {selectedMarker.status}
-                  </Badge>
-                  {mapSettings.show_routes && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-2 w-full"
-                      onClick={() => showRoute(selectedMarker.data)}
-                      disabled={isLoading}
-                    >
-                      <RouteIcon className="h-3 w-3 mr-1" />
-                      {isLoading ? 'Loading...' : 'Show Route'}
-                    </Button>
-                  )}
-                </div>
-              )}
+        {/* Assignment Markers */}
+        {assignments.map((assignment, index) => {
+          if (!assignment.booking?.pickup_location) return null;
+          
+          // Mock coordinates - in real app, these would come from geocoding
+          const lat = mapCenter.lat + (Math.random() - 0.5) * 0.1;
+          const lng = mapCenter.lng + (Math.random() - 0.5) * 0.1;
+          
+          return (
+            <div
+              key={assignment.id}
+              className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+              style={{
+                left: `${50 + (Math.random() - 0.5) * 60}%`,
+                top: `${50 + (Math.random() - 0.5) * 60}%`,
+              }}
+              onClick={() => handleAssignmentClick(assignment)}
+            >
+              {/* Marker */}
+              <div className={cn(
+                "w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center transition-all duration-200 group-hover:scale-110",
+                assignment.status === 'pending' && "bg-yellow-500",
+                assignment.status === 'assigned' && "bg-blue-500", 
+                assignment.status === 'confirmed' && "bg-green-500",
+                assignment.status === 'completed' && "bg-gray-500",
+                assignment.status === 'cancelled' && "bg-red-500",
+                selectedAssignment?.id === assignment.id && "ring-4 ring-primary/30"
+              )}>
+                <span className="text-white text-xs font-bold">
+                  {assignment.booking?.wp_id?.charAt(0) || '#'}
+                </span>
+              </div>
+
+              {/* Tooltip */}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                <Card className="p-2 shadow-lg min-w-[200px]">
+                  <CardContent className="p-0">
+                    <div className="space-y-1">
+                      <div className="font-semibold text-xs">
+                        #{assignment.booking?.wp_id || assignment.booking?.id?.substring(0, 8)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {assignment.booking?.customer_name || "Unknown"}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {assignment.booking?.service_name || "Service"}
+                      </div>
+                      {assignment.booking?.pickup_location && (
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <MapPinIcon className="h-3 w-3" />
+                          {assignment.booking.pickup_location}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1 mt-1">
+                        {assignment.driver_id && (
+                          <Badge variant="secondary" className="text-xs px-1 py-0">
+                            <UserIcon className="h-3 w-3 mr-1" />
+                            Driver
+                          </Badge>
+                        )}
+                        {assignment.vehicle_id && (
+                          <Badge variant="secondary" className="text-xs px-1 py-0">
+                            <CarIcon className="h-3 w-3 mr-1" />
+                            Vehicle
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-          </InfoWindow>
-        )}
+          );
+        })}
 
-        {/* Route Display */}
-        {selectedRoute && mapSettings.show_routes && (
-          <DirectionsRenderer
-            directions={selectedRoute}
-            options={{
-              suppressMarkers: false,
-              suppressInfoWindows: false,
-              draggable: false,
-              polylineOptions: {
-                strokeColor: '#3b82f6',
-                strokeWeight: 5,
-                strokeOpacity: 0.8,
-                geodesic: true
-              },
-              markerOptions: {
-                draggable: false,
-                clickable: true
-              }
-            }}
-          />
-        )}
-      </GoogleMap>
+        {/* Map Controls */}
+        <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+          <Button size="sm" variant="outline" className="bg-background/90 backdrop-blur-sm">
+            +
+          </Button>
+          <Button size="sm" variant="outline" className="bg-background/90 backdrop-blur-sm">
+            -
+          </Button>
+        </div>
+
+        {/* Legend */}
+        <div className="absolute bottom-4 left-4 bg-background/90 backdrop-blur-sm rounded-lg p-3 shadow-sm">
+          <div className="text-xs font-semibold mb-2">Status Legend</div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs">
+              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+              <span>Assigned</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <span>Confirmed</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <span>Cancelled</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
-} 
+}

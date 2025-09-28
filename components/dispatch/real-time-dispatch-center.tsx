@@ -52,6 +52,7 @@ import { format, parseISO } from 'date-fns';
 import { DispatchEntryWithRelations, DispatchStatus } from '@/types/dispatch';
 import DispatchMap from './dispatch-map';
 import DispatchBoardView from './dispatch-board-view';
+import DispatchTimetable from './dispatch-timetable';
 import { useRouter } from 'next/navigation';
 import { useMediaQuery } from '@/lib/hooks/use-media-query';
 import {
@@ -353,7 +354,7 @@ function MapViewWithSidebar({ assignments, onAssignmentSelect, onVehicleSelect }
 export default function RealTimeDispatchCenter() {
   const { t } = useI18n();
   const router = useRouter();
-  const [activeView, setActiveView] = useState<'board' | 'map'>('board');
+  const [activeView, setActiveView] = useState<'board' | 'map' | 'timetable'>('board');
   const [assignments, setAssignments] = useState<DispatchEntryWithRelations[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<DispatchStatus | 'all'>('all');
@@ -418,7 +419,7 @@ export default function RealTimeDispatchCenter() {
       const pendingEntries = validBookings.map(booking => ({
         id: `pending-${booking.id}`, // Generate unique ID for pending entries
         booking_id: booking.id,
-        status: 'pending' as const,
+        status: booking.status as DispatchStatus, // Use actual booking status instead of hardcoded 'pending'
         driver_id: booking.driver_id,
         vehicle_id: booking.vehicle_id,
         start_time: null, // Don't set start_time for pending entries, let the UI handle it
@@ -752,6 +753,15 @@ export default function RealTimeDispatchCenter() {
                 Map
               </Button>
               <Button
+                variant={activeView === 'timetable' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveView('timetable')}
+                className="flex-1"
+              >
+                <CalendarIcon className="h-4 w-4 mr-2" />
+                Timetable
+              </Button>
+              <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => router.push('/assignments')}
@@ -815,6 +825,13 @@ export default function RealTimeDispatchCenter() {
               onStatusChange={handleUpdateStatus}
               onUnassign={handleUnassign}
               onUnassignVehicle={handleUnassign}
+            />
+          </div>
+        ) : activeView === 'timetable' ? (
+          <div className="min-h-[calc(100vh-12rem)] p-4">
+            <DispatchTimetable
+              entries={filteredAssignments}
+              onStatusChange={handleUpdateStatus}
             />
           </div>
         ) : (

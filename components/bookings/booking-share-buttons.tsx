@@ -8,7 +8,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Share2, MessageCircle, Phone } from 'lucide-react';
+import { Share2, MessageCircle, Phone, Copy, Check } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useI18n } from '@/lib/i18n/context';
 import { Booking } from '@/types/bookings';
@@ -20,6 +20,7 @@ interface BookingShareButtonsProps {
 export function BookingShareButtons({ booking }: BookingShareButtonsProps) {
   const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Format booking number
   const formattedBookingNumber = `#${booking.wp_id || booking.booking_id || 'N/A'}`;
@@ -66,6 +67,8 @@ export function BookingShareButtons({ booking }: BookingShareButtonsProps) {
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(currentUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
       setIsOpen(false);
       toast({
         title: t('bookings.details.fields.linkCopied'),
@@ -83,23 +86,66 @@ export function BookingShareButtons({ booking }: BookingShareButtonsProps) {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="gap-2 h-9 w-full sm:w-auto">
+        <Button variant="outline" size="sm" className="gap-2 hover:bg-primary/10 transition-colors">
           <Share2 className="h-4 w-4" />
           {t('bookings.details.fields.share')}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem onClick={handleWhatsAppShare} className="gap-2">
-          <MessageCircle className="h-4 w-4 text-green-600" />
-          {t('bookings.details.fields.shareWhatsApp')}
+      <DropdownMenuContent align="end" className="w-56 p-2 bg-[#111111] border border-gray-800 shadow-lg">
+        <div className="px-2 py-1.5 text-xs font-medium text-gray-300 uppercase tracking-wide">
+          Share Booking
+        </div>
+        <DropdownMenuItem 
+          onClick={handleWhatsAppShare} 
+          className="gap-3 px-3 py-2.5 rounded-md hover:bg-green-900/20 transition-colors cursor-pointer"
+        >
+          <div className="w-8 h-8 bg-green-900/30 rounded-full flex items-center justify-center">
+            <MessageCircle className="h-4 w-4 text-green-400" />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-medium text-gray-100">
+              {t('bookings.details.fields.shareWhatsApp')}
+            </span>
+            <span className="text-xs text-gray-300">
+              Share via WhatsApp
+            </span>
+          </div>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleLineShare} className="gap-2">
-          <Phone className="h-4 w-4 text-green-500" />
-          {t('bookings.details.fields.shareLine')}
+        <DropdownMenuItem 
+          onClick={handleLineShare} 
+          className="gap-3 px-3 py-2.5 rounded-md hover:bg-green-900/20 transition-colors cursor-pointer"
+        >
+          <div className="w-8 h-8 bg-green-900/30 rounded-full flex items-center justify-center">
+            <Phone className="h-4 w-4 text-green-400" />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-medium text-gray-100">
+              {t('bookings.details.fields.shareLine')}
+            </span>
+            <span className="text-xs text-gray-300">
+              Share via LINE
+            </span>
+          </div>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleCopyLink} className="gap-2">
-          <Share2 className="h-4 w-4" />
-          {t('bookings.details.fields.copyLink')}
+        <DropdownMenuItem 
+          onClick={handleCopyLink} 
+          className="gap-3 px-3 py-2.5 rounded-md hover:bg-blue-900/20 transition-colors cursor-pointer"
+        >
+          <div className="w-8 h-8 bg-blue-900/30 rounded-full flex items-center justify-center">
+            {copied ? (
+              <Check className="h-4 w-4 text-blue-400" />
+            ) : (
+              <Copy className="h-4 w-4 text-blue-400" />
+            )}
+          </div>
+          <div className="flex flex-col">
+            <span className="font-medium text-gray-100">
+              {copied ? 'Copied!' : t('bookings.details.fields.copyLink')}
+            </span>
+            <span className="text-xs text-gray-300">
+              {copied ? 'Link copied to clipboard' : 'Copy booking link'}
+            </span>
+          </div>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

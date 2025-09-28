@@ -34,12 +34,12 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
       case 'email':
         return {
           icon: Mail,
-          iconColor: 'text-blue-500',
-          bgGradient: 'from-blue-500 to-blue-600',
-          progressColor: 'bg-blue-500',
-          accentColor: 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20',
-          ringColor: 'ring-blue-500/20',
-          titleColor: 'text-blue-600 dark:text-blue-400'
+          iconColor: 'text-green-500',
+          bgGradient: 'from-green-500 to-green-600',
+          progressColor: 'bg-green-500',
+          accentColor: 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/20',
+          ringColor: 'ring-green-500/20',
+          titleColor: 'text-green-600 dark:text-green-400'
         };
       case 'approval':
         return {
@@ -207,7 +207,7 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
                       step.completed 
                         ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300" 
                         : value >= step.value 
-                          ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300" 
+                          ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300" 
                           : "bg-muted/30 text-muted-foreground"
                     )}
                   >
@@ -216,7 +216,7 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
                       step.completed 
                         ? "bg-green-500 text-white shadow-lg" 
                         : value >= step.value 
-                          ? "bg-blue-500 text-white shadow-lg" 
+                          ? "bg-green-500 text-white shadow-lg" 
                           : "bg-muted text-muted-foreground"
                     )}>
                       {step.completed ? (

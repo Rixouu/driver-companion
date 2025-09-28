@@ -623,11 +623,8 @@ export default function BookingDetailsPage() {
                   </div>
                 </div>
                 
-                {/* Share, Edit, and Refresh buttons moved to top right */}
+                {/* Edit, Refresh, and Share buttons */}
                 <div className="flex flex-col sm:flex-row flex-wrap gap-2 flex-shrink-0">
-                  <div className="w-full sm:w-auto">
-                    <BookingShareButtons booking={booking} />
-                  </div>
                   <Button 
                     variant="outline" 
                     className="w-full sm:w-auto gap-2 h-9"
@@ -645,6 +642,9 @@ export default function BookingDetailsPage() {
                     <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                     {t('common.refresh')}
                   </Button>
+                  <div className="w-full sm:w-auto">
+                    <BookingShareButtons booking={booking} />
+                  </div>
                 </div>
               </div>
               
@@ -1053,16 +1053,8 @@ export default function BookingDetailsPage() {
             {/* Booking Status Block */}
             <Card className="border rounded-lg shadow-sm dark:border-gray-800">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
+                <div className="mb-4">
                   <h3 className="text-lg font-semibold text-foreground">{t('bookings.details.fields.bookingStatus')}</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => window.location.reload()}
-                    className="h-8 w-8 p-0"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
                 </div>
                 
                 <div className="space-y-4">

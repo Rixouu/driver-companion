@@ -549,28 +549,14 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <FileText className="h-4 w-4" />
-                {t('bookings.details.fields.bookingWorkflow')}
-              </CardTitle>
-              <CardDescription>
-                {t('bookings.details.fields.bookingWorkflowDescription')}
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              {onRefresh && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onRefresh}
-                  disabled={isMarkingAsPaid || isMarkingAsComplete}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
+          <div>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="h-4 w-4" />
+              {t('bookings.details.fields.bookingWorkflow')}
+            </CardTitle>
+            <CardDescription>
+              {t('bookings.details.fields.bookingWorkflowDescription')}
+            </CardDescription>
           </div>
         </CardHeader>
         <CardContent className="pt-2">

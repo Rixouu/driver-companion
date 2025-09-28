@@ -349,6 +349,10 @@ export async function POST(request: NextRequest) {
       language,
       team_location: quotation.team_location || 'japan',
       
+      // Email header structure (like booking emails)
+      subtitle: quotation.team_location === 'thailand' ? 'Driver Thailand' : 'Driver Japan',
+      email_title: 'Invoice - Payment Required',
+      
       // Invoice dates (issue and due dates) - Due date is 2 days from now
       issue_date: (() => {
         const date = new Date()

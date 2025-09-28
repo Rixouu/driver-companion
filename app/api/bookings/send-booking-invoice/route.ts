@@ -70,8 +70,36 @@ export async function POST(request: NextRequest) {
     const isPending = bookingStatus === 'pending'
     let paymentLink = ''
     
-    if (isPending) {
-      console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Generating payment link for pending booking invoice')
+    // Check if this is an upgrade/downgrade scenario by looking for vehicle assignment operations
+    let hasUpgradeDowngrade = false
+    try {
+      const { data: assignmentOperations } = await supabase
+        .from('vehicle_assignment_operations')
+        .select('operation_type, status, price_difference')
+        .eq('booking_id', bookingId)
+        .in('operation_type', ['upgrade', 'downgrade'])
+        .eq('status', 'pending')
+      
+      hasUpgradeDowngrade = !!(assignmentOperations && assignmentOperations.length > 0)
+      console.log('🔍 [MIGRATED-BOOKING-INVOICE-API] Upgrade/Downgrade check:', {
+        hasUpgradeDowngrade,
+        operationsCount: assignmentOperations?.length || 0,
+        operations: assignmentOperations
+      })
+    } catch (error) {
+      console.warn('⚠️ [MIGRATED-BOOKING-INVOICE-API] Error checking for upgrade/downgrade operations:', error)
+    }
+    
+    // Generate payment link if:
+    // 1. Booking is pending (ORIGINAL CONDITION - KEEP THIS)
+    // 2. OR there are pending upgrade/downgrade operations (NEW CONDITION)
+    if (isPending || hasUpgradeDowngrade) {
+      console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Generating payment link for booking invoice', {
+        reason: isPending ? 'pending booking' : 'upgrade/downgrade operation',
+        bookingStatus,
+        hasUpgradeDowngrade
+      })
+      
       try {
         const paymentLinkResponse = await fetch(`${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL}/api/bookings/generate-payment-link`, {
           method: 'POST',
@@ -85,7 +113,7 @@ export async function POST(request: NextRequest) {
         if (paymentLinkResponse.ok) {
           const paymentLinkData = await paymentLinkResponse.json()
           paymentLink = paymentLinkData.payment_link || ''
-          console.log('✅ [MIGRATED-BOOKING-INVOICE-API] Payment link generated for pending booking:', !!paymentLink)
+          console.log('✅ [MIGRATED-BOOKING-INVOICE-API] Payment link generated:', !!paymentLink)
         } else {
           console.warn('⚠️ [MIGRATED-BOOKING-INVOICE-API] Payment link generation failed:', paymentLinkResponse.status)
         }
@@ -106,7 +134,6 @@ export async function POST(request: NextRequest) {
       // Booking information
       booking_id: booking.wp_id || booking.id.slice(-6).toUpperCase(),
       booking_number: booking.wp_id || booking.id.slice(-6).toUpperCase(),
-      issue_date: new Date().toLocaleDateString(language === 'ja' ? 'ja-JP' : 'en-US'),
       
       // Service information (single service structure)
       service_name: booking.service_name || booking.service_type || 'Service',
@@ -127,18 +154,18 @@ export async function POST(request: NextRequest) {
       
       // Passenger and bag details
       number_of_passengers: booking.number_of_passengers || 1,
-      number_of_bags: booking.number_of_bags || null,
+      number_of_bags: booking.number_of_bags || 0,
       passenger_count: booking.number_of_passengers || 1,
       
       // Service duration
       duration_hours: booking.duration_hours || 1,
       service_days: booking.service_days || 1,
       hours_per_day: booking.hours_per_day || 8,
-      service_days_display: booking.service_days > 1 ? ` (${booking.service_days} days)` : '',
+      service_days_display: (booking.service_days && booking.service_days > 1) ? ` (${booking.service_days} days)` : '',
       
       // Flight details
-      flight_number: booking.flight_number || null,
-      terminal: booking.terminal || null,
+      flight_number: booking.flight_number || '',
+      terminal: booking.terminal || '',
       
       // Driver information (if available)
       driver_name: booking.driver_id ? 'Driver Name' : '', // Will be populated when driver is assigned
@@ -147,9 +174,53 @@ export async function POST(request: NextRequest) {
       // Pricing information
       amount: booking.base_amount || booking.price_amount || 0,
       currency: booking.price_currency || 'JPY',
-      discount_percentage: booking.discount_percentage || 0,
-      tax_percentage: booking.tax_percentage || 0,
       total_amount: booking.price_amount || booking.base_amount || 0,
+      
+      // Pricing breakdown variables - Calculate actual values
+      unit_price: booking.base_amount || booking.price_amount || 0,
+      total_price: booking.price_amount || booking.base_amount || 0,
+      service_total: booking.price_amount || booking.base_amount || 0,
+      
+      // Calculate pricing breakdown
+      base_amount: booking.base_amount || booking.price_amount || 0,
+      tax_percentage: parseFloat((booking.tax_percentage || '0').toString()) || 0,
+      discount_percentage: parseFloat((booking.discount_percentage || '0').toString()) || 0,
+      
+      // Calculate tax amount
+      tax_amount: (() => {
+        const base = booking.base_amount || booking.price_amount || 0
+        const taxRate = parseFloat((booking.tax_percentage || '0').toString()) || 0
+        return Math.round(base * (taxRate / 100))
+      })(),
+      
+      // Calculate discount amount
+      regular_discount: (() => {
+        const base = booking.base_amount || booking.price_amount || 0
+        const discountRate = parseFloat((booking.discount_percentage || '0').toString()) || 0
+        return Math.round(base * (discountRate / 100))
+      })(),
+      
+      // Calculate subtotal (base amount - discount)
+      subtotal: (() => {
+        const base = booking.base_amount || booking.price_amount || 0
+        const discountRate = parseFloat((booking.discount_percentage || '0').toString()) || 0
+        const discount = Math.round(base * (discountRate / 100))
+        return base - discount
+      })(),
+      
+      // Promotion discount (not used in booking invoice)
+      promotion_discount: 0,
+      
+      // Final total (subtotal + tax)
+      final_total: (() => {
+        const base = booking.base_amount || booking.price_amount || 0
+        const discountRate = parseFloat((booking.discount_percentage || '0').toString()) || 0
+        const taxRate = parseFloat((booking.tax_percentage || '0').toString()) || 0
+        const discount = Math.round(base * (discountRate / 100))
+        const subtotal = base - discount
+        const tax = Math.round(subtotal * (taxRate / 100))
+        return subtotal + tax
+      })(),
       
       // Invoice dates - Format as DD/MM/YYYY
       issue_date: (() => {
@@ -167,23 +238,29 @@ export async function POST(request: NextRequest) {
         return `${day}/${month}/${year}`
       })(),
       
-      // Payment information - Conditional based on booking status
-      payment_required: isPending ? 'true' : 'false', // Show payment section only for pending bookings
-      payment_link: isPending ? (paymentLink || '') : '', // Payment link only for pending bookings
-      payment_status: isPending ? 'PENDING PAYMENT' : 'PAID', // Status based on booking status
+      // Payment information - Conditional based on booking status and upgrade/downgrade
+      payment_required: (isPending || hasUpgradeDowngrade) ? 'true' : 'false', // Show payment section for pending bookings OR upgrade/downgrade
+      payment_link: (isPending || hasUpgradeDowngrade) ? (paymentLink || '') : '', // Payment link for pending bookings OR upgrade/downgrade
+      payment_status: (isPending || hasUpgradeDowngrade) ? 'PENDING PAYMENT' : 'PAID', // Status based on whether payment is required
       
       // Localization
       language,
       team_location: booking.team_location || 'japan',
       
-      // Greeting message - Conditional based on booking status
-      greeting_text: isPending 
+      // Greeting message - Conditional based on payment requirement
+      greeting_text: (isPending || hasUpgradeDowngrade)
         ? (language === 'ja' 
             ? '予約の請求書をお送りいたします。下記のリンクからお支払いをお願いいたします。'
             : 'Please find your booking invoice below. You can complete your payment using the link provided.')
         : (language === 'ja' 
             ? '予約の請求書をお送りいたします。お支払いが完了済みです。'
-            : 'Please find your booking invoice below. Payment has been completed.')
+            : 'Please find your booking invoice below. Payment has been completed.'),
+      
+      // Subtitle for email header - use team name
+      subtitle: booking.team_location === 'thailand' ? 'Driver Thailand' : 'Driver Japan',
+      
+      // Title for email header (without booking number)
+      email_title: 'Booking Invoice'
     }
 
     console.log('🔄 [MIGRATED-BOOKING-INVOICE-API] Using direct template service')
@@ -194,12 +271,20 @@ export async function POST(request: NextRequest) {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'http://localhost:3000'
       
+      // Determine PDF type based on payment requirement
+      const pdfType = (isPending || hasUpgradeDowngrade) ? 'pending' : 'paid'
+      console.log('📄 [MIGRATED-BOOKING-INVOICE-API] Generating PDF type:', pdfType, {
+        isPending,
+        hasUpgradeDowngrade
+      })
+      
       const pdfResponse = await fetch(`${baseUrl}/api/bookings/generate-invoice-pdf`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           booking_id: bookingId,
-          language: language
+          language: language,
+          pdf_type: pdfType // Pass the PDF type to generate PENDING or PAID PDF
         })
       })
       

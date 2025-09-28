@@ -29,7 +29,8 @@ export async function POST(
         customer_name, 
         customer_email, 
         service_name,
-        vehicle_id
+        vehicle_id,
+        team_location
       `)
       .eq('id', bookingId)
       .single();
@@ -60,6 +61,8 @@ export async function POST(
     let newVehicleName = 'N/A';
     let previousVehicleDetails = '';
     let newVehicleDetails = '';
+    let previousPrice = 0;
+    let newPrice = 0;
 
     if (assignmentOperation.previous_vehicle_id) {
       const { data: previousVehicle } = await supabase
@@ -68,6 +71,8 @@ export async function POST(
         .eq('id', assignmentOperation.previous_vehicle_id)
         .single();
       previousVehicleName = previousVehicle?.name || 'N/A';
+      // Calculate previous price as new price + refund amount
+      previousPrice = refundAmount; // Will be calculated properly
       if (previousVehicle?.brand && previousVehicle?.model) {
         previousVehicleDetails = ` (${previousVehicle.brand} ${previousVehicle.model})`;
       }
@@ -80,6 +85,8 @@ export async function POST(
         .eq('id', assignmentOperation.new_vehicle_id)
         .single();
       newVehicleName = newVehicle?.name || 'N/A';
+      // Calculate new price as previous price - refund amount
+      newPrice = previousPrice - refundAmount;
       if (newVehicle?.brand && newVehicle?.model) {
         newVehicleDetails = ` (${newVehicle.brand} ${newVehicle.model})`;
       }
@@ -139,13 +146,33 @@ export async function POST(
       },
       emailType: 'vehicle-downgrade-coupon',
       templateVariables: {
+        // Basic booking info
         booking_id: booking.wp_id,
         customer_name: booking.customer_name,
+        customer_email: booking.customer_email || '',
+        
+        // Vehicle downgrade details
         previous_vehicle_name: `${previousVehicleName}${previousVehicleDetails}`,
         new_vehicle_name: `${newVehicleName}${newVehicleDetails}`,
+        previous_price: previousPrice,
+        new_price: newPrice,
+        
+        // Refund details
         refund_amount: refundAmount,
         coupon_code: couponCode,
         currency: 'JPY',
+        
+        // Approval details
+        approval_date: new Date().toLocaleDateString('en-US'),
+        
+        // Downgrade notes
+        downgrade_notes: `Vehicle downgrade from ${previousVehicleName} to ${newVehicleName}`,
+        
+        // Email header structure (like other emails)
+        subtitle: booking.team_location === 'thailand' ? 'Driver Thailand' : 'Driver Japan',
+        email_title: 'Vehicle Downgrade Refund',
+        
+        // Localization
         language: 'en', // Default to English, can be made dynamic later
         primary_color: '#059669'
       },

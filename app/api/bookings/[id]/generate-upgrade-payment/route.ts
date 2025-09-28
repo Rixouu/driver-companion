@@ -29,7 +29,8 @@ export async function POST(
         customer_name, 
         customer_email, 
         service_name,
-        vehicle_id
+        vehicle_id,
+        team_location
       `)
       .eq('id', bookingId)
       .single();
@@ -63,6 +64,8 @@ export async function POST(
     let newVehicleName = 'N/A';
     let previousVehicleDetails = '';
     let newVehicleDetails = '';
+    let previousPrice = 0;
+    let newPrice = 0;
 
     if (assignmentOperation.previous_vehicle_id) {
       const { data: previousVehicle } = await supabase
@@ -71,6 +74,8 @@ export async function POST(
         .eq('id', assignmentOperation.previous_vehicle_id)
         .single();
       previousVehicleName = previousVehicle?.name || 'N/A';
+      // Since we don't have base_price in vehicles table, we'll use a default or calculate from upgrade amount
+      previousPrice = 0; // Will be calculated based on upgrade amount
       if (previousVehicle?.brand && previousVehicle?.model) {
         previousVehicleDetails = ` (${previousVehicle.brand} ${previousVehicle.model})`;
       }
@@ -83,6 +88,8 @@ export async function POST(
         .eq('id', assignmentOperation.new_vehicle_id)
         .single();
       newVehicleName = newVehicle?.name || 'N/A';
+      // Calculate new price as previous price + upgrade amount
+      newPrice = previousPrice + amount;
       if (newVehicle?.brand && newVehicle?.model) {
         newVehicleDetails = ` (${newVehicle.brand} ${newVehicle.model})`;
       }
@@ -178,13 +185,33 @@ export async function POST(
       },
       emailType: 'vehicle-upgrade-payment',
       templateVariables: {
+        // Basic booking info
         booking_id: booking.wp_id,
         customer_name: booking.customer_name,
+        customer_email: booking.customer_email || '',
+        
+        // Vehicle upgrade details
         previous_vehicle_name: `${previousVehicleName}${previousVehicleDetails}`,
         new_vehicle_name: `${newVehicleName}${newVehicleDetails}`,
+        previous_price: previousPrice,
+        new_price: newPrice,
+        
+        // Payment details
         payment_amount: amount,
         payment_link: paymentLink.paymentUrl,
         currency: 'JPY',
+        
+        // Approval details
+        approval_date: new Date().toLocaleDateString('en-US'),
+        
+        // Upgrade notes
+        upgrade_notes: `Vehicle upgrade from ${previousVehicleName} to ${newVehicleName}`,
+        
+        // Email header structure (like other emails)
+        subtitle: booking.team_location === 'thailand' ? 'Driver Thailand' : 'Driver Japan',
+        email_title: 'Vehicle Upgrade Payment Required',
+        
+        // Localization
         language: 'en', // Default to English, can be made dynamic later
         primary_color: '#E03E2D'
       },

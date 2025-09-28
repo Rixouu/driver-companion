@@ -103,18 +103,18 @@ export async function POST(request: NextRequest) {
       
       // Passenger and bag details
       number_of_passengers: booking.number_of_passengers || 1,
-      number_of_bags: booking.number_of_bags || null,
+      number_of_bags: booking.number_of_bags || 0,
       passenger_count: booking.number_of_passengers || 1,
       
       // Service duration
       duration_hours: booking.duration_hours || 1,
       service_days: booking.service_days || 1,
       hours_per_day: booking.hours_per_day || 8,
-      service_days_display: booking.service_days > 1 ? ` (${booking.service_days} days)` : '',
+      service_days_display: (booking.service_days && booking.service_days > 1) ? ` (${booking.service_days} days)` : '',
       
       // Flight details
-      flight_number: booking.flight_number || null,
-      terminal: booking.terminal || null,
+      flight_number: booking.flight_number || '',
+      terminal: booking.terminal || '',
       
       // Driver information (if available)
       driver_name: booking.driver_id ? 'Driver Name' : '', // Will be populated when driver is assigned
@@ -126,10 +126,52 @@ export async function POST(request: NextRequest) {
       discount_percentage: booking.discount_percentage || 0,
       tax_percentage: booking.tax_percentage || 0,
       total_amount: booking.price_amount || booking.base_amount || 0,
-      service_total: booking.base_amount || booking.price_amount || 0,
-      final_total: booking.price_amount || booking.base_amount || 0,
+      
+      // Pricing breakdown variables - Calculate actual values
       unit_price: booking.base_amount || booking.price_amount || 0,
       total_price: booking.price_amount || booking.base_amount || 0,
+      service_total: booking.price_amount || booking.base_amount || 0,
+      
+      // Calculate pricing breakdown
+      base_amount: booking.base_amount || booking.price_amount || 0,
+      tax_percentage: parseFloat(booking.tax_percentage) || 0,
+      discount_percentage: parseFloat(booking.discount_percentage) || 0,
+      
+      // Calculate tax amount
+      tax_amount: (() => {
+        const base = booking.base_amount || booking.price_amount || 0
+        const taxRate = parseFloat(booking.tax_percentage) || 0
+        return Math.round(base * (taxRate / 100))
+      })(),
+      
+      // Calculate discount amount
+      regular_discount: (() => {
+        const base = booking.base_amount || booking.price_amount || 0
+        const discountRate = parseFloat(booking.discount_percentage) || 0
+        return Math.round(base * (discountRate / 100))
+      })(),
+      
+      // Calculate subtotal (base amount - discount)
+      subtotal: (() => {
+        const base = booking.base_amount || booking.price_amount || 0
+        const discountRate = parseFloat(booking.discount_percentage) || 0
+        const discount = Math.round(base * (discountRate / 100))
+        return base - discount
+      })(),
+      
+      // Promotion discount (not used in booking details)
+      promotion_discount: 0,
+      
+      // Final total (subtotal + tax)
+      final_total: (() => {
+        const base = booking.base_amount || booking.price_amount || 0
+        const discountRate = parseFloat(booking.discount_percentage) || 0
+        const taxRate = parseFloat(booking.tax_percentage) || 0
+        const discount = Math.round(base * (discountRate / 100))
+        const subtotal = base - discount
+        const tax = Math.round(subtotal * (taxRate / 100))
+        return subtotal + tax
+      })(),
       
       // Package and promotion (not used in booking details)
       selected_package_name: '',
@@ -153,7 +195,13 @@ export async function POST(request: NextRequest) {
       // Greeting message - Booking specific
       greeting_text: language === 'ja' 
         ? 'ご予約の詳細をお送りいたします。'
-        : 'Please find your booking details below.'
+        : 'Please find your booking details below.',
+      
+      // Subtitle for email header - use team name
+      subtitle: booking.team_location === 'thailand' ? 'Driver Thailand' : 'Driver Japan',
+      
+      // Title for email header (without booking number)
+      email_title: 'Your Booking Details'
     }
 
     console.log('🔄 [MIGRATED-BOOKING-DETAILS-API] Using direct template service')

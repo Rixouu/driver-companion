@@ -214,7 +214,7 @@ export function generateEmailHeaderFromTemplate(
     .replace(/\{\{logo_url\}\}/g, logoUrl)
     .replace(/\{\{title\}\}/g, title)
     .replace(/\{\{subtitle\}\}/g, subtitle || '')
-    .replace(/\{\{#if subtitle\}\}\}([\s\S]*?)\{\{\/if\}\}/g, subtitle ? '$1' : '')
+    .replace(/\{\{#if subtitle\}\}([\s\S]*?)\{\{\/if\}\}/g, subtitle ? '$1' : '')
   
   return processedTemplate
 }

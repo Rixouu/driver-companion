@@ -325,6 +325,10 @@ export async function POST(request: NextRequest) {
       language,
       team_location: quotation.team_location || 'japan',
       
+      // Email header structure (like booking emails)
+      subtitle: quotation.team_location === 'thailand' ? 'Driver Thailand' : 'Driver Japan',
+      email_title: 'Your Quotation Access',
+      
       // Greeting message - Magic link specific
       greeting_text: language === 'ja' 
         ? 'あなたの見積書へのセキュアなアクセスリンクです。'

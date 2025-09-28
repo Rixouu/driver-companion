@@ -160,7 +160,7 @@ export function PaymentOptions({
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Send complete quote with all pricing including upgrade/downgrade. Comprehensive payment solution.
+                  Send complete quote with all pricing including upgrade/downgrade.
                 </p>
                 <Button 
                   onClick={() => handlePaymentClick('full-quote')}

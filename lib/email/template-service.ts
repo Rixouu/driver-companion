@@ -280,25 +280,68 @@ export class EmailTemplateService {
 
       // Handle conditional blocks first: {{#if condition}}...{{/if}}
       const processConditionals = (content: string): string => {
-        return content.replace(/\{\{#if\s+(.+?)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, condition, block) => {
-          const trimmedCondition = condition.trim()
+        // Process nested conditionals by finding matching pairs
+        let processedContent = content
+        let hasChanges = true
+        
+        while (hasChanges) {
+          hasChanges = false
+          const ifMatches = [...processedContent.matchAll(/\{\{#if\s+([^}]+)\}\}/g)]
           
-          // First try complex condition evaluation
-          let conditionResult = evalCondition(trimmedCondition, allVariables)
-          
-          // If no complex condition, check simple variable value
-          if (conditionResult === false) {
-            const varValue = (allVariables as any)[trimmedCondition]
-            // Handle different falsy values properly
-            if (varValue === '' || varValue === null || varValue === undefined || varValue === 0 || varValue === false) {
-              conditionResult = false
-            } else {
-              conditionResult = Boolean(varValue)
+          for (let i = ifMatches.length - 1; i >= 0; i--) {
+            const ifMatch = ifMatches[i]
+            const ifStart = ifMatch.index!
+            const condition = ifMatch[1].trim()
+            
+            // Find the matching {{/if}} by counting nested blocks
+            let depth = 1
+            let pos = ifStart + ifMatch[0].length
+            let ifEnd = -1
+            
+            while (pos < processedContent.length && depth > 0) {
+              const nextIf = processedContent.indexOf('{{#if', pos)
+              const nextEndIf = processedContent.indexOf('{{/if}}', pos)
+              
+              if (nextEndIf === -1) break
+              
+              if (nextIf !== -1 && nextIf < nextEndIf) {
+                depth++
+                pos = nextIf + 5
+              } else {
+                depth--
+                if (depth === 0) {
+                  ifEnd = nextEndIf
+                }
+                pos = nextEndIf + 7
+              }
+            }
+            
+            if (ifEnd !== -1) {
+              const blockContent = processedContent.substring(ifStart + ifMatch[0].length, ifEnd)
+              
+              // Evaluate condition
+              let conditionResult = evalCondition(condition, allVariables)
+              
+              // If no complex condition, check simple variable value
+              if (conditionResult === false) {
+                const varValue = (allVariables as any)[condition]
+                // Handle different falsy values properly
+                if (varValue === '' || varValue === null || varValue === undefined || varValue === 0 || varValue === false) {
+                  conditionResult = false
+                } else {
+                  conditionResult = Boolean(varValue)
+                }
+              }
+              
+              const replacement = conditionResult ? blockContent : ''
+              processedContent = processedContent.substring(0, ifStart) + replacement + processedContent.substring(ifEnd + 7)
+              hasChanges = true
+              break
             }
           }
-          
-          return conditionResult ? block : ''
-        })
+        }
+        
+        return processedContent
       }
 
       // Process {{#each}} blocks first, then conditionals, then replace variables
@@ -413,7 +456,8 @@ export class EmailTemplateService {
         customHeaderTemplate: (allVariables as any).custom_header_template,
         customFooterTemplate: (allVariables as any).custom_footer_template,
         customCSSTemplate: (allVariables as any).custom_css_template,
-        title: processedSubject, // Use processed subject for proper header rendering
+        title: (allVariables as any).email_title || processedSubject, // Use email_title if available, otherwise use subject
+        subtitle: (allVariables as any).subtitle, // Pass subtitle for header
         content: renderedCoreHtml
       })
 

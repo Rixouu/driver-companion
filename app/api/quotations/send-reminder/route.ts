@@ -268,6 +268,10 @@ export async function POST(request: NextRequest) {
       language,
       team_location: quotation.team_location || 'japan',
       
+      // Email header structure (like booking emails)
+      subtitle: quotation.team_location === 'thailand' ? 'Driver Thailand' : 'Driver Japan',
+      email_title: 'Quotation Reminder',
+      
       // Greeting message
       greeting_text: language === 'ja' 
         ? '先日お送りした見積書についてリマインドさせていただきます。お見積もりはまだご確認いただけます。'

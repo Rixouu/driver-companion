@@ -207,7 +207,7 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
                       step.completed 
                         ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300" 
                         : value >= step.value 
-                          ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300" 
+                          ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300" 
                           : "bg-muted/30 text-muted-foreground"
                     )}
                   >
@@ -216,7 +216,7 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
                       step.completed 
                         ? "bg-green-500 text-white shadow-lg" 
                         : value >= step.value 
-                          ? "bg-green-500 text-white shadow-lg" 
+                          ? "bg-blue-500 text-white shadow-lg" 
                           : "bg-muted text-muted-foreground"
                     )}>
                       {step.completed ? (

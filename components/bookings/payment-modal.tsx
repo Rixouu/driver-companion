@@ -253,16 +253,41 @@ export function PaymentModal({
           }
         }
       } else if (paymentType === 'full-quote') {
-        // Full quote - just send payment link, don't create booking
-        setLoadingTitle('Payment Link Sent!')
-        setLoadingLabel('Payment link has been sent to the customer!')
+        // Full quote - send booking invoice email (which will generate payment link internally)
+        setLoadingProgress(50)
+        setLoadingLabel('Preparing booking invoice...')
+        await new Promise(resolve => setTimeout(resolve, 1000))
         
-        setTimeout(() => {
-          console.log('🔍 [PAYMENT-MODAL] Calling onPaymentAction for full quote');
-          setShowLoadingModal(false)
-          onPaymentAction(paymentType, emailData, undefined) // Don't create booking
-          onClose()
-        }, 1000)
+        setLoadingProgress(60)
+        setLoadingLabel('Sending booking invoice email...')
+        
+        // Send booking invoice email (this will generate payment link internally if needed)
+        const emailResponse = await fetch('/api/bookings/send-booking-invoice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            booking_id: formData.id,
+            email: emailData.customerEmail,
+            language: emailData.language,
+            bcc_emails: emailData.bccEmails
+          })
+        });
+        
+        const emailResult = await emailResponse.json();
+        
+        if (emailResult.success) {
+          setLoadingProgress(100)
+          setLoadingTitle('Booking Invoice Email Sent!')
+          setLoadingLabel('Complete booking invoice with payment link sent to customer!')
+          
+          setTimeout(() => {
+            setShowLoadingModal(false)
+            onPaymentAction(paymentType, emailData, formData.id)
+            onClose()
+          }, 2000)
+        } else {
+          throw new Error(emailResult.error || 'Failed to send booking invoice email')
+        }
       }
     } catch (error) {
       console.error('Error processing payment:', error)

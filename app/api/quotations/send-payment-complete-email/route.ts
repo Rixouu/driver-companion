@@ -230,6 +230,10 @@ export async function POST(request: NextRequest) {
       language,
       team_location: quotation.team_location || 'japan',
       
+      // Email header structure (like booking emails)
+      subtitle: quotation.team_location === 'thailand' ? 'Driver Thailand' : 'Driver Japan',
+      email_title: 'Payment Confirmation',
+      
       // Greeting message - Payment Complete specific
       greeting_text: 'Your payment has been completed successfully. Please find the invoice and receipt attached to this email.'
     }

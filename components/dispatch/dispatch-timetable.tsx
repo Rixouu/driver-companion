@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { DispatchEntryWithRelations, DispatchStatus } from "@/types/dispatch";
-import { CalendarIcon, ClockIcon, UserIcon, CarIcon, MapPinIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { CalendarIcon, ClockIcon, UserIcon, CarIcon, MapPinIcon, ChevronLeftIcon, ChevronRightIcon, EyeIcon } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils/styles";
 import { useRouter } from "next/navigation";
@@ -130,26 +130,22 @@ function TimetableCard({
     >
       <div className="p-2 h-full flex items-center justify-between">
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-bold text-foreground truncate">
+          <div className="text-xs font-bold text-foreground truncate mb-1">
             #{entry.booking.wp_id || entry.booking.id.substring(0, 8)}
           </div>
           <div className="text-xs text-muted-foreground truncate">
-            {entry.booking.customer_name || "Unknown"}
+            {entry.booking.service_name || "Service"}
           </div>
         </div>
-        <div className="flex items-center gap-1 ml-2">
-          <div className="text-xs text-muted-foreground">
-            {formattedTime}
-          </div>
-          <div className="flex items-center gap-1">
-            {entry.driver_id && (
-              <div className="w-2 h-2 bg-emerald-500 rounded-full" title="Driver assigned" />
-            )}
-            {entry.vehicle_id && (
-              <div className="w-2 h-2 bg-blue-500 rounded-full" title="Vehicle assigned" />
-            )}
-          </div>
-        </div>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleViewDetails}
+          className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted/50 ml-2 flex-shrink-0"
+          title="View Details"
+        >
+          <EyeIcon className="h-3 w-3" />
+        </Button>
       </div>
     </div>
   );
@@ -208,43 +204,93 @@ export default function DispatchTimetable({
 
   return (
     <>
-      {/* Week Navigation */}
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h2 className="text-lg font-semibold">Dispatch Timetable</h2>
-          <div className="text-sm text-muted-foreground">
-            Week of {format(currentWeek, "MMM dd, yyyy")}
+      {/* Week Navigation - Responsive for Mobile/Tablet/Desktop */}
+      <div className="mb-6">
+        {/* Mobile: Stack everything vertically */}
+        <div className="flex flex-col lg:hidden space-y-4">
+          {/* Title and Date - Stack on mobile */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <h2 className="text-lg font-semibold">Dispatch Timetable</h2>
+            <div className="text-sm text-muted-foreground">
+              Week of {format(currentWeek, "MMM dd, yyyy")}
+            </div>
+          </div>
+          
+          {/* Navigation Buttons - Responsive layout */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToPreviousWeek}
+                className="gap-2 flex-1 sm:flex-none"
+              >
+                <ChevronLeftIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">Previous Week</span>
+                <span className="sm:hidden">Prev</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToCurrentWeek}
+                className="gap-2 flex-1 sm:flex-none"
+              >
+                <CalendarIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">This Week</span>
+                <span className="sm:hidden">This</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextWeek}
+                className="gap-2 flex-1 sm:flex-none"
+              >
+                <span className="hidden sm:inline">Next Week</span>
+                <span className="sm:hidden">Next</span>
+                <ChevronRightIcon className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={goToPreviousWeek}
-            className="gap-2"
-          >
-            <ChevronLeftIcon className="h-4 w-4" />
-            Previous Week
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={goToCurrentWeek}
-            className="gap-2"
-          >
-            <CalendarIcon className="h-4 w-4" />
-            This Week
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={goToNextWeek}
-            className="gap-2"
-          >
-            Next Week
-            <ChevronRightIcon className="h-4 w-4" />
-          </Button>
+
+        {/* Desktop: Everything in one row */}
+        <div className="hidden lg:flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-semibold">Dispatch Timetable</h2>
+            <div className="text-sm text-muted-foreground">
+              Week of {format(currentWeek, "MMM dd, yyyy")}
+            </div>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToPreviousWeek}
+              className="gap-2"
+            >
+              <ChevronLeftIcon className="h-4 w-4" />
+              Previous Week
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToCurrentWeek}
+              className="gap-2"
+            >
+              <CalendarIcon className="h-4 w-4" />
+              This Week
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToNextWeek}
+              className="gap-2"
+            >
+              Next Week
+              <ChevronRightIcon className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 

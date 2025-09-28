@@ -33,6 +33,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@fontsource-variable/work-sans": "^5.2.5",
     "@fontsource/work-sans": "^5.2.5",
+    "@googlemaps/js-api-loader": "^1.16.10",
     "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^3.9.1",
     "@monaco-editor/react": "^4.7.0",

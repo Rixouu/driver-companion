@@ -21,6 +21,12 @@ import {
   DropdownMenuLabel
 } from "@/components/ui/dropdown-menu";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
   MapIcon,
   Grid3X3Icon,
   SearchIcon,
@@ -41,7 +47,10 @@ import {
   ChevronRightIcon,
   FilterIcon,
   PanelLeftOpenIcon,
-  PanelLeftCloseIcon
+  PanelLeftCloseIcon,
+  GripVerticalIcon,
+  EyeOffIcon,
+  EyeIcon as EyeIconSolid
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { toast } from '@/components/ui/use-toast';
@@ -363,6 +372,74 @@ export default function RealTimeDispatchCenter() {
   const [view, setView] = useState<'map' | 'board'>('board');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const { lastUpdate, updateDispatchStatus, unassignResources } = useSharedDispatchState();
+
+  // Column settings state - use consistent default order to prevent hydration issues
+  const [columnOrder, setColumnOrder] = useState<DispatchStatus[]>(['pending', 'assigned', 'confirmed', 'en_route', 'arrived', 'in_progress', 'completed', 'cancelled']);
+
+  const [hiddenColumns, setHiddenColumns] = useState<Set<DispatchStatus>>(new Set());
+
+  // Load saved settings after hydration to prevent hydration mismatch
+  useEffect(() => {
+    const savedOrder = localStorage.getItem('dispatch-column-order');
+    if (savedOrder) {
+      try {
+        const parsed = JSON.parse(savedOrder);
+        if (Array.isArray(parsed)) {
+          setColumnOrder(parsed);
+        }
+      } catch (error) {
+        console.warn('Failed to parse saved column order:', error);
+      }
+    }
+
+    const savedHidden = localStorage.getItem('dispatch-hidden-columns');
+    if (savedHidden) {
+      try {
+        const parsed = JSON.parse(savedHidden);
+        if (Array.isArray(parsed)) {
+          setHiddenColumns(new Set(parsed));
+        }
+      } catch (error) {
+        console.warn('Failed to parse saved hidden columns:', error);
+      }
+    }
+  }, []);
+
+  const [showColumnSettings, setShowColumnSettings] = useState(false);
+
+  // Column configuration
+  const columnConfig = {
+    pending: { title: 'Pending', emptyMessage: 'No pending bookings' },
+    assigned: { title: 'Assigned', emptyMessage: 'No assigned bookings' },
+    confirmed: { title: 'Confirmed', emptyMessage: 'No confirmed bookings' },
+    en_route: { title: 'En Route', emptyMessage: 'No en route bookings' },
+    arrived: { title: 'Arrived', emptyMessage: 'No arrived bookings' },
+    in_progress: { title: 'In Progress', emptyMessage: 'No in progress bookings' },
+    completed: { title: 'Completed', emptyMessage: 'No completed bookings' },
+    cancelled: { title: 'Cancelled', emptyMessage: 'No cancelled bookings' }
+  };
+
+  // Toggle column visibility
+  const toggleColumnVisibility = useCallback((status: DispatchStatus) => {
+    setHiddenColumns(prev => {
+      const newHidden = new Set(prev);
+      if (newHidden.has(status)) {
+        newHidden.delete(status);
+      } else {
+        newHidden.add(status);
+      }
+      
+      // Save to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('dispatch-hidden-columns', JSON.stringify(Array.from(newHidden)));
+      }
+      
+      return newHidden;
+    });
+  }, []);
+
+  // Get visible columns
+  const visibleColumns = columnOrder.filter(status => !hiddenColumns.has(status));
 
   const loadDispatchData = useCallback(async () => {
     setIsLoading(true);
@@ -720,126 +797,174 @@ export default function RealTimeDispatchCenter() {
     return matchesSearch && matchesStatus;
   });
 
+  // Calculate status counts
+  const statusCounts = {
+    pending: assignments.filter(e => e.status === 'pending').length,
+    assigned: assignments.filter(e => e.status === 'assigned').length,
+    confirmed: assignments.filter(e => e.status === 'confirmed').length,
+    en_route: assignments.filter(e => e.status === 'en_route').length,
+    arrived: assignments.filter(e => e.status === 'arrived').length,
+    in_progress: assignments.filter(e => e.status === 'in_progress').length,
+    completed: assignments.filter(e => e.status === 'completed').length,
+    cancelled: assignments.filter(e => e.status === 'cancelled').length
+  };
+
   return (
-    <div className="flex flex-col min-h-[calc(100vh-8rem)]">
-      {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur p-4">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-x-4 gap-y-2">
-          <div className="flex items-center gap-3 mr-auto self-start md:self-center">
-            <h1 className="text-lg font-semibold whitespace-nowrap">Real-Time Dispatch Center</h1>
-            <Badge variant="outline" className="text-xs">
-              {assignments.length} assignments
-            </Badge>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
-            <div className="flex items-center rounded-md border p-0.5 w-full sm:w-auto">
-              <Button
-                variant={activeView === 'board' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setActiveView('board')}
-                className="flex-1"
-              >
-                <Grid3X3Icon className="h-4 w-4 mr-2" />
-                Board
-              </Button>
-              <Button
-                variant={activeView === 'map' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setActiveView('map')}
-                className="flex-1"
-              >
-                <MapIcon className="h-4 w-4 mr-2" />
-                Map
-              </Button>
-              <Button
-                variant={activeView === 'timetable' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setActiveView('timetable')}
-                className="flex-1"
-              >
-                <CalendarIcon className="h-4 w-4 mr-2" />
-                Timetable
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push('/assignments')}
-                className="flex-1"
-              >
-                <ListIcon className="h-4 w-4 mr-2" />
-                Assignments
-              </Button>
-            </div>
-            
-            <div className="relative w-full sm:w-auto">
-              <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                className="w-full sm:w-40 md:w-auto pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="flex-grow">
-                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as DispatchStatus | 'all')}>
-                  <SelectTrigger className="w-full">
-                    <FilterIcon className="h-3 w-3 mr-2" />
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="assigned">Assigned</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="en_route">En Route</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={loadDispatchData}
-                disabled={isLoading}
-                className="whitespace-nowrap"
-              >
-                <RefreshCwIcon className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
-                Refresh
-              </Button>
-
-            </div>
+    <div className="space-y-6">
+      {/* Header - Matching pricing page style */}
+      <div className="border-b border-border/40 pb-3">
+        <div className="flex items-center gap-3 mb-2">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Dispatch Center</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-1">
+              Real-time booking management and assignment tracking
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-hidden">
-        {activeView === 'board' ? (
-          <div className="min-h-[calc(100vh-12rem)] p-4">
-            <DispatchBoardView
-              entries={filteredAssignments}
-              onStatusChange={handleUpdateStatus}
-              onUnassign={handleUnassign}
-              onUnassignVehicle={handleUnassign}
-            />
-          </div>
-        ) : activeView === 'timetable' ? (
-          <div className="min-h-[calc(100vh-12rem)] p-4">
-            <DispatchTimetable
-              entries={filteredAssignments}
-              onStatusChange={handleUpdateStatus}
-            />
-          </div>
-        ) : (
+      {/* Controls */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+        {/* Search */}
+        <div className="relative flex-1">
+          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search bookings..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Status Filter */}
+        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as DispatchStatus | 'all')}>
+          <SelectTrigger className="w-full sm:w-40">
+            <FilterIcon className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="All Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                All Status
+              </div>
+            </SelectItem>
+            <SelectItem value="pending">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                Pending
+              </div>
+            </SelectItem>
+            <SelectItem value="assigned">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                Assigned
+              </div>
+            </SelectItem>
+            <SelectItem value="confirmed">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                Confirmed
+              </div>
+            </SelectItem>
+            <SelectItem value="en_route">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                En Route
+              </div>
+            </SelectItem>
+            <SelectItem value="completed">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                Completed
+              </div>
+            </SelectItem>
+            <SelectItem value="cancelled">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                Cancelled
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Actions - Responsive button layout */}
+        <div className="flex items-center gap-2">
+          {activeView === 'board' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowColumnSettings(true)}
+              className="gap-2 flex-1 sm:flex-none"
+            >
+              <SettingsIcon className="h-4 w-4" />
+              Columns
+            </Button>
+          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={loadDispatchData}
+            disabled={isLoading}
+            className={cn(
+              "gap-2",
+              activeView === 'board' ? "flex-1 sm:flex-none" : "w-full"
+            )}
+          >
+            <RefreshCwIcon className={cn("h-4 w-4", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      {/* Tabs - Modern style like pricing page */}
+      <Tabs value={activeView} onValueChange={(value) => setActiveView(value as 'board' | 'map' | 'timetable')} className="w-full">
+        <div className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <TabsList className="flex flex-wrap h-auto min-h-12 items-center justify-start rounded-none border-0 bg-transparent p-0 text-muted-foreground">
+            <TabsTrigger 
+              value="board" 
+              className="relative h-12 px-6 rounded-none border-b-2 border-transparent bg-transparent text-sm font-medium transition-all hover:text-foreground hover:bg-muted/50 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-muted/20 data-[state=active]:shadow-sm"
+            >
+              <Grid3X3Icon className="w-4 h-4 mr-2" />
+              Board View
+            </TabsTrigger>
+            <TabsTrigger 
+              value="map" 
+              className="relative h-12 px-6 rounded-none border-b-2 border-transparent bg-transparent text-sm font-medium transition-all hover:text-foreground hover:bg-muted/50 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-muted/20 data-[state=active]:shadow-sm"
+            >
+              <MapIcon className="w-4 h-4 mr-2" />
+              Map View
+            </TabsTrigger>
+            <TabsTrigger 
+              value="timetable" 
+              className="relative h-12 px-6 rounded-none border-b-2 border-transparent bg-transparent text-sm font-medium transition-all hover:text-foreground hover:bg-muted/50 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-muted/20 data-[state=active]:shadow-sm"
+            >
+              <CalendarIcon className="w-4 h-4 mr-2" />
+              Timetable
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* Tab Content */}
+        <TabsContent value="board" className="mt-6">
+          <DispatchBoardView
+            entries={filteredAssignments}
+            onStatusChange={handleUpdateStatus}
+            onUnassign={handleUnassign}
+            onUnassignVehicle={handleUnassign}
+            columnOrder={columnOrder}
+            setColumnOrder={setColumnOrder}
+            hiddenColumns={hiddenColumns}
+            visibleColumns={visibleColumns}
+            columnConfig={columnConfig}
+            statusCounts={statusCounts}
+          />
+        </TabsContent>
+
+        <TabsContent value="map" className="mt-6">
           <MapViewWithSidebar
             assignments={filteredAssignments}
             onAssignmentSelect={(assignment) => {
-              // For map view, just show a toast - the route will be handled by the map component
-              // when booking markers are clicked (if they were implemented with geocoding)
               console.log('Assignment selected for route display:', assignment);
             }}
             onVehicleSelect={(vehicleId) => {
@@ -849,8 +974,125 @@ export default function RealTimeDispatchCenter() {
               });
             }}
           />
-        )}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="timetable" className="mt-6">
+          <DispatchTimetable
+            entries={filteredAssignments}
+            onStatusChange={handleUpdateStatus}
+          />
+        </TabsContent>
+      </Tabs>
+
+      {/* Column Settings Modal */}
+      <Sheet open={showColumnSettings} onOpenChange={setShowColumnSettings}>
+        <SheetContent className="w-[420px] sm:w-[480px]">
+          <SheetHeader className="pb-4 border-b border-border/50">
+            <SheetTitle className="text-lg font-semibold flex items-center gap-2">
+              <SettingsIcon className="h-5 w-5" />
+              Column Settings
+            </SheetTitle>
+            <p className="text-sm text-muted-foreground">
+              Customize which columns are visible and their order
+            </p>
+          </SheetHeader>
+          
+          <div className="mt-6 space-y-6">
+            {/* Show/Hide Columns */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold text-base flex items-center gap-2">
+                  <EyeIconSolid className="h-4 w-4" />
+                  Show/Hide Columns
+                </h4>
+                <Badge variant="outline" className="text-xs">
+                  {visibleColumns.length} of {columnOrder.length} visible
+                </Badge>
+              </div>
+              
+              <div className="space-y-2">
+                {columnOrder.map((status) => {
+                  const config = columnConfig[status];
+                  if (!config) return null;
+                  
+                  const isHidden = hiddenColumns.has(status);
+                  const count = statusCounts[status];
+                  
+                  return (
+                    <div 
+                      key={status} 
+                      className={cn(
+                        "group flex items-center justify-between p-3 rounded-lg border transition-all duration-200",
+                        "hover:bg-muted/50 hover:border-border/80",
+                        isHidden 
+                          ? "bg-muted/30 border-border/30 opacity-60" 
+                          : "bg-card border-border/50"
+                      )}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <GripVerticalIcon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors cursor-grab" />
+                          <div className="w-3 h-3 rounded-full" style={{
+                            backgroundColor: status === 'pending' ? '#f59e0b' :
+                                           status === 'assigned' ? '#3b82f6' :
+                                           status === 'confirmed' ? '#10b981' :
+                                           status === 'en_route' ? '#8b5cf6' :
+                                           status === 'arrived' ? '#6366f1' :
+                                           status === 'in_progress' ? '#06b6d4' :
+                                           status === 'completed' ? '#22c55e' :
+                                           status === 'cancelled' ? '#ef4444' : '#6b7280'
+                          }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className={cn(
+                            "text-sm font-medium",
+                            isHidden ? "text-muted-foreground" : "text-foreground"
+                          )}>
+                            {config.title}
+                          </span>
+                        </div>
+                        <Badge 
+                          variant={count > 0 ? "default" : "secondary"} 
+                          className={cn(
+                            "text-xs font-medium min-w-[24px] justify-center",
+                            count > 0 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {count}
+                        </Badge>
+                      </div>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleColumnVisibility(status)}
+                        className={cn(
+                          "gap-2 h-8 px-3 transition-all duration-200",
+                          isHidden 
+                            ? "text-muted-foreground hover:text-foreground hover:bg-muted" 
+                            : "text-foreground hover:bg-muted"
+                        )}
+                      >
+                        {isHidden ? (
+                          <>
+                            <EyeOffIcon className="h-4 w-4" />
+                            <span className="text-xs font-medium">Show</span>
+                          </>
+                        ) : (
+                          <>
+                            <EyeIconSolid className="h-4 w-4" />
+                            <span className="text-xs font-medium">Hide</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 } 

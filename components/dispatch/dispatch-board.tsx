@@ -618,13 +618,48 @@ export default function DispatchBoard() {
               <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuRadioGroup value={filters.status || 'all'} onValueChange={(value) => handleStatusFilterChange(value === 'all' ? undefined : value as DispatchStatus)}>
-                <DropdownMenuRadioItem value="all">All Status</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="pending">Pending</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="confirmed">Confirmed</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="assigned">Assigned</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="en_route">En Route</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="completed">Completed</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="cancelled">Cancelled</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="all">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                    All Status
+                  </div>
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="pending">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                    Pending
+                  </div>
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="confirmed">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                    Confirmed
+                  </div>
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="assigned">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    Assigned
+                  </div>
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="en_route">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                    En Route
+                  </div>
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="completed">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                    Completed
+                  </div>
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="cancelled">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                    Cancelled
+                  </div>
+                </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>

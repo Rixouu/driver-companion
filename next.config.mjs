@@ -35,20 +35,6 @@ const nextConfig = {
       config.externals.push('@sparticuz/chromium');
     }
     
-    // Handle Handlebars for server-side rendering
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      fs: false,
-      path: false,
-      os: false,
-    };
-    
-    // Configure Handlebars to work with webpack
-    config.module.rules.push({
-      test: /\.handlebars$/,
-      use: 'handlebars-loader',
-    });
-    
     // Optimize webpack cache to reduce large string serialization warnings
     config.cache = {
       ...config.cache,

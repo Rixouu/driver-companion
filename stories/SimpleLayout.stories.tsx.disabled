@@ -1,0 +1,147 @@
+import type { Meta, StoryObj } from '@storybook/react'
+import { SimpleHeader } from '../components/layout/SimpleHeader'
+import { Page } from '../components/layout/Page'
+import { Button } from '../components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
+
+const meta: Meta = {
+  title: 'Layout/Simple Layout',
+  parameters: {
+    layout: 'fullscreen',
+    docs: {
+      description: {
+        component: 'A simple working layout without complex dependencies.',
+      },
+    },
+  },
+  tags: ['autodocs'],
+}
+
+export default meta
+type Story = StoryObj<typeof meta>
+
+export const BasicLayout: Story = {
+  render: () => (
+    <div className="flex h-screen bg-background">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <SimpleHeader
+          title="Dashboard"
+          children={
+            <div className="flex items-center space-x-2">
+              <Button variant="outline" size="sm">
+                Settings
+              </Button>
+              <Button size="sm">
+                New Project
+              </Button>
+            </div>
+          }
+        />
+        
+        {/* Page Content */}
+        <Page
+          title="Welcome back!"
+          description="Here's what's happening with your projects today."
+        >
+          <div className="space-y-6">
+            {/* Stats Cards */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                  <span className="text-2xl">💰</span>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">$45,231.89</div>
+                  <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Subscriptions</CardTitle>
+                  <span className="text-2xl">👥</span>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">+2350</div>
+                  <p className="text-xs text-muted-foreground">+180.1% from last month</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Sales</CardTitle>
+                  <span className="text-2xl">📈</span>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">+12,234</div>
+                  <p className="text-xs text-muted-foreground">+19% from last month</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Active Now</CardTitle>
+                  <span className="text-2xl">⚡</span>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">+573</div>
+                  <p className="text-xs text-muted-foreground">+201 since last hour</p>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Main Content */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>Latest updates from your team</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { action: 'New user registered', user: 'Sarah Wilson', time: '2 minutes ago' },
+                    { action: 'Payment received', user: 'Payment System', time: '5 minutes ago' },
+                    { action: 'Project updated', user: 'John Doe', time: '1 hour ago' },
+                    { action: 'New message received', user: 'Alice Brown', time: '2 hours ago' },
+                  ].map((activity, index) => (
+                    <div key={index} className="flex items-center space-x-4">
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium">{activity.action}</p>
+                        <p className="text-xs text-muted-foreground">
+                          by {activity.user} • {activity.time}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </Page>
+      </div>
+    </div>
+  ),
+}
+
+export const MinimalLayout: Story = {
+  render: () => (
+    <div className="flex h-screen bg-background">
+      <div className="flex-1 flex flex-col">
+        <SimpleHeader title="Simple App" />
+        <Page
+          title="Minimal Layout"
+          description="Clean and simple design"
+        >
+          <div className="text-center py-12">
+            <h1 className="text-4xl font-bold mb-4">Welcome</h1>
+            <p className="text-xl text-muted-foreground mb-8">
+              This is a minimal layout example
+            </p>
+            <Button>Get Started</Button>
+          </div>
+        </Page>
+      </div>
+    </div>
+  ),
+}

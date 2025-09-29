@@ -1,0 +1,413 @@
+import type { Meta, StoryObj } from '@storybook/react'
+import { Page } from '../components/layout/Page'
+import { Header } from '../components/layout/Header'
+import { Sidebar } from '../components/layout/Sidebar'
+import { Button } from '../components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
+import { Badge } from '../components/ui/badge'
+import { Input } from '../components/ui/input'
+import { 
+  Home, 
+  Settings, 
+  Users, 
+  FileText, 
+  BarChart3,
+  Mail,
+  Calendar,
+  HelpCircle,
+  Search,
+  Bell,
+  Plus
+} from 'lucide-react'
+
+const meta: Meta = {
+  title: 'Layout/Complete Layout',
+  parameters: {
+    layout: 'fullscreen',
+    docs: {
+      description: {
+        component: 'Complete application layout showcasing Header, Sidebar, and Page components working together.',
+      },
+    },
+  },
+  tags: ['autodocs'],
+}
+
+export default meta
+type Story = StoryObj<typeof meta>
+
+const navigation = [
+  {
+    title: 'Main',
+    items: [
+      {
+        title: 'Dashboard',
+        href: '#',
+        icon: <Home className="h-4 w-4" />,
+      },
+      {
+        title: 'Analytics',
+        href: '#',
+        icon: <BarChart3 className="h-4 w-4" />,
+        badge: 'New',
+      },
+      {
+        title: 'Projects',
+        href: '#',
+        icon: <FileText className="h-4 w-4" />,
+        children: [
+          { title: 'All Projects', href: '#' },
+          { title: 'My Projects', href: '#', badge: '3' },
+          { title: 'Archived', href: '#' },
+        ],
+      },
+      {
+        title: 'Team',
+        href: '#',
+        icon: <Users className="h-4 w-4" />,
+      },
+    ],
+  },
+  {
+    title: 'Communication',
+    items: [
+      {
+        title: 'Messages',
+        href: '#',
+        icon: <Mail className="h-4 w-4" />,
+        badge: '5',
+      },
+      {
+        title: 'Calendar',
+        href: '#',
+        icon: <Calendar className="h-4 w-4" />,
+      },
+    ],
+  },
+  {
+    title: 'Support',
+    items: [
+      {
+        title: 'Settings',
+        href: '#',
+        icon: <Settings className="h-4 w-4" />,
+      },
+      {
+        title: 'Help',
+        href: '#',
+        icon: <HelpCircle className="h-4 w-4" />,
+      },
+    ],
+  },
+]
+
+export const FullApplication: Story = {
+  render: () => (
+    <div className="flex h-screen bg-background">
+      {/* Sidebar */}
+      <Sidebar
+        navigation={navigation}
+        user={{
+          name: 'John Doe',
+          email: 'john@example.com',
+          initials: 'JD',
+        }}
+        footer={
+          <div className="text-xs text-muted-foreground text-center">
+            Version 1.0.0
+          </div>
+        }
+      />
+      
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <Header
+          title="Dashboard"
+          search={
+            <div className="relative w-full max-w-sm">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search..." className="pl-8" />
+            </div>
+          }
+          actions={
+            <div className="flex items-center space-x-2">
+              <Button variant="outline" size="sm">
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </Button>
+              <Button size="sm">
+                <Plus className="mr-2 h-4 w-4" />
+                New Project
+              </Button>
+            </div>
+          }
+          user={{
+            name: 'John Doe',
+            email: 'john@example.com',
+            initials: 'JD',
+          }}
+          notifications={8}
+        />
+        
+        {/* Page Content */}
+        <Page
+          title="Welcome back, John!"
+          description="Here's what's happening with your projects today."
+          breadcrumbs={
+            <>
+              <Home className="h-4 w-4" />
+              <span>Dashboard</span>
+            </>
+          }
+        >
+          <div className="space-y-6">
+            {/* Stats Cards */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                  <span className="text-2xl">💰</span>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">$45,231.89</div>
+                  <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Subscriptions</CardTitle>
+                  <span className="text-2xl">👥</span>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">+2350</div>
+                  <p className="text-xs text-muted-foreground">+180.1% from last month</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Sales</CardTitle>
+                  <span className="text-2xl">📈</span>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">+12,234</div>
+                  <p className="text-xs text-muted-foreground">+19% from last month</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Active Now</CardTitle>
+                  <span className="text-2xl">⚡</span>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">+573</div>
+                  <p className="text-xs text-muted-foreground">+201 since last hour</p>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Main Content Grid */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+              <Card className="col-span-4">
+                <CardHeader>
+                  <CardTitle>Overview</CardTitle>
+                </CardHeader>
+                <CardContent className="pl-2">
+                  <div className="h-[200px] bg-muted rounded flex items-center justify-center">
+                    <p className="text-muted-foreground">Chart would go here</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="col-span-3">
+                <CardHeader>
+                  <CardTitle>Recent Sales</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { name: 'Olivia Martin', email: 'olivia@example.com', amount: '+$1,999.00' },
+                      { name: 'Jackson Lee', email: 'jackson@example.com', amount: '+$39.00' },
+                      { name: 'Isabella Nguyen', email: 'isabella@example.com', amount: '+$299.00' },
+                      { name: 'William Kim', email: 'william@example.com', amount: '+$1,200.00' },
+                    ].map((sale, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{sale.name}</p>
+                          <p className="text-sm text-muted-foreground">{sale.email}</p>
+                        </div>
+                        <span className="font-medium">{sale.amount}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Recent Activity */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>Latest updates from your team</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { action: 'New user registered', user: 'Sarah Wilson', time: '2 minutes ago', type: 'user' },
+                    { action: 'Payment received', user: 'Payment System', time: '5 minutes ago', type: 'payment' },
+                    { action: 'Project updated', user: 'John Doe', time: '1 hour ago', type: 'project' },
+                    { action: 'New message received', user: 'Alice Brown', time: '2 hours ago', type: 'message' },
+                  ].map((activity, index) => (
+                    <div key={index} className="flex items-center space-x-4">
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium">{activity.action}</p>
+                        <p className="text-xs text-muted-foreground">
+                          by {activity.user} • {activity.time}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {activity.type}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </Page>
+      </div>
+    </div>
+  ),
+}
+
+export const MobileLayout: Story = {
+  render: () => (
+    <div className="flex h-screen bg-background">
+      {/* Mobile Header */}
+      <div className="flex-1 flex flex-col">
+        <Header
+          title="Mobile App"
+          showMobileMenu={true}
+          onMenuClick={() => console.log('Mobile menu clicked')}
+          user={{
+            name: 'Jane Smith',
+            email: 'jane@example.com',
+            initials: 'JS',
+          }}
+          notifications={3}
+        />
+        
+        {/* Page Content */}
+        <Page
+          title="Mobile Dashboard"
+          description="Optimized for mobile devices"
+        >
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Mobile Stats</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Active Users</span>
+                    <span className="font-bold">1,234</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Page Views</span>
+                    <span className="font-bold">45,678</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Bounce Rate</span>
+                    <span className="font-bold">23%</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" className="h-20 flex-col">
+                    <Plus className="h-6 w-6 mb-2" />
+                    New Project
+                  </Button>
+                  <Button variant="outline" className="h-20 flex-col">
+                    <Users className="h-6 w-6 mb-2" />
+                    Add Team
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </Page>
+      </div>
+    </div>
+  ),
+  parameters: {
+    viewport: {
+      defaultViewport: 'mobile1',
+    },
+  },
+}
+
+export const MinimalLayout: Story = {
+  render: () => (
+    <div className="flex h-screen bg-background">
+      {/* Minimal Sidebar */}
+      <Sidebar
+        collapsed={true}
+        navigation={[
+          {
+            title: 'Navigation',
+            items: [
+              {
+                title: 'Home',
+                href: '#',
+                icon: <Home className="h-4 w-4" />,
+              },
+              {
+                title: 'Settings',
+                href: '#',
+                icon: <Settings className="h-4 w-4" />,
+              },
+            ],
+          },
+        ]}
+        user={{
+          name: 'Minimal User',
+          email: 'minimal@example.com',
+          initials: 'MU',
+        }}
+      />
+      
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        <Header
+          title="Minimal"
+          user={{
+            name: 'Minimal User',
+            email: 'minimal@example.com',
+            initials: 'MU',
+          }}
+        />
+        
+        <Page
+          title="Minimal Layout"
+          description="Clean and simple design"
+        >
+          <div className="text-center py-12">
+            <h1 className="text-4xl font-bold mb-4">Welcome</h1>
+            <p className="text-xl text-muted-foreground mb-8">
+              This is a minimal layout example
+            </p>
+            <Button>Get Started</Button>
+          </div>
+        </Page>
+      </div>
+    </div>
+  ),
+}

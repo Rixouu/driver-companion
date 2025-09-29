@@ -47,6 +47,29 @@ export function NotificationBell() {
     await refreshNotifications();
   };
 
+  const handleFixNotifications = async () => {
+    try {
+      const response = await fetch('/api/fix-notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Refresh notifications after fixing
+        await refreshNotifications();
+        alert(`Fixed ${data.updatedCount} notifications!`);
+      } else {
+        alert(`Error: ${data.error}`);
+      }
+    } catch (error) {
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   const unreadNotifications = notifications.filter(n => !n.is_read);
   const hasUnread = counts.unread > 0;
 
@@ -73,7 +96,7 @@ export function NotificationBell() {
       
       <DropdownMenuContent 
         align="end" 
-        className="w-80 p-0"
+        className="w-96 p-0"
         sideOffset={8}
       >
         <div className="p-4 pb-2 border-b">
@@ -89,6 +112,14 @@ export function NotificationBell() {
               )}
             </div>
             <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleFixNotifications}
+                className="h-7 px-2 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800"
+              >
+                Fix
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -149,28 +180,13 @@ export function NotificationBell() {
             <Separator />
             <div className="p-2">
               <div className="text-xs text-muted-foreground text-center">
-                {t('notifications.total', '{{count}} total notifications', { count: counts.total })}
+                {counts.total} total notifications
               </div>
             </div>
           </>
         )}
         
-        {/* Debug section - only show in development */}
-        {process.env.NODE_ENV === 'development' && (
-          <>
-            <Separator />
-            <div className="p-2">
-              <div className="text-xs text-muted-foreground">
-                <div className="font-medium mb-1">Connection Status:</div>
-                <div className="space-y-1">
-                  <div>Connected: {getConnectionStatus().isConnected ? '✅' : '❌'}</div>
-                  <div>Channels: {getConnectionStatus().channelCount}</div>
-                  {error && <div className="text-red-500">Error: {error.message}</div>}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+        {/* Debug section - removed for cleaner UI */}
       </DropdownMenuContent>
     </DropdownMenu>
   );

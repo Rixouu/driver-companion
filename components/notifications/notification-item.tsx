@@ -211,7 +211,7 @@ export function NotificationItem({
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <p className="text-sm font-medium text-foreground truncate">
+                <p className="text-sm font-medium text-foreground break-words">
                   {getStatusText(notification.type)}
                 </p>
                 {StatusIcon && (
@@ -222,19 +222,34 @@ export function NotificationItem({
                 )}
               </div>
               
-              <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+              <p className="text-xs text-muted-foreground mb-2 break-words leading-relaxed">
                 {notification.message}
               </p>
               
               {notification.related_entity && (
                 <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="outline" className="text-xs">
+                  <Badge 
+                    variant="outline" 
+                    className={cn(
+                      "text-xs",
+                      notification.related_entity.type === 'booking' && "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300",
+                      notification.related_entity.type === 'quotation' && "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300",
+                      notification.related_entity.type === 'inspection' && "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:text-purple-300",
+                      notification.related_entity.type === 'maintenance' && "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-300"
+                    )}
+                  >
                     {notification.related_entity.type}
                   </Badge>
                   {notification.related_entity.status && (
                     <Badge 
                       variant="secondary" 
-                      className="text-xs"
+                      className={cn(
+                        "text-xs",
+                        notification.related_entity.status === 'pending' && "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+                        notification.related_entity.status === 'confirmed' && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+                        notification.related_entity.status === 'cancelled' && "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+                        notification.related_entity.status === 'completed' && "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                      )}
                     >
                       {notification.related_entity.status}
                     </Badge>

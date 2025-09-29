@@ -15,7 +15,7 @@ interface NotificationData {
   user_id?: string
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -78,7 +78,7 @@ serve(async (req) => {
 /**
  * Process quotation expiry notifications
  */
-async function processQuotationExpiryNotifications(supabase: any) {
+async function processQuotationExpiryNotifications(supabase: any): Promise<void> {
   try {
     console.log('[Scheduled Notifications] Processing quotation expiry notifications...')
 
@@ -191,7 +191,7 @@ async function processQuotationExpiryNotifications(supabase: any) {
 /**
  * Process booking reminder notifications
  */
-async function processBookingReminderNotifications(supabase: any) {
+async function processBookingReminderNotifications(supabase: any): Promise<void> {
   try {
     console.log('[Scheduled Notifications] Processing booking reminder notifications...')
 
@@ -283,7 +283,7 @@ async function processBookingReminderNotifications(supabase: any) {
 /**
  * Process trip reminder emails
  */
-async function processTripReminderEmails(supabase: any) {
+async function processTripReminderEmails(supabase: any): Promise<void> {
   try {
     console.log('[Scheduled Notifications] Processing trip reminder emails...')
 
@@ -426,7 +426,7 @@ async function processTripReminderEmails(supabase: any) {
 /**
  * Send trip reminder email
  */
-async function sendTripReminderEmail(supabase: any, resend: any, booking: any, reminderType: '24h' | '2h') {
+async function sendTripReminderEmail(supabase: any, resend: any, booking: any, reminderType: '24h' | '2h'): Promise<void> {
   try {
     // Get booking creator (admin who created the booking)
     const { data: creator } = await supabase
@@ -933,8 +933,28 @@ japandriver.com
 /**
  * Create admin notification
  */
-async function createAdminNotification(supabase: any, notificationData: NotificationData) {
+async function createAdminNotification(supabase: any, notificationData: NotificationData): Promise<void> {
   try {
+    // Get the actual admin user ID from the profiles table
+    let adminUserId = notificationData.user_id
+    
+    if (!adminUserId) {
+      // Try to get the admin user ID from profiles table
+      const { data: adminProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', 'admin.rixou@gmail.com')
+        .single()
+      
+      if (adminProfile) {
+        adminUserId = adminProfile.id
+      } else {
+        // Fallback to the hardcoded ID if profile not found
+        adminUserId = '6e91dac5-1eb1-4357-8b08-8f8ef8803c9b' // Updated admin user ID
+        console.warn('Using fallback admin user ID for notification')
+      }
+    }
+
     const { error } = await supabase
       .from('notifications')
       .insert({
@@ -942,7 +962,7 @@ async function createAdminNotification(supabase: any, notificationData: Notifica
         related_id: notificationData.related_id,
         title: notificationData.title,
         message: notificationData.message,
-        user_id: notificationData.user_id || '5ae543dc-88b4-4ac4-9e02-a1024ad6d0b7', // Use admin user ID for admin notifications
+        user_id: adminUserId,
         is_read: false,
         created_at: new Date().toISOString()
       })
@@ -951,6 +971,8 @@ async function createAdminNotification(supabase: any, notificationData: Notifica
       console.error('Failed to create notification:', error)
       throw error
     }
+
+    console.log(`✅ [Notification] Created admin notification for user ${adminUserId}`)
   } catch (error) {
     console.error('Error creating admin notification:', error)
     throw error

@@ -1,48 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { Resend } from 'resend'
-import Handlebars from 'handlebars'
 import { generateEmailTemplate } from '@/lib/email/email-partials'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-// Register Handlebars helpers
-Handlebars.registerHelper('formatCurrency', function(amount, currency) {
-  if (!amount) return '0'
-  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount
-  return new Intl.NumberFormat('ja-JP', {
-    style: 'currency',
-    currency: currency || 'JPY'
-  }).format(numAmount)
-})
+// Initialize Handlebars helpers
+async function initializeHandlebars() {
+  const Handlebars = (await import('handlebars')).default
+  
+  // Register Handlebars helpers
+  Handlebars.registerHelper('formatCurrency', function(amount, currency) {
+    if (!amount) return '0'
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount
+    return new Intl.NumberFormat('ja-JP', {
+      style: 'currency',
+      currency: currency || 'JPY'
+    }).format(numAmount)
+  })
 
-Handlebars.registerHelper('eq', function(a, b) {
-  return a === b
-})
+  Handlebars.registerHelper('eq', function(a, b) {
+    return a === b
+  })
 
-Handlebars.registerHelper('if_eq', function(this: any, a, b, options: any) {
-  if (a === b) {
-    return options.fn(this)
-  }
-  return options.inverse(this)
-})
+  Handlebars.registerHelper('if_eq', function(this: any, a, b, options: any) {
+    if (a === b) {
+      return options.fn(this)
+    }
+    return options.inverse(this)
+  })
 
-// Custom helper for language conditionals
-Handlebars.registerHelper('lang', function(lang, ...args) {
-  if (args.length === 2) {
-    // Simple case: lang, jaText, enText
-    return lang === 'ja' ? args[0] : args[1]
-  } else if (args.length === 6) {
-    // Complex case: lang, jaPrefix, variable, jaSuffix, enPrefix, variable, enSuffix
-    const [jaPrefix, variable, jaSuffix, enPrefix, enVariable, enSuffix] = args
-    return lang === 'ja' ? `${jaPrefix}${variable}${jaSuffix}` : `${enPrefix}${enVariable}${enSuffix}`
-  }
-  return args[0] // fallback
-})
+  // Custom helper for language conditionals
+  Handlebars.registerHelper('lang', function(lang, ...args) {
+    if (args.length === 2) {
+      // Simple case: lang, jaText, enText
+      return lang === 'ja' ? args[0] : args[1]
+    } else if (args.length === 6) {
+      // Complex case: lang, jaPrefix, variable, jaSuffix, enPrefix, variable, enSuffix
+      const [jaPrefix, variable, jaSuffix, enPrefix, enVariable, enSuffix] = args
+      return lang === 'ja' ? `${jaPrefix}${variable}${jaSuffix}` : `${enPrefix}${enVariable}${enSuffix}`
+    }
+    return args[0] // fallback
+  })
+  
+  return Handlebars
+}
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = createServiceClient()
+    const Handlebars = await initializeHandlebars()
     
     const { bookingId, reminderType = '24h' } = await request.json()
 

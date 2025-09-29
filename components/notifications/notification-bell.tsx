@@ -47,28 +47,6 @@ export function NotificationBell() {
     await refreshNotifications();
   };
 
-  const handleFixNotifications = async () => {
-    try {
-      const response = await fetch('/api/fix-notifications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        // Refresh notifications after fixing
-        await refreshNotifications();
-        alert(`Fixed ${data.updatedCount} notifications!`);
-      } else {
-        alert(`Error: ${data.error}`);
-      }
-    } catch (error) {
-      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
 
   const unreadNotifications = notifications.filter(n => !n.is_read);
   const hasUnread = counts.unread > 0;
@@ -112,14 +90,6 @@ export function NotificationBell() {
               )}
             </div>
             <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleFixNotifications}
-                className="h-7 px-2 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800"
-              >
-                Fix
-              </Button>
               <Button
                 variant="ghost"
                 size="icon"

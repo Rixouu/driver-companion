@@ -7,6 +7,7 @@ import { getDictionary } from "@/lib/i18n/server"; // Use server version of getD
 import { Button } from "@/components/ui/button";
 import { getDrivers } from "@/lib/services/drivers";
 import { DriverClientPage } from "@/components/drivers/driver-client-page"; // Import the new client component
+import { PageBreadcrumb } from "@/components/layout/page-breadcrumb";
 import type { Driver } from "@/types/drivers"; // Ensure consistent Driver type
 import { Metadata } from "next";
 

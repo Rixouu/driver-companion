@@ -6,6 +6,7 @@ import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BookingsClient } from '@/components/bookings/bookings-client'
 import { BookingsPageSkeleton } from '@/components/bookings/bookings-page-skeleton'
+import { PageBreadcrumb } from '@/components/layout/page-breadcrumb'
 
 export const metadata = {
   title: 'Bookings',
@@ -15,6 +16,7 @@ export const metadata = {
 export default function BookingsPage() {
   return (
     <div className="space-y-6">
+      <PageBreadcrumb />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Bookings</h1>

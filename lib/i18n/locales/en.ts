@@ -51,13 +51,6 @@ export const en: TranslationValue = {
     pagination: {
       pageOf: "Page {page} of {total}"
     },
-    drivers: {
-      pagination: {
-        page: "Page {page}",
-        of: "of {total}",
-        showing: "Showing {start}-{end} of {total} items"
-      }
-    },
     booking: "Booking",
     viewDetails: "View details",
     addNew: "Add new",
@@ -67,6 +60,7 @@ export const en: TranslationValue = {
     update: "Update",
     create: "Create",
     created: "Created",
+    new: "New",
     deleting: "Deleting...",
     creating: "Creating...",
     menu: "Menu",
@@ -148,6 +142,14 @@ export const en: TranslationValue = {
     add: "Add",
     clearFilters: "Clear Filters"
   },
+    search: {
+      placeholder: "Search vehicles, drivers, bookings...",
+      noResults: "No results found for",
+      recentSearches: "Recent Searches",
+      searching: "Searching...",
+      keyboardShortcut: "⌘K",
+      clear: "Clear"
+    },
   
   calendar: {
     weekdays: {
@@ -195,6 +197,7 @@ export const en: TranslationValue = {
     templates: "Templates",
     reporting: "Reporting",
     settings: "Settings",
+    search: "Search",
     fleet: "Fleet",
     sales: "Sales",
     operations: "Operations",
@@ -409,6 +412,8 @@ export const en: TranslationValue = {
     },
     pagination: {
       showing: "Showing {start}-{end} of {total} items",
+      page: "Page {page}",
+      of: "of {total}"
     },
     errors: {
       loadFailed: {
@@ -991,7 +996,7 @@ export const en: TranslationValue = {
       model: "Model",
       photoNumber: "Photo {{number}}",
       currentSection: "Current Section",
-      showingVehicles: "Showing {{start}}-{{end}} of {{total}} vehicles"
+      showingVehicles: "Showing {start}-{end} of {total} vehicles"
     },
     actions: {
       pass: "Pass",

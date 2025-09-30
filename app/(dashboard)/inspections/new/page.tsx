@@ -2,7 +2,7 @@ import { Metadata } from "next"
 import { cookies } from "next/headers"
 import { createServerClient } from "@/lib/supabase/index"
 import { StepBasedInspectionForm } from "@/components/inspections/step-based-inspection-form"
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
+import { PageBreadcrumb } from "@/components/layout/page-breadcrumb"
 import Link from "next/link"
 import { getDictionary } from "@/lib/i18n/server"
 
@@ -54,25 +54,7 @@ export default async function NewInspectionPage() {
 
   return (
     <div className="p-4 md:p-6">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link href="/">{t('navigation.dashboard')}</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link href="/inspections">{t('navigation.inspections')}</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{t('inspections.createNewInspection')}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+      <PageBreadcrumb />
       <div className="my-6">
         <h1 className="text-2xl font-bold tracking-tight">{t('inspections.createNewInspection')}</h1>
         <p className="text-muted-foreground">{t('inspections.createNewInspectionDescription')}</p>

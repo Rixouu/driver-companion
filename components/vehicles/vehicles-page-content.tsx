@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Plus } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
 import { VehicleList } from "@/components/vehicles/vehicle-list-new"
+import { PageBreadcrumb } from "@/components/layout/page-breadcrumb"
 import { DbVehicle } from "@/types"
 
 interface VehiclesPageContentProps {
@@ -36,6 +37,7 @@ export function VehiclesPageContent({
 
   return (
     <div className="space-y-6">
+      <PageBreadcrumb />
       <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-left sm:text-left">
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{t("vehicles.title")}</h1>

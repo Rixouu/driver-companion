@@ -60,6 +60,7 @@ export const ja: TranslationValue = {
     update: "更新",
     create: "作成",
     created: "作成済み",
+    new: "新規",
     deleting: "削除中...",
     creating: "作成中...",
     menu: "メニュー",
@@ -139,6 +140,14 @@ export const ja: TranslationValue = {
     add: "追加",
     clearFilters: "フィルターをクリア"
   },
+    search: {
+      placeholder: "車両、ドライバー、予約を検索...",
+      noResults: "検索結果が見つかりません",
+      recentSearches: "最近の検索",
+      searching: "検索中...",
+      keyboardShortcut: "⌘K",
+      clear: "クリア"
+    },
   calendar: {
     weekdays: {
       mon: "月",
@@ -185,6 +194,7 @@ export const ja: TranslationValue = {
     templates: "テンプレート",
     reporting: "レポート",
     settings: "設定",
+    search: "検索",
     fleet: "フリート",
     sales: "営業",
     operations: "オペレーション",
@@ -972,7 +982,7 @@ export const ja: TranslationValue = {
       model: "モデル",
       photoNumber: "写真 {{number}}",
       currentSection: "現在のセクション",
-      showingVehicles: "{{total}}台の車両のうち{{start}}-{{end}}台を表示中"
+      showingVehicles: "{total}台の車両のうち{start}-{end}台を表示中"
     },
     actions: {
       pass: "合格",

@@ -1,6 +1,7 @@
 import { Metadata } from "next"
 import { cookies } from "next/headers"
 import { MaintenancePageContent } from "@/components/maintenance/maintenance-page-content"
+import { PageBreadcrumb } from "@/components/layout/page-breadcrumb"
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import type { MaintenanceTask } from "@/types"
 import { Suspense } from "react"
@@ -34,6 +35,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams?:
 
   return (
     <>
+      <PageBreadcrumb />
       <MaintenancePageContent tasks={(tasks || []) as MaintenanceTask[]} />
       <FloatingActionButton 
         href="/maintenance/new" 

@@ -11,6 +11,7 @@ import { ArrowLeft } from "lucide-react"
 
 import { useRouter } from "next/navigation"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { GlobalSearch } from "@/components/layout/global-search"
 import { useI18n } from "@/lib/i18n/context"
 
 export function Header() {
@@ -122,15 +123,15 @@ export function Header() {
 
   return (
     <header className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-14">
-      <div className="px-8 sm:px-10 md:px-12 max-w-[1600px] ml-auto">
+      <div className="px-4 sm:px-6 lg:px-8 max-w-[1600px] mx-auto">
         <div className="flex h-14 items-center justify-between">
           {/* Left side - Back button */}
-          <div className="flex items-center">
+          <div className="flex items-center min-w-0">
             {backButtonInfo && (
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="gap-2"
+                className="gap-2 shrink-0"
                 onClick={() => router.push(backButtonInfo.href as any)}
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -139,8 +140,13 @@ export function Header() {
             )}
           </div>
 
+          {/* Center - Global Search */}
+          <div className="flex-1 max-w-lg mx-4">
+            <GlobalSearch />
+          </div>
+
           {/* Right side - Controls */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             {/* Show theme toggle and login only on desktop */}
             <div className="hidden md:flex items-center gap-4">
               <LanguageSwitcher />

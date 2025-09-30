@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { getDictionary } from "@/lib/i18n/server";
 import RealTimeDispatchCenter from "@/components/dispatch/real-time-dispatch-center";
+import { PageBreadcrumb } from "@/components/layout/page-breadcrumb";
 
 // Force dynamic rendering for real-time features
 export const dynamic = 'force-dynamic';
@@ -27,6 +28,7 @@ export default async function DispatchPage() {
   
   return (
     <div className="w-full">
+      <PageBreadcrumb />
       <RealTimeDispatchCenter />
     </div>
   );

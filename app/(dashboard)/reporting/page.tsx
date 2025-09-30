@@ -1,5 +1,6 @@
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { ComprehensiveReportingPage } from '@/components/reporting/comprehensive-reporting-page';
+import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { addMonths, parseISO } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { Metadata } from 'next';
@@ -31,8 +32,11 @@ export default async function ReportingPageServer({
   const initialDateRange: DateRange = { from: fromDate, to: toDate };
 
   return (
-    <ComprehensiveReportingPage
-      initialDateRange={initialDateRange}
-    />
+    <>
+      <PageBreadcrumb />
+      <ComprehensiveReportingPage
+        initialDateRange={initialDateRange}
+      />
+    </>
   );
 }

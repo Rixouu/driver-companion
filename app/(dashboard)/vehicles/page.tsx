@@ -1,6 +1,7 @@
 import { Metadata } from "next"
 import { VehicleList } from "@/components/vehicles/vehicle-list"
 import { VehiclesPageContent } from "@/components/vehicles/vehicles-page-content"
+import { PageBreadcrumb } from "@/components/layout/page-breadcrumb"
 import { cookies } from "next/headers"
 import type { Database } from "@/types/supabase"
 import { Button } from "@/components/ui/button"

@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { redirect, useRouter, usePathname, useSearchParams as useNextSearchParams } from 'next/navigation';
 import { getDictionary } from '@/lib/i18n/server';
 import { PageHeader } from '@/components/page-header';
+import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import LoadingSpinner from '@/components/shared/loading-spinner';
@@ -202,6 +203,7 @@ export default async function QuotationsPage({ searchParams }: QuotationsPagePro
   
   return (
     <div className="space-y-6">
+      <PageBreadcrumb />
       <PageHeader
         title={t('quotations.list')}
         description={t('quotations.listDescription')}

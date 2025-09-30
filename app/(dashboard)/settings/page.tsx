@@ -19,6 +19,7 @@ import { UserManagement } from "@/components/settings/user-management"
 import { NotificationManagementImproved as NotificationManagement } from "@/components/settings/notification-management-improved"
 import { BrandingManagement } from "@/components/settings/branding-management"
 import { UICustomizationManagement } from "@/components/settings/ui-customization-management"
+import { PageBreadcrumb } from "@/components/layout/page-breadcrumb"
 import {
   Gauge,
   Truck,
@@ -547,6 +548,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
+      <PageBreadcrumb />
       <div className="border-b border-border/40 pb-3">
         <div className="flex items-center gap-3 mb-2">
           <div>

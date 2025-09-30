@@ -1,5 +1,6 @@
 import { Metadata } from "next"
 import { InspectionList } from "@/components/inspections/inspection-list"
+import { PageBreadcrumb } from "@/components/layout/page-breadcrumb"
 import { redirect } from "next/navigation"
 import type { OptimizedInspection } from "@/types"
 import type { DbVehicle } from "@/types"
@@ -207,6 +208,7 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
 
   return (
     <div className="space-y-6">
+      <PageBreadcrumb />
       <InspectionList 
         inspections={inspections} 
         allInspections={allInspectionsTransformed}

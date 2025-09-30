@@ -4175,6 +4175,15 @@ export const en: TranslationValue = {
     filter: "Filter by Group"
   },
 
+  templates: {
+    title: "Templates",
+    description: "Manage inspection templates and email templates for your fleet management system.",
+    tabs: {
+      inspections: "Inspection Templates",
+      emails: "Email Templates"
+    }
+  },
+
   inspectionTemplates: {
     title: "Inspection Templates",
     description: "Manage inspection templates and assignments",

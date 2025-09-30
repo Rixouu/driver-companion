@@ -4,14 +4,14 @@ import { useState, useEffect } from "react"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useI18n } from "@/lib/i18n/context"
-import { User, Globe, LayoutList, Shield, Palette, Settings } from "lucide-react"
+import { ClipboardCheck, Mail } from "lucide-react"
 
-interface SettingsTabsListProps {
+interface TemplatesTabsListProps {
   value: string
   onValueChange?: (value: string) => void
 }
 
-export function SettingsTabsList({ value, onValueChange }: SettingsTabsListProps) {
+export function TemplatesTabsList({ value, onValueChange }: TemplatesTabsListProps) {
   const { t } = useI18n()
   const [isMobile, setIsMobile] = useState(false)
   
@@ -27,12 +27,8 @@ export function SettingsTabsList({ value, onValueChange }: SettingsTabsListProps
   }, [])
 
   const tabs = [
-    { value: "profile", label: t('settings.tabs.profile') || "Profile", icon: User },
-    { value: "menu", label: t('settings.tabs.menu') || "Menu", icon: LayoutList },
-    { value: "language", label: t('settings.tabs.language') || "Language", icon: Globe },
-    { value: "permissions", label: t('settings.tabs.permissions') || "Permissions", icon: Shield },
-    { value: "branding", label: t('settings.tabs.branding') || "Branding", icon: Palette },
-    { value: "ui-customization", label: t('settings.tabs.ui_customization') || "UI Customization", icon: Settings },
+    { value: "inspections", label: t('templates.tabs.inspections') || "Inspection Templates", icon: ClipboardCheck },
+    { value: "emails", label: t('templates.tabs.emails') || "Email Templates", icon: Mail },
   ]
 
   const currentTab = tabs.find(tab => tab.value === value)
@@ -43,7 +39,7 @@ export function SettingsTabsList({ value, onValueChange }: SettingsTabsListProps
         <div className="flex items-center gap-2">
           <Select value={value} onValueChange={onValueChange}>
             <SelectTrigger className="w-full h-10 text-sm">
-              <SelectValue placeholder={currentTab?.label || "Select a setting"} />
+              <SelectValue placeholder={currentTab?.label || "Select a template type"} />
             </SelectTrigger>
             <SelectContent>
               {tabs.map((tab) => (

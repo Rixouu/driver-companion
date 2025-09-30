@@ -4115,6 +4115,16 @@ export const ja: TranslationValue = {
     allGroups: "すべてのグループ",
     filter: "グループで絞り込み"
   },
+
+  templates: {
+    title: "テンプレート",
+    description: "車両管理システムの点検テンプレートとメールテンプレートを管理します。",
+    tabs: {
+      inspections: "点検テンプレート",
+      emails: "メールテンプレート"
+    }
+  },
+
   inspectionTemplates: {
     title: "点検テンプレート",
     description: "点検テンプレートと割り当てを管理します",

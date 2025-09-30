@@ -16,7 +16,6 @@ import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { SettingsTabsList } from "@/components/settings/settings-tabs-list"
 import { EnhancedGroupManagement } from "@/components/settings/enhanced-group-management"
 import { UserManagement } from "@/components/settings/user-management"
-import { NotificationManagementImproved as NotificationManagement } from "@/components/settings/notification-management-improved"
 import { BrandingManagement } from "@/components/settings/branding-management"
 import { UICustomizationManagement } from "@/components/settings/ui-customization-management"
 import { PageBreadcrumb } from "@/components/layout/page-breadcrumb"
@@ -580,9 +579,6 @@ export default function SettingsPage() {
             {renderPermissionsTab()}
           </TabsContent>
           
-          <TabsContent value="notifications">
-            <NotificationManagement />
-          </TabsContent>
           
           <TabsContent value="branding">
             <BrandingManagement />

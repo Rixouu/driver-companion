@@ -11,7 +11,8 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { EmailTemplateEditDrawer } from '@/components/templates/email-template-edit-drawer';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { useI18n } from '@/lib/i18n/context';
@@ -44,6 +45,7 @@ export function NotificationManagementImproved() {
   const [modalTeam, setModalTeam] = useState<'japan' | 'thailand'>('thailand');
   const [modalLanguage, setModalLanguage] = useState<'en' | 'ja'>('en');
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
@@ -354,22 +356,8 @@ export function NotificationManagementImproved() {
   };
 
   const handleEdit = (template: EmailTemplate) => {
-    setTemplateForm({
-      name: template.name,
-      type: template.type,
-      category: template.category,
-      subject: template.subject,
-      html_content: template.html_content, // Already content-only from database
-      text_content: template.text_content,
-      variables: template.variables,
-      is_active: template.is_active,
-      is_default: template.is_default
-    });
     setEditingTemplate(template);
-    // Reset modal states to current global states
-    setModalTeam(selectedTeam);
-    setModalLanguage(selectedLanguage);
-    setIsTemplateDialogOpen(true);
+    setIsEditDrawerOpen(true);
   };
 
   const handleToggleActive = async (templateId: string) => {
@@ -419,6 +407,27 @@ export function NotificationManagementImproved() {
         variant: 'destructive'
       });
     }
+  };
+
+  const handleSaveTemplate = async (updatedTemplate: EmailTemplate) => {
+    try {
+      const response = await fetch(`/api/admin/notification-templates/${updatedTemplate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedTemplate)
+      });
+
+      if (!response.ok) throw new Error('Failed to update template');
+
+      await loadTemplates();
+    } catch (error) {
+      throw error; // Re-throw to let the drawer handle the error display
+    }
+  };
+
+  const handleCloseDrawer = () => {
+    setIsEditDrawerOpen(false);
+    setEditingTemplate(null);
   };
 
   const handlePreview = (template: EmailTemplate) => {
@@ -1547,6 +1556,15 @@ export function NotificationManagementImproved() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Email Template Edit Drawer */}
+      <EmailTemplateEditDrawer
+        isOpen={isEditDrawerOpen}
+        onClose={handleCloseDrawer}
+        template={editingTemplate}
+        onSave={handleSaveTemplate}
+        onDelete={handleDelete}
+      />
     </div>
   );
 }

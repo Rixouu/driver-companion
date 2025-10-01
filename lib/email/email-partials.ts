@@ -89,3 +89,4 @@ export function generateEmailTemplate(data: EmailTemplateData & {
     </html>
   `
 }
+

@@ -42,6 +42,7 @@ import {
 import { SimplePDFTemplateEditor } from './simple-pdf-template-editor'
 import { RealPDFTemplatePreview } from './real-pdf-template-preview'
 import { PDFPreviewThumbnail } from '@/components/ui/pdf-preview-thumbnail'
+import { PartialsManagement } from './partials-management'
 
 // Define the real PDF template types based on your actual system
 interface RealPDFTemplate {
@@ -1011,15 +1012,7 @@ export function RevampedPDFTemplateManagement() {
 
 
         <TabsContent value="partials" className="space-y-6">
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Settings className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Partials Coming Soon</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                We're working on a user-friendly partials editor. Stay tuned!
-              </p>
-            </CardContent>
-          </Card>
+          <PartialsManagement />
         </TabsContent>
       </Tabs>
 

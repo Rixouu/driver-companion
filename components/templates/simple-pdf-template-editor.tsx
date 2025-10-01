@@ -153,12 +153,12 @@ export function SimplePDFTemplateEditor({
     <div className="fixed inset-0 z-50">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/50 transition-opacity duration-300 ease-in-out"
+        className="absolute inset-0 bg-black/50 transition-opacity duration-300 ease-in-out animate-in fade-in"
         onClick={onClose}
       />
       
       {/* Slider Panel */}
-      <div className="absolute right-0 top-0 h-full w-full sm:w-[90vw] md:w-[80vw] lg:w-[70vw] xl:w-[60vw] 2xl:w-[50vw] bg-background shadow-2xl transform transition-transform duration-300 ease-in-out">
+      <div className="absolute right-0 top-0 h-full w-full sm:w-[90vw] md:w-[80vw] lg:w-[70vw] xl:w-[60vw] 2xl:w-[50vw] bg-background shadow-2xl transform transition-all duration-300 ease-in-out animate-in slide-in-from-right">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background border-b p-4 sm:p-6">
           <div className="flex items-center justify-between">

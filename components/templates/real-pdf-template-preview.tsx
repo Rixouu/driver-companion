@@ -137,32 +137,26 @@ export function RealPDFTemplatePreview({
 
   if (!isOpen || !template) return null
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'quotation': return <FileText className="h-4 w-4" />
-      case 'invoice': return <FileText className="h-4 w-4" />
-      default: return <FileText className="h-4 w-4" />
-    }
-  }
 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[95vh] p-0 flex flex-col">
+      <DialogContent className="max-w-6xl h-[95vh] p-0 flex flex-col [&>button]:hidden">
         <DialogHeader className="p-6 pb-4 border-b">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {getTypeIcon(template.type)}
-              <div>
-                <DialogTitle className="text-2xl font-bold">
-                  {template.name}
-                </DialogTitle>
-                <DialogDescription className="text-base">
-                  {template.description}
-                </DialogDescription>
-              </div>
+            <div>
+              <DialogTitle className="text-2xl font-bold">
+                {template.name}
+              </DialogTitle>
+              <DialogDescription className="text-base">
+                {template.description}
+              </DialogDescription>
             </div>
             <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={onClose}>
+                <X className="h-4 w-4 mr-2" />
+                Close
+              </Button>
               <Button onClick={handleDownload}>
                 <Download className="h-4 w-4 mr-2" />
                 Download

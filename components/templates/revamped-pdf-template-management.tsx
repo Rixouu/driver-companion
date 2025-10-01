@@ -21,7 +21,6 @@ import {
   FileText, 
   Edit, 
   Eye, 
-  Download,
   Settings,
   Code,
   Palette,
@@ -42,6 +41,7 @@ import {
 } from 'lucide-react'
 import { SimplePDFTemplateEditor } from './simple-pdf-template-editor'
 import { RealPDFTemplatePreview } from './real-pdf-template-preview'
+import { PDFPreviewThumbnail } from '@/components/ui/pdf-preview-thumbnail'
 
 // Define the real PDF template types based on your actual system
 interface RealPDFTemplate {
@@ -76,8 +76,6 @@ export function RevampedPDFTemplateManagement() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
-  const [filterTeam, setFilterTeam] = useState('all')
-  const [filterStatus, setFilterStatus] = useState('all')
   const [activeTab, setActiveTab] = useState('templates')
   const [previewMode, setPreviewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
   const [previewLanguage, setPreviewLanguage] = useState<'en' | 'ja'>('en')
@@ -148,26 +146,6 @@ export function RevampedPDFTemplateManagement() {
     }
   }
 
-  const handleDownload = async (template: RealPDFTemplate) => {
-    try {
-      const response = await fetch(`/api/admin/download-template/${template.id}`)
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${template.name.replace(/\s+/g, '-').toLowerCase()}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-      } else {
-        console.error('Failed to download template')
-      }
-    } catch (error) {
-      console.error('Error downloading template:', error)
-    }
-  }
 
   const handleRefresh = () => {
     console.log('Refreshing templates from codebase...')
@@ -177,10 +155,8 @@ export function RevampedPDFTemplateManagement() {
     const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          template.description.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesType = filterType === 'all' || template.type === filterType
-    const matchesTeam = filterTeam === 'all' || template.team === filterTeam || template.team === 'both'
-    const matchesStatus = filterStatus === 'all' || template.status === filterStatus || template.status === 'all'
     
-    return matchesSearch && matchesType && matchesTeam && matchesStatus
+    return matchesSearch && matchesType
   })
 
   const getTypeIcon = (type: string) => {
@@ -842,46 +818,31 @@ export function RevampedPDFTemplateManagement() {
                     className="mt-1"
                   />
                 </div>
-                <div className="sm:w-48">
-                  <Label htmlFor="type-filter">Type</Label>
+                <div className="sm:w-64">
+                  <Label htmlFor="type-filter">Document Type</Label>
                   <Select value={filterType} onValueChange={setFilterType}>
                     <SelectTrigger className="mt-1">
-                      <SelectValue />
+                      <SelectValue placeholder="Select document type..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="quotation">Quotation</SelectItem>
-                      <SelectItem value="invoice">Invoice</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="sm:w-48">
-                  <Label htmlFor="team-filter">Team</Label>
-                  <Select value={filterTeam} onValueChange={setFilterTeam}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Teams</SelectItem>
-                      <SelectItem value="japan">Japan</SelectItem>
-                      <SelectItem value="thailand">Thailand</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="sm:w-48">
-                  <Label htmlFor="status-filter">Status</Label>
-                  <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      <SelectItem value="send">Send</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
-                      <SelectItem value="paid">Paid</SelectItem>
-                      <SelectItem value="converted">Converted</SelectItem>
+                      <SelectItem value="all">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          <span>All Document Types</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="quotation">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-blue-500" />
+                          <span>Quotation Templates</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="invoice">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-green-500" />
+                          <span>Invoice Templates</span>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -890,7 +851,7 @@ export function RevampedPDFTemplateManagement() {
           </Card>
 
           {/* Templates Grid */}
-          <div className="grid gap-8 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-3">
             {filteredTemplates.map((template) => (
               <Card key={template.id} className="hover:shadow-lg transition-all duration-200 group border-2 hover:border-primary/20">
                 <CardHeader className="pb-4">
@@ -906,7 +867,7 @@ export function RevampedPDFTemplateManagement() {
                     </div>
                     <div className="flex items-center gap-2">
                       {template.isActive && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge className={`${getTemplateStatusBadgeClasses('active')} text-xs`}>
                           Active
                         </Badge>
                       )}
@@ -914,21 +875,16 @@ export function RevampedPDFTemplateManagement() {
                   </div>
 
                   {/* Template Info */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <Badge className={getTemplateTypeBadgeClasses(template.type)}>
-                        {template.type}
-                      </Badge>
-                      <Badge className={getTemplateLocationBadgeClasses(template.location)}>
-                        {template.location}
-                      </Badge>
-                      <Badge className={getTemplateTeamBadgeClasses(template.team)}>
-                        {template.team}
-                      </Badge>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {template.lastModified}
-                    </div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Badge className={getTemplateTypeBadgeClasses(template.type)}>
+                      {template.type}
+                    </Badge>
+                    <Badge className={getTemplateLocationBadgeClasses(template.location)}>
+                      {template.location}
+                    </Badge>
+                    <Badge className={getTemplateTeamBadgeClasses(template.team)}>
+                      {template.team}
+                    </Badge>
                   </div>
 
                   {/* Status Badges */}
@@ -943,66 +899,81 @@ export function RevampedPDFTemplateManagement() {
                 </CardHeader>
                 
                 <CardContent className="pt-0">
-                  {/* Template Info */}
-                  <div className="mb-6 p-4 bg-muted/30 rounded-lg">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium text-muted-foreground">File:</span>
-                        <p className="truncate">{template.filePath}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium text-muted-foreground">Function:</span>
-                        <p className="truncate">{template.functionName}</p>
-                      </div>
+                  {/* Last Update */}
+                  <div className="mb-6 p-3 bg-muted/20 rounded-lg border border-muted/30">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Last Updated</span>
                     </div>
+                    <p className="text-sm text-foreground font-medium mt-1">
+                      {new Date(template.lastModified).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                      })}
+                    </p>
                   </div>
 
-                  {/* Features */}
+                  {/* PDF Preview Thumbnail */}
                   <div className="mb-6 p-4 bg-muted/30 rounded-lg">
-                    <div className="text-sm">
-                      <span className="font-medium text-muted-foreground">Features:</span>
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {template.config.features.map((feature) => (
-                          <Badge key={feature} variant="secondary" className="text-xs">
-                            {feature}
-                          </Badge>
-                        ))}
+                    <div className="text-sm mb-3">
+                      <span className="font-medium text-muted-foreground">PDF Preview:</span>
+                    </div>
+                    <PDFPreviewThumbnail 
+                      template={{
+                        id: template.id,
+                        name: template.name,
+                        type: template.type,
+                        team: template.team,
+                        variant: template.variant
+                      }}
+                    />
+                  </div>
+
+                  {/* Features - Simplified */}
+                  {template.config.features.length > 0 && (
+                    <div className="mb-6 p-4 bg-muted/30 rounded-lg">
+                      <div className="text-sm">
+                        <span className="font-medium text-muted-foreground">Features:</span>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {template.config.features.slice(0, 3).map((feature) => (
+                            <Badge key={feature} variant="secondary" className="text-xs">
+                              {feature}
+                            </Badge>
+                          ))}
+                          {template.config.features.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{template.config.features.length - 3} more
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Action Buttons */}
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePreview(template)}
-                        className="flex-1"
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        Preview
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(template)}
-                        className="flex-1"
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
-                    </div>
+                  <div className="flex items-center gap-2 pt-4 border-t">
                     <Button
-                      variant="default"
+                      variant="outline"
                       size="sm"
-                      onClick={() => handleDownload(template)}
-                      className="ml-2"
+                      onClick={() => handlePreview(template)}
+                      className="flex-1"
                     >
-                      <Download className="h-4 w-4 mr-1" />
-                      Download
+                      <Eye className="h-4 w-4 mr-1" />
+                      Preview
                     </Button>
-                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(template)}
+                      className="flex-1"
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -1025,7 +996,7 @@ export function RevampedPDFTemplateManagement() {
                 <FileText className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No Templates Found</h3>
                 <p className="text-muted-foreground text-center mb-4">
-                  {searchTerm || filterType !== 'all' || filterTeam !== 'all' || filterStatus !== 'all'
+                  {searchTerm || filterType !== 'all'
                     ? 'No templates found matching your search criteria'
                     : 'No PDF templates found in your codebase'}
                 </p>

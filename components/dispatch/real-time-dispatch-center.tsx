@@ -55,7 +55,7 @@ import {
 import { useI18n } from '@/lib/i18n/context';
 import { toast } from '@/components/ui/use-toast';
 import { useSharedDispatchState } from "@/lib/hooks/use-shared-dispatch-state";
-import { cn } from '@/lib/utils/styles';
+import { cn, getDispatchStatusBadgeClasses } from '@/lib/utils/styles';
 import { createClient } from '@/lib/supabase';
 import { format, parseISO } from 'date-fns';
 import { DispatchEntryWithRelations, DispatchStatus } from '@/types/dispatch';
@@ -81,17 +81,6 @@ interface BookingListItemProps {
 }
 
 function BookingListItem({ booking, isSelected, isExpanded, onClick, onToggleExpand }: BookingListItemProps) {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-amber-100 text-amber-800 border-amber-200';
-      case 'assigned': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'confirmed': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'en_route': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
 
   return (
     <div 
@@ -133,7 +122,7 @@ function BookingListItem({ booking, isSelected, isExpanded, onClick, onToggleExp
         </div>
 
         <div className="flex items-center justify-between">
-          <Badge variant="outline" className={cn("text-xs", getStatusColor(booking.status))}>
+          <Badge variant="outline" className={cn("text-xs", getDispatchStatusBadgeClasses(booking.status))}>
             {booking.status.replace('_', ' ')}
           </Badge>
           <div className="flex items-center gap-1">

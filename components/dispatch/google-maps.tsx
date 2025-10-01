@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MapPinIcon, CarIcon, UserIcon, ClockIcon } from 'lucide-react';
-import { cn } from '@/lib/utils/styles';
+import { cn, getDispatchStatusBadgeClasses, getDispatchStatusDotColor } from '@/lib/utils/styles';
 import { format } from 'date-fns';
 import { useTheme } from 'next-themes';
 
@@ -366,7 +366,7 @@ export default function GoogleMaps({
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
             scale: 10,
-            fillColor: getStatusColor(assignment.status),
+            fillColor: getDispatchStatusDotColor(assignment.status),
             fillOpacity: 0.9,
             strokeColor: '#ffffff',
             strokeWeight: 3,
@@ -650,19 +650,6 @@ export default function GoogleMaps({
     map.setOptions({ styles: mapStyles });
   }, [map, theme]);
 
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case 'pending': return '#f59e0b';
-      case 'assigned': return '#3b82f6';
-      case 'confirmed': return '#10b981';
-      case 'en_route': return '#8b5cf6';
-      case 'arrived': return '#6366f1';
-      case 'in_progress': return '#06b6d4';
-      case 'completed': return '#059669';
-      case 'cancelled': return '#ef4444';
-      default: return '#6b7280';
-    }
-  };
 
   const createInfoWindowContent = (assignment: DispatchEntryWithRelations): string => {
     const booking = assignment.booking;
@@ -674,7 +661,7 @@ export default function GoogleMaps({
           <div class="font-semibold text-sm text-gray-900">
             #${booking.wp_id || booking.id?.substring(0, 8)}
           </div>
-          <div class="px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(assignment.status)}">
+          <div class="px-2 py-1 rounded-full text-xs font-medium ${getDispatchStatusBadgeClasses(assignment.status)}">
             ${assignment.status.replace('_', ' ')}
           </div>
         </div>
@@ -714,19 +701,6 @@ export default function GoogleMaps({
     `;
   };
 
-  const getStatusBadgeClass = (status: string): string => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'assigned': return 'bg-blue-100 text-blue-800';
-      case 'confirmed': return 'bg-green-100 text-green-800';
-      case 'en_route': return 'bg-purple-100 text-purple-800';
-      case 'arrived': return 'bg-indigo-100 text-indigo-800';
-      case 'in_progress': return 'bg-cyan-100 text-cyan-800';
-      case 'completed': return 'bg-gray-100 text-gray-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   if (error) {
     return (

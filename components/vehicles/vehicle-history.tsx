@@ -11,6 +11,7 @@ import { format } from "date-fns"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useSearchParams } from "next/navigation"
+import { cn, getBookingStatusBadgeClasses, getInspectionStatusBadgeClasses, getMaintenanceStatusBadgeClasses } from "@/lib/utils/styles"
 
 interface VehicleHistoryProps {
   vehicle: DbVehicle
@@ -43,38 +44,6 @@ function getItemTimestamp(item: HistoryItem): number {
   }
 }
 
-const getStatusColor = (status: string, type: string) => {
-  if (type === 'booking') {
-    switch (status?.toLowerCase()) {
-      case 'confirmed':
-        return 'bg-green-100 text-green-800 border-green-200'
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'completed':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200'
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
-  }
-  
-  switch (status?.toLowerCase()) {
-    case 'completed':
-      return 'bg-green-100 text-green-800 border-green-200'
-    case 'in_progress':
-    case 'in progress':
-      return 'bg-blue-100 text-blue-800 border-blue-200'
-    case 'pending':
-    case 'scheduled':
-      return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-    case 'cancelled':
-    case 'failed':
-      return 'bg-red-100 text-red-800 border-red-200'
-    default:
-      return 'bg-gray-100 text-gray-800 border-gray-200'
-  }
-}
 
 export function VehicleHistory({ vehicle }: VehicleHistoryProps) {
   const { t } = useI18n()
@@ -83,6 +52,20 @@ export function VehicleHistory({ vehicle }: VehicleHistoryProps) {
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Helper function to get the appropriate status classes based on type
+  const getStatusClasses = (status: string, type: string) => {
+    switch (type) {
+      case 'booking':
+        return getBookingStatusBadgeClasses(status)
+      case 'inspection':
+        return getInspectionStatusBadgeClasses(status)
+      case 'maintenance':
+        return getMaintenanceStatusBadgeClasses(status)
+      default:
+        return getBookingStatusBadgeClasses(status)
+    }
+  }
 
   // Get filter from URL params
   useEffect(() => {
@@ -256,7 +239,7 @@ export function VehicleHistory({ vehicle }: VehicleHistoryProps) {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={getStatusColor(item.status, item.record_type)}>
+                    <Badge variant="outline" className={getStatusClasses(item.status, item.record_type)}>
                       {item.status}
                     </Badge>
                     <Button asChild variant="outline" size="sm">

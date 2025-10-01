@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service-client'
 import { generateOptimizedPdfFromHtml } from '@/lib/optimized-html-pdf-generator'
-import { generateQuotationHtml } from '@/lib/html-pdf-generator'
+import { generateQuotationHtml } from '@/lib/quotation-html-generator'
 import { getTeamAddressHtml, getTeamFooterHtml } from '@/lib/team-addresses'
 import { safeEncodeText } from '@/lib/utils/character-encoding'
 

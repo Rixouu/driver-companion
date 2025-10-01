@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserIcon, CarIcon, MapPinIcon, EyeIcon, EditIcon, PhoneIcon, CheckIcon, Zap, UserXIcon, ClockIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils/styles";
+import { cn, getDispatchStatusBadgeClasses } from "@/lib/utils/styles";
 import { useI18n } from "@/lib/i18n/context";
 import { DispatchEntryWithRelations, DispatchStatus } from "@/types/dispatch";
 import { Driver } from "@/types/drivers";
@@ -37,19 +37,6 @@ interface SidePanelDetailsProps {
   onReassign?: () => void;
 }
 
-function getStatusBadgeStyle(status: string): string {
-  const styles: Record<string, string> = {
-    pending: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700",
-    assigned: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700",
-    confirmed: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-700",
-    en_route: "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700",
-    arrived: "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-700",
-    in_progress: "bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-900/20 dark:text-cyan-300 dark:border-cyan-700",
-    completed: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700",
-    cancelled: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700",
-  };
-  return styles[status as DispatchStatus] || "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700";
-}
 
 export default function SidePanelDetails({ entry, booking: bookingProp, onAssign, onUnassign, onReassign }: SidePanelDetailsProps) {
   const { t } = useI18n();
@@ -76,7 +63,7 @@ export default function SidePanelDetails({ entry, booking: bookingProp, onAssign
           <h2 className="text-lg font-semibold text-foreground">
             #{booking.wp_id || booking.id.substring(0, 8)}
           </h2>
-          <Badge className={cn("text-sm", getStatusBadgeStyle(status))}>{status.replace("_", " ")}</Badge>
+          <Badge className={cn("text-sm", getDispatchStatusBadgeClasses(status))}>{status.replace("_", " ")}</Badge>
         </div>
         {startISO && (
           <p className="text-sm text-muted-foreground">

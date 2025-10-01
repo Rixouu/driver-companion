@@ -18,7 +18,7 @@
 - **Features**: PDF attachment, multi-currency support, package/promotion handling
 - **Status**: ✅ **COMPLETE** - Well structured with comprehensive variables
 
-### 2. **Quotation Approved** (`/api/quotations/approve` & `/api/quotations/approve-optimized`)
+### 2. **Quotation Approved** (`/api/quotations/approve`)
 - **Purpose**: Notify customer when quotation is approved
 - **Languages**: English, Japanese
 - **Key Variables**:
@@ -28,7 +28,7 @@
 - **Features**: Team-specific branding, approval notes
 - **Status**: ✅ **COMPLETE** - Good structure
 
-### 3. **Quotation Rejected** (`/api/quotations/reject` & `/api/quotations/reject-optimized`)
+### 3. **Quotation Rejected** (`/api/quotations/reject`)
 - **Purpose**: Notify customer when quotation is rejected
 - **Languages**: English, Japanese
 - **Key Variables**:

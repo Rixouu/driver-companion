@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { DispatchEntryWithRelations, DispatchStatus } from "@/types/dispatch";
 import { CalendarIcon, ClockIcon, UserIcon, CarIcon, MapPinIcon, ChevronLeftIcon, ChevronRightIcon, EyeIcon } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
-import { cn } from "@/lib/utils/styles";
+import { cn, getDispatchStatusBadgeClasses, getDispatchStatusBorderColor } from "@/lib/utils/styles";
 import { useRouter } from "next/navigation";
 import SidePanelDetails from "./side-panel-details";
 
@@ -18,35 +18,6 @@ interface DispatchTimetableProps {
   onStatusChange?: (entryId: string, newStatus: DispatchStatus) => void;
 }
 
-function getStatusColor(status: DispatchStatus): string {
-  const colors: Record<DispatchStatus, string> = {
-    pending: "border-l-amber-500 dark:border-l-amber-400",
-    assigned: "border-l-blue-500 dark:border-l-blue-400", 
-    confirmed: "border-l-emerald-500 dark:border-l-emerald-400",
-    en_route: "border-l-purple-500 dark:border-l-purple-400",
-    arrived: "border-l-indigo-500 dark:border-l-indigo-400",
-    in_progress: "border-l-cyan-500 dark:border-l-cyan-400",
-    completed: "border-l-green-500 dark:border-l-green-400",
-    cancelled: "border-l-red-500 dark:border-l-red-400"
-  };
-  
-  return colors[status] || "border-l-gray-400 dark:border-l-gray-500";
-}
-
-function getStatusBadgeStyle(status: DispatchStatus): string {
-  const styles: Record<DispatchStatus, string> = {
-    pending: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700",
-    assigned: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700", 
-    confirmed: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-700",
-    en_route: "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700",
-    arrived: "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-700",
-    in_progress: "bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-900/20 dark:text-cyan-300 dark:border-cyan-700",
-    completed: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700",
-    cancelled: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700"
-  };
-  
-  return styles[status] || "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700";
-}
 
 function TimetableCard({ 
   entry, 
@@ -122,7 +93,7 @@ function TimetableCard({
       className={cn(
         "absolute left-1 right-1 rounded-md cursor-pointer transition-all duration-200 hover:shadow-md",
         "border-l-4 h-12",
-        getStatusColor(entry.status),
+        getDispatchStatusBorderColor(entry.status),
         "bg-card hover:bg-muted/50 border border-border/50"
       )}
       style={{ top: `${timePosition}px` }}

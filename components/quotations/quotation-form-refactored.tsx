@@ -682,7 +682,8 @@ export default function QuotationFormRefactored({
           result = await updateQuotation(initialData.id, input);
           advance('Quotation record saved');
           if (sendToCustomer && result) {
-            // Set up email progress modal with unified approach
+            // Open progress modal immediately for better UX
+            setProgressOpen(true);
             setProgressVariant('email');
             setProgressTitle('Sending Quotation');
             setProgressSteps(progressConfigs.sendEmail.steps);
@@ -736,6 +737,12 @@ export default function QuotationFormRefactored({
           result = await createQuotation(input);
           advance('Saving quotation');
           if (sendToCustomer && result?.id) {
+            // Open progress modal immediately for better UX
+            setProgressOpen(true);
+            setProgressVariant('email');
+            setProgressTitle('Sending Quotation');
+            setProgressSteps(progressConfigs.sendEmail.steps);
+            
             // Send quotation with BCC settings
             const formData = new FormData();
             formData.append('email', form.getValues('customer_email') || result.customer_email || '');
@@ -743,11 +750,6 @@ export default function QuotationFormRefactored({
             formData.append('language', sendLanguage);
             formData.append('include_details', 'true');
             formData.append('bcc_emails', bccEmails);
-            
-            // Set up email progress modal with unified approach
-            setProgressVariant('email');
-            setProgressTitle('Sending Quotation');
-            setProgressSteps(progressConfigs.sendEmail.steps);
             
             // Start API call first
             const emailResponsePromise = fetch('/api/quotations/send-email-unified', {

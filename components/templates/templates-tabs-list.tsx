@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useI18n } from "@/lib/i18n/context"
-import { ClipboardCheck, Mail } from "lucide-react"
+import { ClipboardCheck, Mail, FileText } from "lucide-react"
 
 interface TemplatesTabsListProps {
   value: string
@@ -29,6 +29,7 @@ export function TemplatesTabsList({ value, onValueChange }: TemplatesTabsListPro
   const tabs = [
     { value: "inspections", label: t('templates.tabs.inspections') || "Inspection Templates", icon: ClipboardCheck },
     { value: "emails", label: t('templates.tabs.emails') || "Email Templates", icon: Mail },
+    { value: "pdfs", label: t('templates.tabs.pdfs') || "PDF Templates", icon: FileText },
   ]
 
   const currentTab = tabs.find(tab => tab.value === value)

@@ -428,48 +428,93 @@ export async function POST(request: NextRequest) {
 
     console.log('🔄 [UNIFIED-EMAIL-API] Using direct template service')
     
-    // Run PDF generation and template rendering in parallel
+    // Get template configuration for PDF generation
+    const { data: templateData } = await supabase
+      .from('pdf_templates' as any)
+      .select('template_data, styling')
+      .eq('type', 'quotation')
+      .eq('is_active', true)
+      .single()
+
+    const templateConfig = (templateData as any)?.template_data || {
+      showTeamInfo: true,
+      showLanguageToggle: true,
+      statusConfigs: {
+        send: { showSignature: false, showStatusBadge: true, statusBadgeColor: '#3B82F6', statusBadgeName: 'SENT' },
+        pending: { showSignature: false, showStatusBadge: true, statusBadgeColor: '#F59E0B', statusBadgeName: 'PENDING' },
+        approved: { showSignature: true, showStatusBadge: true, statusBadgeColor: '#10B981', statusBadgeName: 'APPROVED' },
+        rejected: { showSignature: true, showStatusBadge: true, statusBadgeColor: '#EF4444', statusBadgeName: 'REJECTED' },
+        paid: { showSignature: true, showStatusBadge: true, statusBadgeColor: '#10B981', statusBadgeName: 'PAID' },
+        converted: { showSignature: true, showStatusBadge: true, statusBadgeColor: '#8B5CF6', statusBadgeName: 'CONVERTED' },
+        unpaid: { showSignature: false, showStatusBadge: true, statusBadgeColor: '#EF4444', statusBadgeName: 'UNPAID' }
+      }
+    }
+
+    // Run PDF generation and template rendering in parallel with timeout
     console.log('🔄 [UNIFIED-EMAIL-API] Generating PDF and rendering template in parallel')
+    
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Operation timeout after 30 seconds')), 30000)
+    )
+    
     const [pdfResult, templateResult] = await Promise.allSettled([
-      // Generate quotation PDF attachment
-      (async () => {
-        try {
-          const pdfBuffer = await generateOptimizedQuotationPDF(
-            quotation,
-            language,
-            selectedPackage,
-            selectedPromotion
-          )
-          
-          return {
-            filename: `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || quotation.id.slice(-6).toUpperCase()}.pdf`,
-            content: pdfBuffer,
-            contentType: 'application/pdf'
+      Promise.race([
+        // Generate quotation PDF attachment
+        (async () => {
+          try {
+            const pdfBuffer = await generateOptimizedQuotationPDF(
+              quotation,
+              language,
+              selectedPackage,
+              selectedPromotion,
+              templateConfig.showTeamInfo,
+              templateConfig.statusConfigs
+            )
+            
+            return {
+              filename: `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || quotation.id.slice(-6).toUpperCase()}.pdf`,
+              content: pdfBuffer,
+              contentType: 'application/pdf'
+            }
+          } catch (error) {
+            console.warn('⚠️ [UNIFIED-EMAIL-API] Could not generate PDF attachment:', error)
+            return null
           }
-        } catch (error) {
-          console.warn('⚠️ [UNIFIED-EMAIL-API] Could not generate PDF attachment:', error)
-          return null
-        }
-      })(),
+        })(),
+        timeoutPromise
+      ]),
       
-      // Render the template using emailTemplateService directly
-      emailTemplateService.renderTemplate(
-        'Quotation Sent',
-        templateVariables,
-        'japan',
-        language as 'en' | 'ja'
-      )
+      Promise.race([
+        // Render the template using emailTemplateService directly
+        emailTemplateService.renderTemplate(
+          'Quotation Sent',
+          templateVariables,
+          'japan',
+          language as 'en' | 'ja'
+        ),
+        timeoutPromise
+      ])
     ])
 
     // Extract results
     const pdfAttachment = pdfResult.status === 'fulfilled' ? pdfResult.value : null
     const rendered = templateResult.status === 'fulfilled' ? templateResult.value : null
 
-    if (pdfAttachment) {
-      console.log('✅ [UNIFIED-EMAIL-API] PDF attachment generated:', pdfAttachment.filename)
+    if (pdfResult.status === 'rejected') {
+      console.error('❌ [UNIFIED-EMAIL-API] PDF generation failed:', pdfResult.reason)
     }
 
-    if (!rendered) {
+    if (templateResult.status === 'rejected') {
+      console.error('❌ [UNIFIED-EMAIL-API] Template rendering failed:', templateResult.reason)
+    }
+
+    if (pdfAttachment && typeof pdfAttachment === 'object' && 'filename' in pdfAttachment) {
+      console.log('✅ [UNIFIED-EMAIL-API] PDF attachment generated:', pdfAttachment.filename)
+    } else {
+      console.warn('⚠️ [UNIFIED-EMAIL-API] No PDF attachment generated')
+    }
+
+    if (!rendered || typeof rendered !== 'object' || !('subject' in rendered) || !('html' in rendered)) {
       console.error('❌ [UNIFIED-EMAIL-API] Template rendering failed')
       return NextResponse.json({ error: 'Failed to render template' }, { status: 500 })
     }
@@ -478,14 +523,18 @@ export async function POST(request: NextRequest) {
 
     // Send email using Resend directly  
     const resend = new Resend(process.env.RESEND_API_KEY)
-    const emailData = {
+    const emailData: any = {
       from: 'Driver Japan <booking@japandriver.com>',
       to: email,
       bcc: bccEmails.split(',').map(e => e.trim()).filter(e => e),
       subject: rendered.subject,
       html: rendered.html,
-      text: rendered.text,
-      ...(pdfAttachment && { attachments: [pdfAttachment] })
+      text: (rendered as any).text || ''
+    }
+
+    // Add PDF attachment if available
+    if (pdfAttachment && typeof pdfAttachment === 'object' && 'filename' in pdfAttachment) {
+      emailData.attachments = [pdfAttachment]
     }
 
     console.log('🔄 [UNIFIED-EMAIL-API] Sending email')

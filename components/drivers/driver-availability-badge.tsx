@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { format } from "date-fns"
 import { Check, X, Info, Calendar } from "lucide-react"
 import { cn } from "@/lib/utils/styles"
+import { getDriverStatusBadgeClasses } from "@/lib/utils/styles"
 import { Badge } from "@/components/ui/badge"
 import {
   Tooltip,
@@ -101,40 +102,42 @@ export function DriverAvailabilityBadge({
 }
 
 function getBadgeContent(status: DriverAvailabilityStatus | null) {
+  const baseClasses = getDriverStatusBadgeClasses(status || 'unknown');
+  
   switch (status) {
     case "available":
       return {
         label: "Available",
         icon: <Check className="h-3 w-3" />,
-        className: "bg-green-100 text-green-800 hover:bg-green-200 border-green-200",
+        className: `${baseClasses} hover:opacity-80`,
         tooltip: "This driver is available for assignments"
       }
     case "unavailable":
       return {
         label: "Unavailable",
         icon: <X className="h-3 w-3" />,
-        className: "bg-red-100 text-red-800 hover:bg-red-200 border-red-200",
+        className: `${baseClasses} hover:opacity-80`,
         tooltip: "This driver is currently unavailable"
       }
     case "leave":
       return {
         label: "On Leave",
         icon: <Calendar className="h-3 w-3" />,
-        className: "bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200",
+        className: `${baseClasses} hover:opacity-80`,
         tooltip: "This driver is on leave"
       }
     case "training":
       return {
         label: "Training",
         icon: <Info className="h-3 w-3" />,
-        className: "bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200",
+        className: `${baseClasses} hover:opacity-80`,
         tooltip: "This driver is in training"
       }
     default:
       return {
         label: "Unknown",
         icon: <Info className="h-3 w-3" />,
-        className: "bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200",
+        className: `${baseClasses} hover:opacity-80`,
         tooltip: "Driver availability status is unknown"
       }
   }

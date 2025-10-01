@@ -328,7 +328,7 @@ export async function generateOptimizedPdfFromHtml(
     // Try fallback to regular generator
     try {
       console.log('🔄 Attempting fallback to regular PDF generator...');
-      const { generatePdfFromHtml } = await import('./html-pdf-generator');
+      const { generatePdfFromHtml } = await import('./quotation-html-generator');
       const fallbackBuffer = await generatePdfFromHtml(htmlContent, options);
       console.log('✅ Fallback PDF generation successful');
       return fallbackBuffer;
@@ -342,7 +342,7 @@ export async function generateOptimizedPdfFromHtml(
 /**
  * Re-export the existing generateQuotationHtml function for compatibility
  */
-export { generateQuotationHtml } from './html-pdf-generator';
+export { generateQuotationHtml } from './quotation-html-generator';
 
 /**
  * Generate quotation PDF with optimizations
@@ -351,19 +351,23 @@ export async function generateOptimizedQuotationPDF(
   quotation: any,
   language: string,
   selectedPackage: any,
-  selectedPromotion: any
+  selectedPromotion: any,
+  showTeamInfo: boolean = true,
+  statusConfigs: { [status: string]: { showSignature: boolean; showStatusBadge: boolean; statusBadgeColor: string; statusBadgeName: string } } = {}
 ): Promise<Buffer> {
   console.log(`🔄 Generating optimized PDF for quote: ${quotation?.id}, lang: ${language}`);
   
   try {
     // Import the HTML generator
-    const { generateQuotationHtml } = await import('./html-pdf-generator');
+    const { generateQuotationHtml } = await import('./quotation-html-generator');
     
     const htmlContent = generateQuotationHtml(
       quotation, 
       language as 'en' | 'ja', 
       selectedPackage, 
-      selectedPromotion
+      selectedPromotion,
+      showTeamInfo,
+      statusConfigs
     );
     
     return await generateOptimizedPdfFromHtml(

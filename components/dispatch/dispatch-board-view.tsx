@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { DispatchEntryWithRelations, DispatchStatus } from "@/types/dispatch";
 import { CalendarIcon, ClockIcon, UserIcon, CarIcon, MapPinIcon, PhoneIcon, MoreVerticalIcon, EditIcon, EyeIcon, UserXIcon, Zap, CheckIcon, GripVerticalIcon, EyeOffIcon, SettingsIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
-import { cn } from "@/lib/utils/styles";
+import { cn, getDispatchStatusDotColor, getDispatchStatusBadgeClasses, getDispatchStatusBorderColor } from "@/lib/utils/styles";
 import { Driver } from "@/types/drivers";
 import { Vehicle } from "@/types/vehicles";
 import { useRouter } from "next/navigation";
@@ -63,35 +63,6 @@ interface ColumnProps {
   onUnassign?: (dispatchId: string) => void;
 }
 
-function getStatusColor(status: DispatchStatus): string {
-  const colors: Record<DispatchStatus, string> = {
-    pending: "border-l-amber-500 dark:border-l-amber-400",
-    assigned: "border-l-blue-500 dark:border-l-blue-400", 
-    confirmed: "border-l-emerald-500 dark:border-l-emerald-400",
-    en_route: "border-l-purple-500 dark:border-l-purple-400",
-    arrived: "border-l-indigo-500 dark:border-l-indigo-400",
-    in_progress: "border-l-cyan-500 dark:border-l-cyan-400",
-    completed: "border-l-green-500 dark:border-l-green-400",
-    cancelled: "border-l-red-500 dark:border-l-red-400"
-  };
-  
-  return colors[status] || "border-l-gray-400 dark:border-l-gray-500";
-}
-
-function getStatusBadgeStyle(status: DispatchStatus): string {
-  const styles: Record<DispatchStatus, string> = {
-    pending: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700",
-    assigned: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700", 
-    confirmed: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-700",
-    en_route: "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700",
-    arrived: "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-700",
-    in_progress: "bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-900/20 dark:text-cyan-300 dark:border-cyan-700",
-    completed: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700",
-    cancelled: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700"
-  };
-  
-  return styles[status] || "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700";
-}
 
 function DispatchCard({ 
   entry, 
@@ -176,7 +147,7 @@ function DispatchCard({
           {...provided.dragHandleProps}
           className={cn(
             "cursor-pointer transition-all duration-200 mb-2 border-l-4 hover:shadow-lg bg-card hover:bg-muted/50 border border-border/50 rounded-lg group",
-            getStatusColor(entry.status),
+            getDispatchStatusBorderColor(entry.status),
             snapshot.isDragging && "shadow-xl scale-105 rotate-1 z-50"
           )}
           onClick={onClick}
@@ -196,7 +167,7 @@ function DispatchCard({
 
             {/* Status badge */}
             <div className="mb-2">
-              <Badge className={cn("text-xs font-medium px-2 py-0.5", getStatusBadgeStyle(entry.status))}>
+              <Badge className={cn("text-xs font-medium px-2 py-0.5", getDispatchStatusBadgeClasses(entry.status))}>
                 {entry.status.replace('_', ' ')}
               </Badge>
             </div>
@@ -240,7 +211,13 @@ function Column({ title, status, entries, count, emptyMessage, onCardClick, onQu
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-4 sticky top-0 bg-background z-10 pb-2 border-b border-border/50">
-        <h3 className="font-semibold text-sm text-foreground">{title}</h3>
+        <div className="flex items-center gap-2">
+          <div 
+            className="w-3 h-3 rounded-full" 
+            style={{ backgroundColor: getDispatchStatusDotColor(status) }}
+          />
+          <h3 className="font-semibold text-sm text-foreground">{title}</h3>
+        </div>
         <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">
           {count}
         </Badge>
@@ -312,6 +289,10 @@ function DraggableColumn({
           >
             <div className="flex items-center gap-2">
               <GripVerticalIcon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: getDispatchStatusDotColor(status) }}
+              />
               <h3 className="font-semibold text-sm text-foreground">{title}</h3>
             </div>
             <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">

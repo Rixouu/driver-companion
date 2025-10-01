@@ -30,8 +30,10 @@ export function getTeamAddress(team: 'japan' | 'thailand'): TeamAddress {
   return TEAM_ADDRESSES[team]
 }
 
-export function getTeamAddressHtml(team: 'japan' | 'thailand', isJapanese: boolean = false): string {
-  const address = TEAM_ADDRESSES[team]
+export function getTeamAddressHtml(team: 'japan' | 'thailand' | 'both', isJapanese: boolean = false): string {
+  // Handle 'both' by defaulting to 'japan'
+  const teamKey = team === 'both' ? 'japan' : team
+  const address = TEAM_ADDRESSES[teamKey]
   
   if (isJapanese) {
     return `
@@ -48,8 +50,10 @@ export function getTeamAddressHtml(team: 'japan' | 'thailand', isJapanese: boole
   `
 }
 
-export function getTeamFooterHtml(team: 'japan' | 'thailand', isJapanese: boolean = false): string {
-  const address = TEAM_ADDRESSES[team]
+export function getTeamFooterHtml(team: 'japan' | 'thailand' | 'both', isJapanese: boolean = false): string {
+  // Handle 'both' by defaulting to 'japan'
+  const teamKey = team === 'both' ? 'japan' : team
+  const address = TEAM_ADDRESSES[teamKey]
   
   if (isJapanese) {
     return `

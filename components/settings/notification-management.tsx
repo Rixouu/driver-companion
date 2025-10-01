@@ -215,7 +215,7 @@ export function NotificationManagement() {
           testData = { booking_id: 'BOO-007' }
           break
         case 'quotation':
-          testEndpoint = '/api/quotations/send-email'
+          testEndpoint = '/api/quotations/send-email-unified'
           testData = { quotation_id: 'QUO-001', email: 'test@example.com' }
           break
         default:

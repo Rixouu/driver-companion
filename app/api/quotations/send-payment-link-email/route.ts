@@ -5,7 +5,7 @@ import { PricingPackage, PricingPromotion } from '@/types/quotations'
 import { emailTemplateService } from '@/lib/email/template-service'
 import { Resend } from 'resend'
 import { generateOptimizedPdfFromHtml } from '@/lib/optimized-html-pdf-generator'
-import { generateInvoiceHtml } from '@/app/api/quotations/generate-invoice-pdf/route'
+import { generateInvoiceHtml } from '@/lib/invoice-html-generator'
 
 // =============================================================================
 // MIGRATED INVOICE EMAIL API - Now uses unified notification templates
@@ -406,57 +406,75 @@ export async function POST(request: NextRequest) {
       pickup_time: item.pickup_time || quotation.pickup_time
     }));
     
-    // Generate PDF with proper status labels
+    // Use provided PDF file or generate one if not provided
     let pdfAttachment = null
     try {
-      console.log('🔄 [MIGRATED-INVOICE-API] Generating invoice PDF with status labels')
-      console.log('🔍 [MIGRATED-INVOICE-API] Quotation status:', quotation.status)
-      console.log('🔍 [MIGRATED-INVOICE-API] Quotation ID:', quotationId)
-      
-      // Generate PDF using the same logic as approved quotations
-      // Auto-detect environment from request headers for dynamic base URL
-      const host = request.headers.get('host') || '';
-      let baseUrl;
-      if (host.includes('localhost') || host.includes('127.0.0.1') || host.includes('3000')) {
-        baseUrl = 'http://localhost:3000';
-      } else if (host.includes('my.japandriver.com')) {
-        baseUrl = 'https://my.japandriver.com';
-      } else {
-        baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://my.japandriver.com';
-      }
-      
-      console.log('🔍 [MIGRATED-INVOICE-API] Using base URL:', baseUrl)
-      
-      const pdfResponse = await fetch(`${baseUrl}/api/quotations/generate-invoice-pdf`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` // Add auth header
-        },
-        body: JSON.stringify({
-          quotation_id: quotationId,
-          language: language,
-          status_label: quotation.status === 'paid' ? 'PAID' : 'PENDING' // Add status label
-        })
-      })
-      
-      console.log('🔍 [MIGRATED-INVOICE-API] PDF response status:', pdfResponse.status)
-      
-      if (pdfResponse.ok) {
-        const pdfBuffer = await pdfResponse.arrayBuffer()
+      if (invoicePdf && invoicePdf.size > 0) {
+        // Use the provided PDF file
+        console.log('✅ [MIGRATED-INVOICE-API] Using provided PDF file:', invoicePdf.name, invoicePdf.size, 'bytes')
+        const pdfBuffer = await invoicePdf.arrayBuffer()
         pdfAttachment = {
-          filename: `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || '000000'}.pdf`,
+          filename: invoicePdf.name || `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || '000000'}.pdf`,
           content: Buffer.from(pdfBuffer),
           contentType: 'application/pdf'
         }
-        console.log('✅ [MIGRATED-INVOICE-API] PDF generated successfully:', pdfBuffer.byteLength, 'bytes')
+        console.log('✅ [MIGRATED-INVOICE-API] PDF file processed successfully')
       } else {
-        const errorText = await pdfResponse.text()
-        console.error('❌ [MIGRATED-INVOICE-API] PDF generation failed:', errorText)
-        console.error('❌ [MIGRATED-INVOICE-API] Response status:', pdfResponse.status)
+        // Generate PDF if no file provided
+        console.log('🔄 [MIGRATED-INVOICE-API] No PDF file provided, generating invoice PDF with status labels')
+        console.log('🔍 [MIGRATED-INVOICE-API] Quotation status:', quotation.status)
+        console.log('🔍 [MIGRATED-INVOICE-API] Quotation ID:', quotationId)
+        
+        // Generate PDF using the same logic as approved quotations
+        // Auto-detect environment from request headers for dynamic base URL
+        const host = request.headers.get('host') || '';
+        let baseUrl;
+        if (host.includes('localhost') || host.includes('127.0.0.1') || host.includes('3000')) {
+          baseUrl = 'http://localhost:3000';
+        } else if (host.includes('my.japandriver.com')) {
+          baseUrl = 'https://my.japandriver.com';
+        } else {
+          baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://my.japandriver.com';
+        }
+        
+        console.log('🔍 [MIGRATED-INVOICE-API] Using base URL:', baseUrl)
+        
+        const pdfResponse = await fetch(`${baseUrl}/api/quotations/generate-invoice-pdf`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` // Add auth header
+          },
+          body: JSON.stringify({
+            quotation_id: quotationId,
+            language: language,
+            status_label: quotation.status === 'paid' ? 'PAID' : 'UNPAID' // Payment link should show UNPAID status
+          })
+        })
+        
+        console.log('🔍 [MIGRATED-INVOICE-API] PDF response status:', pdfResponse.status)
+        
+        if (pdfResponse.ok) {
+          const pdfBuffer = await pdfResponse.arrayBuffer()
+          pdfAttachment = {
+            filename: `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || '000000'}.pdf`,
+            content: Buffer.from(pdfBuffer),
+            contentType: 'application/pdf'
+          }
+          console.log('✅ [MIGRATED-INVOICE-API] PDF generated successfully:', pdfBuffer.byteLength, 'bytes')
+        } else {
+          const errorText = await pdfResponse.text()
+          console.error('❌ [MIGRATED-INVOICE-API] PDF generation failed:', errorText)
+          console.error('❌ [MIGRATED-INVOICE-API] Response status:', pdfResponse.status)
+          console.error('❌ [MIGRATED-INVOICE-API] Request body:', JSON.stringify({
+            quotation_id: quotationId,
+            language: language,
+            status_label: quotation.status === 'paid' ? 'PAID' : 'PENDING'
+          }))
+        }
       }
     } catch (error) {
-      console.error('❌ [MIGRATED-INVOICE-API] PDF generation error:', error)
+      console.error('❌ [MIGRATED-INVOICE-API] PDF processing error:', error)
     }
     
     // Render the template using emailTemplateService directly - Use Invoice Email template

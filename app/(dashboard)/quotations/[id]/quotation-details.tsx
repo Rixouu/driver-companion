@@ -582,7 +582,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
         totalDuration: 1000
       });
       
-      const response = await fetch('/api/quotations/send-magic-link-email', {
+      const response = await fetch('/api/quotations/send-email-unified', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -784,9 +784,9 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               // Check if payment is completed first
               if ((quotation as any).payment_completed_at) {
                 if ((quotation as any).booking_created_at) {
-                  return null; // Already converted to booking
+                  return 'CONVERTED'; // Special case for converted status
                 }
-                return 'Convert to Booking';
+                return 'Final step: Convert to Booking';
               }
               
               switch (quotation.status) {
@@ -797,14 +797,14 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     if ((quotation as any).invoice_generated_at) {
                       return 'Send Payment Link';
                     }
-                    return 'Send Invoice';
+                    return 'Confirmed Payment';
                   }
                   return t('quotations.workflow.steps.waitingForApproval');
                 case 'approved':
                   if ((quotation as any).invoice_generated_at) {
                     return 'Send Payment Link';
                   }
-                  return 'Send Invoice';
+                  return 'Confirmed Payment';
                 case 'paid':
                   return 'Convert to Booking';
                 case 'rejected':
@@ -853,6 +853,30 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     <div className="w-2 h-2 bg-red-600 rounded-full"></div>
                     <span className="text-sm text-red-700 dark:text-red-300 font-medium">
                       Quotation Rejected
+                    </span>
+                  </div>
+                );
+              }
+              
+              // Green success banner for converted to booking
+              if (nextStep === 'CONVERTED' || quotation.status === 'converted' || (quotation as any).booking_created_at) {
+                return (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                    <span className="text-sm text-green-700 dark:text-green-300 font-medium">
+                      Successfully converted to booking
+                    </span>
+                  </div>
+                );
+              }
+              
+              // Special handling for "Final step" to avoid double prefix
+              if (nextStep === 'Final step: Convert to Booking') {
+                return (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                    <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                      {nextStep}
                     </span>
                   </div>
                 );
@@ -1114,7 +1138,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     const formattedId = `INV-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}`;
                     formData.append('invoice_pdf', pdfBlob, `${formattedId}.pdf`);
                     
-                    const emailResponse = await fetch('/api/quotations/send-invoice-email', {
+                    const emailResponse = await fetch('/api/quotations/send-payment-link-email', {
                       method: 'POST',
                       body: formData,
                     });
@@ -1497,7 +1521,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     // Start progress simulation and API call in parallel
                     const progressPromise = startProgress(progressConfigs.approval);
                     
-                    const apiCall = fetch('/api/quotations/approve-optimized', {
+                    const apiCall = fetch('/api/quotations/approve', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -1548,7 +1572,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     // Start progress simulation and API call in parallel
                     const progressPromise = startProgress(progressConfigs.rejection);
                     
-                    const apiCall = fetch('/api/quotations/reject-optimized', {
+                    const apiCall = fetch('/api/quotations/reject', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',

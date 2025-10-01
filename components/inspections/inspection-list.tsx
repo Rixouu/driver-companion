@@ -12,6 +12,7 @@ import { useI18n } from "@/lib/i18n/context"
 import type { OptimizedInspection, DbVehicle } from "@/types"
 import { format, parseISO, isValid, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, addWeeks, subWeeks, startOfDay, endOfDay } from "date-fns"
 import { cn } from "@/lib/utils"
+import { getInspectionStatusBadgeClasses, getInspectionStatusDotColor } from "@/lib/utils/styles"
 import { useDebounce } from "@/lib/hooks/use-debounce"
 import {
   Select,
@@ -717,40 +718,6 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
     }
   }
 
-  // Get status badge classes
-  const getStatusBadgeClasses = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'completed':
-        return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700';
-      case 'in_progress':
-        return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700';
-      case 'failed':
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700';
-      case 'scheduled':
-        return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700';
-    }
-  }
-
-  // Get status color
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-500"
-      case "in_progress":
-        return "bg-yellow-500"
-      case "cancelled":
-        return "bg-red-500"
-      case "failed":
-        return "bg-red-500"
-      case "scheduled":
-        return "bg-blue-500"
-      default:
-        return "bg-blue-500"
-    }
-  }
 
   // Handle day click
   const handleDayClick = (date: Date) => {
@@ -812,7 +779,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
                 key={index}
                 className={cn(
                   "w-2 h-2 rounded-full",
-                  getStatusColor(inspection.status)
+                  getInspectionStatusDotColor(inspection.status)
                 )}
                 title={`${inspection.vehicle?.name || 'Unnamed'} - ${inspection.status}`}
               />
@@ -873,7 +840,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
                       </p>
                     )}
                   </div>
-                  <Badge variant="outline" className={cn("text-xs", getStatusBadgeClasses(inspection.status))}>
+                  <Badge variant="outline" className={cn("text-xs", getInspectionStatusBadgeClasses(inspection.status))}>
                     {inspection.status ? (
                       (() => {
                         const statusKey = `inspections.status.${inspection.status}`;
@@ -947,7 +914,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
                       {format(parseISO(inspection.date), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={cn("text-xs", getStatusBadgeClasses(inspection.status))}>
+                      <Badge variant="outline" className={cn("text-xs", getInspectionStatusBadgeClasses(inspection.status))}>
                         {inspection.status ? (
                           (() => {
                             const statusKey = `inspections.status.${inspection.status}`;
@@ -1295,7 +1262,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
                               </h4>
                               <Badge 
                                 variant="outline" 
-                                className={cn("text-xs flex-shrink-0", getStatusBadgeClasses(inspection.status))}
+                                className={cn("text-xs flex-shrink-0", getInspectionStatusBadgeClasses(inspection.status))}
                               >
                                 {inspection.status ? (
                                   // Use a safer approach to access translation keys

@@ -363,7 +363,7 @@ export default function QuotationList({
   const getStatusBadge = (status: QuotationStatus, quotation: Quotation) => {
     // Expired handling (red)
     const expiredBadge = (
-      <Badge variant="outline" className="text-red-600 border-red-300 bg-red-50 dark:bg-red-900/20">
+      <Badge variant="outline" className={getQuotationStatusBadgeClasses('expired')}>
         {t('quotations.status.expired')}
       </Badge>
     );
@@ -373,52 +373,11 @@ export default function QuotationList({
     }
 
     // Otherwise, show the actual status
-    switch (status) {
-      case 'expired':
-        return expiredBadge;
-      case 'draft':
-        return (
-          <Badge variant="outline" className="text-gray-500 border-gray-200 bg-gray-50 dark:bg-gray-900/20">
-            {t('quotations.status.draft')}
-          </Badge>
-        );
-      case 'sent':
-        return (
-          <Badge variant="outline" className="text-blue-500 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
-            {t('quotations.status.sent')}
-          </Badge>
-        );
-      case 'approved':
-        return (
-          <Badge variant="outline" className="text-green-500 border-green-200 bg-green-50 dark:bg-green-900/20">
-            {t('quotations.status.approved')}
-          </Badge>
-        );
-      case 'rejected':
-        return (
-          <Badge variant="outline" className="text-red-500 border-red-200 bg-red-50 dark:bg-red-900/20">
-            {t('quotations.status.rejected')}
-          </Badge>
-        );
-      case 'converted':
-        return (
-          <Badge variant="outline" className="text-purple-500 border-purple-200 bg-purple-50 dark:bg-purple-900/20">
-            {t('quotations.status.converted')}
-          </Badge>
-        );
-      case 'paid':
-        return (
-          <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 dark:bg-green-900/20">
-            {t('quotations.status.paid')}
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant="outline" className="text-gray-500">
-            {status}
-          </Badge>
-        );
-    }
+    return (
+      <Badge variant="outline" className={getQuotationStatusBadgeClasses(status)}>
+        {t(`quotations.status.${status}`)}
+      </Badge>
+    );
   };
 
   // Handle clicking on a row

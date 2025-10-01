@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { DbVehicle, DbInspection, DbMaintenanceTask } from "@/types"
 import { Booking } from "@/types/bookings"
 import { getQuotationUrl } from '@/lib/utils/quotation-url'
+import { cn, getInspectionStatusBadgeClasses, getMaintenanceStatusBadgeClasses } from "@/lib/utils/styles"
 
 interface ActivityFeedProps {
   recentInspections: DbInspection[]
@@ -106,21 +107,6 @@ function getMaintenanceStatusBadge(status: string, t: (key: string, options?: an
   }
 }
 
-function getInspectionStatusBadge(status: string, t: (key: string, options?: any) => string) {
-  switch (status) {
-    case 'completed':
-      return <Badge variant="outline" className="text-green-800 border-green-400 bg-green-50 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">{t(`inspections.status.${status}`)}</Badge>;
-    case 'inProgress':
-      return <Badge variant="outline" className="text-yellow-800 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700">{t(`inspections.status.inProgress`)}</Badge>;
-    case 'failed':
-      return <Badge variant="outline" className="text-red-800 border-red-400 bg-red-50 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700">{t(`inspections.status.${status}`)}</Badge>;
-    case 'scheduled':
-    case 'pending':
-      return <Badge variant="outline" className="text-amber-800 border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700">{t(`inspections.status.${status}`)}</Badge>;
-    default:
-      return <Badge variant="outline" className="text-gray-800 border-gray-400 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">{t(`inspections.status.${status}`)}</Badge>;
-  }
-}
 
 function EmptyState({ icon: Icon, message }: { icon: any; message: string }) {
   return (
@@ -202,7 +188,9 @@ function InspectionCard({ inspection }: { inspection: DbInspection }) {
               <span className="text-xs font-medium text-green-600 dark:text-green-400">
                 INSPECTION
               </span>
-              {getInspectionStatusBadge(inspection.status, t)}
+              <Badge variant="outline" className={getInspectionStatusBadgeClasses(inspection.status)}>
+                {t(`inspections.status.${inspection.status}`)}
+              </Badge>
             </div>
             <p className="text-sm font-medium text-foreground">
               {getFullTypeName(inspection.type)}

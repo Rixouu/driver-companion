@@ -9,6 +9,7 @@ import { FileText, ShoppingCart, Eye, Clock, MapPin, User, Car, Calendar, Chevro
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
 import { cn } from '@/lib/utils'
+import { getQuotationStatusBadgeClasses, getBookingStatusBadgeClasses } from '@/lib/utils/styles'
 import { EventsFilter, EventsFilterOptions } from './events-filter'
 import { getQuotationUrl } from '@/lib/utils/quotation-url'
 
@@ -214,34 +215,11 @@ export function DateEventsPage({ date }: DateEventsPageProps) {
   const endIndex = startIndex + ITEMS_PER_PAGE
   const paginatedEvents = sortedEvents.slice(startIndex, endIndex)
 
+  // Helper function to get the appropriate status classes based on type
   const getStatusBadgeClasses = (status: string, type: string) => {
-    if (type === 'quotation') {
-      switch (status?.toLowerCase()) {
-        case 'approved':
-        case 'paid':
-          return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700'
-        case 'sent':
-          return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700'
-        case 'rejected':
-          return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700'
-        case 'draft':
-          return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700'
-        default:
-          return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700'
-      }
-    } else {
-      switch (status?.toLowerCase()) {
-        case 'completed':
-        case 'paid':
-          return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700'
-        case 'confirmed':
-          return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700'
-        case 'cancelled':
-          return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700'
-        default:
-          return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700'
-      }
-    }
+    return type === 'quotation' 
+      ? getQuotationStatusBadgeClasses(status)
+      : getBookingStatusBadgeClasses(status);
   }
 
   const handlePageChange = (page: number) => {

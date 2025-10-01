@@ -8,11 +8,14 @@
  * Safely encode text content to prevent character corruption
  * This function ensures Japanese and Thai characters are properly handled
  */
-export function safeEncodeText(text: string | null | undefined): string {
-  if (!text) return 'N/A';
+export function safeEncodeText(text: string | number | null | undefined): string {
+  if (!text && text !== 0) return 'N/A';
+  
+  // Convert to string if it's a number
+  const textStr = String(text);
   
   // Decode any HTML entities first
-  const decoded = text.replace(/&amp;/g, '&')
+  const decoded = textStr.replace(/&amp;/g, '&')
                       .replace(/&lt;/g, '<')
                       .replace(/&gt;/g, '>')
                       .replace(/&quot;/g, '"')

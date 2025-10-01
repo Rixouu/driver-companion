@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/context"
 import { format, parseISO, isValid, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, addWeeks, subWeeks, startOfDay, endOfDay } from "date-fns"
 import { cn } from "@/lib/utils"
+import { getQuotationStatusBadgeClasses, getBookingStatusBadgeClasses, getQuotationStatusDotColor, getBookingStatusDotColor } from "@/lib/utils/styles"
 import { useDebounce } from "@/lib/hooks/use-debounce"
 import {
   Select,
@@ -454,72 +455,18 @@ export function SalesCalendar({ quotations = [], bookings = [], users = [] }: Sa
     }
   }
 
-  // Get status badge classes
+  // Helper function to get the appropriate status classes based on type
   const getStatusBadgeClasses = (status: string, type: string) => {
-    if (type === 'quotation') {
-      switch (status?.toLowerCase()) {
-        case 'approved':
-        case 'paid':
-          return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700'
-        case 'sent':
-          return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700'
-        case 'converted':
-          return 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700'
-        case 'rejected':
-          return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700'
-        case 'draft':
-          return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700'
-        default:
-          return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700'
-      }
-    } else {
-      switch (status?.toLowerCase()) {
-        case 'completed':
-        case 'paid':
-          return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700'
-        case 'confirmed':
-        case 'assigned':
-          return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700'
-        case 'cancelled':
-          return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700'
-        default:
-          return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700'
-      }
-    }
+    return type === 'quotation' 
+      ? getQuotationStatusBadgeClasses(status)
+      : getBookingStatusBadgeClasses(status);
   }
 
-  // Get status color for calendar dots
+  // Helper function to get the appropriate dot color based on type
   const getStatusColor = (status: string, type: string) => {
-    if (type === 'quotation') {
-      switch (status) {
-        case "approved":
-        case "paid":
-          return "bg-green-500"
-        case "sent":
-          return "bg-blue-500"
-        case "converted":
-          return "bg-purple-500"
-        case "rejected":
-          return "bg-red-500"
-        case "draft":
-          return "bg-gray-500"
-        default:
-          return "bg-gray-500"
-      }
-    } else {
-      switch (status) {
-        case "completed":
-        case "paid":
-          return "bg-green-500"
-        case "confirmed":
-        case "assigned":
-          return "bg-blue-500"
-        case "cancelled":
-          return "bg-red-500"
-        default:
-          return "bg-blue-500"
-      }
-    }
+    return type === 'quotation' 
+      ? getQuotationStatusDotColor(status)
+      : getBookingStatusDotColor(status);
   }
 
   // Handle day click

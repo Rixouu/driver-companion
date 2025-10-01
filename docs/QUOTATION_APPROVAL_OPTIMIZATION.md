@@ -117,7 +117,7 @@ const delays = [100, 300, 150, 200]; // ms delays
 
 ## Files Modified
 
-1. **`app/api/quotations/approve-optimized/route.ts`** - New optimized approval route
+1. **`app/api/quotations/approve/route.ts`** - Optimized approval route
 2. **`app/(dashboard)/quotations/[id]/quotation-details.tsx`** - Updated progress simulation
 3. **`app/quote-access/[token]/page.tsx`** - Updated progress simulation
 
@@ -138,7 +138,7 @@ Update the frontend to use the new optimized route:
 const response = await fetch('/api/quotations/approve', {
 
 // To:
-const response = await fetch('/api/quotations/approve-optimized', {
+const response = await fetch('/api/quotations/approve', {
 ```
 
 ### Option 2: Replace the Original Route

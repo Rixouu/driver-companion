@@ -10,6 +10,7 @@ import type { Driver } from "@/types/drivers"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { getDriverStatusBorderColor } from "@/lib/utils/styles"
 
 interface DriverListItemProps {
   driver: Driver
@@ -23,18 +24,7 @@ export function DriverListItem({ driver }: DriverListItemProps) {
   
   // Helper function to get availability color class for the border
   const getAvailabilityColorClass = () => {
-    switch (currentAvailability.toLowerCase()) {
-      case 'available':
-        return "border-l-green-500";
-      case 'unavailable':
-        return "border-l-red-500";
-      case 'leave':
-        return "border-l-amber-500";
-      case 'training':
-        return "border-l-blue-500";
-      default:
-        return "border-l-border"; // Default border color
-    }
+    return getDriverStatusBorderColor(currentAvailability) || "border-l-border";
   };
 
   // Handle click for better mobile touch support

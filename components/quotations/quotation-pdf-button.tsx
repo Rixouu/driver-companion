@@ -276,7 +276,7 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
       });
 
       // Start API call in parallel
-      const apiPromise = fetch('/api/quotations/generate-pdf', {
+      const apiPromise = fetch('/api/quotations/generate-quotation-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

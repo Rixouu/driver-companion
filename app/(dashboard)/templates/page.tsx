@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { EnhancedInspectionTemplateManager } from '@/components/inspections/enhanced-inspection-template-manager'
 import { NotificationManagementImproved as EmailTemplateManagement } from '@/components/settings/notification-management-improved'
+import { RevampedPDFTemplateManagement } from '@/components/templates/revamped-pdf-template-management'
 import { TemplatesTabsList } from '@/components/templates/templates-tabs-list'
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb'
 import { useI18n } from '@/lib/i18n/context'
@@ -45,6 +46,10 @@ export default function TemplatesPage() {
           <TabsContent value="emails">
             <EmailTemplateManagement />
           </TabsContent>
+          
+        <TabsContent value="pdfs">
+          <RevampedPDFTemplateManagement />
+        </TabsContent>
         </div>
       </Tabs>
     </div>

@@ -182,7 +182,7 @@ class EmailQueueManager {
       console.log(`📧 Processing quotation email for ${emailJob.quotationId}`);
       
       // Call the optimized send-email API
-      const response = await fetch(`${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL}/api/quotations/send-email-optimized`, {
+      const response = await fetch(`${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL}/api/quotations/send-email-unified`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

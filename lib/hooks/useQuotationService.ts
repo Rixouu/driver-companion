@@ -1085,8 +1085,8 @@ export const useQuotationService = () => {
       formData.append('include_details', 'true'); 
 
       // Make the API call to send the quotation email
-      // Updated endpoint to /api/quotations/send-email-optimized
-      const response = await fetch('/api/quotations/send-email-optimized', {
+      // Updated endpoint to /api/quotations/send-email-unified
+      const response = await fetch('/api/quotations/send-email-unified', {
         method: 'POST',
         body: formData, // Send FormData instead of JSON
       });
@@ -1172,7 +1172,7 @@ export const useQuotationService = () => {
         });
 
       // Call server API to handle conversion to booking
-      const response = await fetch('/api/quotations/approve-optimized', {
+      const response = await fetch('/api/quotations/approve', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1240,7 +1240,7 @@ export const useQuotationService = () => {
         });
 
       // Call server API to notify about rejection
-      const response = await fetch('/api/quotations/reject-optimized', {
+      const response = await fetch('/api/quotations/reject', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

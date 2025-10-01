@@ -790,9 +790,10 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         title: 'Confirmed',
         description: 'Quotation has been marked as paid',
         icon: <CheckCircle className="h-4 w-4" />,
-        status: (quotation.status === 'paid' || quotation.payment_completed_at) ? 'completed' : 'pending',
+        status: (quotation.status === 'paid' || quotation.payment_completed_at) ? 'completed' : 
+                (quotation.payment_link_sent_at || quotation.status === 'sent' || quotation.status === 'approved' || quotation.approved_at) ? 'current' : 'pending',
         date: quotation.payment_completed_at,
-        ...((quotation.payment_link_sent_at || quotation.status === 'sent') && quotation.status !== 'paid' && !quotation.payment_completed_at && isOrganizationMember ? {
+        ...((quotation.payment_link_sent_at || quotation.status === 'sent' || quotation.status === 'approved' || quotation.approved_at) && quotation.status !== 'paid' && !quotation.payment_completed_at && isOrganizationMember ? {
           action: {
             label: 'Mark As Paid',
             onClick: () => setIsMarkAsPaidDialogOpen(true),
@@ -1000,6 +1001,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                         {step.warning}
                       </Badge>
                     )}
+                    
                     
                   </div>
                 </div>

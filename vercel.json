@@ -17,7 +17,7 @@
     "app/api/quotations/reject/route.ts": {
       "maxDuration": 60
     },
-    "app/api/quotations/generate-pdf/route.ts": {
+    "app/api/quotations/generate-quotation-pdf/route.ts": {
       "maxDuration": 60
     },
     "app/api/quotations/generate-invoice-pdf/route.ts": {

@@ -40,6 +40,8 @@ import { addDays } from 'date-fns';
 import { Info } from 'lucide-react';
 import { QuotationDetailsApprovalPanel } from '@/components/quotations/quotation-details/approval-panel';
 import { QuotationShareButtons } from '@/components/quotations/quotation-share-buttons';
+import LoadingModal from '@/components/ui/loading-modal';
+import { useProgressSteps } from '@/lib/hooks/useProgressSteps';
 import { toast } from 'sonner';
 
 interface QuotationData {
@@ -109,6 +111,11 @@ export default function QuoteAccessPage() {
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  
+  // Progress modal state
+  const [progressOpen, setProgressOpen] = useState(false);
+  const [progressVariant, setProgressVariant] = useState<'default' | 'invoice'>('default');
+  const { progressValue, progressLabel, progressSteps, startProgress } = useProgressSteps();
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -155,16 +162,69 @@ export default function QuoteAccessPage() {
     if (!quotation) return;
     
     setIsDownloadingQuotation(true);
+    setProgressOpen(true);
+    
+    const isPaid = quotation.payment_completed_at || quotation.status === 'paid' || quotation.status === 'converted';
+    setProgressVariant(isPaid ? 'invoice' : 'default');
+    
     try {
-      const response = await fetch(`/api/quotations/generate-pdf-magic-link`, {
+      // Define progress steps based on document type
+      const steps = isPaid ? [
+        { value: 10, label: 'Preparing invoice data...' },
+        { value: 25, label: 'Generating invoice template...' },
+        { value: 50, label: 'Processing payment details...' },
+        { value: 75, label: 'Rendering PDF...' },
+        { value: 90, label: 'Finalizing document...' }
+      ] : [
+        { value: 10, label: 'Preparing quotation data...' },
+        { value: 30, label: 'Generating quotation template...' },
+        { value: 60, label: 'Rendering PDF...' },
+        { value: 90, label: 'Finalizing document...' }
+      ];
+      
+      // Start progress animation
+      const progressPromise = startProgress({
+        steps,
+        totalDuration: isPaid ? 8000 : 4000, // Longer for invoice generation
+        stepDelays: isPaid ? [200, 800, 1000, 1200, 600] : [200, 600, 800, 400]
+      });
+      
+      // Prepare API call
+      let apiPromise;
+      let filename;
+      
+      if (isPaid) {
+        // Download invoice PDF for paid quotations
+        apiPromise = fetch(`/api/quotations/generate-invoice-pdf`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-        body: JSON.stringify({ token: params?.token }),
+          body: JSON.stringify({ 
+            quotation_id: quotation.id,
+            language: 'en' // Default to English for magic link access
+          }),
         });
+        filename = `invoice-${quotation.quote_number?.toString().padStart(6, '0') || quotation.id}.pdf`;
+      } else {
+        // Download quotation PDF for non-paid quotations
+        apiPromise = fetch(`/api/quotations/generate-pdf-magic-link`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            quotation_id: quotation.id,
+            token: params?.token 
+          }),
+        });
+        filename = `quotation-${quotation.quote_number?.toString().padStart(6, '0') || quotation.id}.pdf`;
+      }
+      
+      // Wait for both progress and API to complete
+      const [_, response] = await Promise.all([progressPromise, apiPromise]);
 
-        if (!response.ok) {
+      if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
@@ -173,16 +233,22 @@ export default function QuoteAccessPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `quotation-${quotation.quote_number?.toString().padStart(6, '0') || quotation.id}.pdf`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
-      toast.success('Quotation downloaded successfully!');
+      const documentType = isPaid ? 'Invoice' : 'Quotation';
+      toast.success(`${documentType} downloaded successfully!`);
+      
+      // Close modal after successful download
+      setTimeout(() => setProgressOpen(false), 500);
+      
       } catch (error) {
-      console.error('Error downloading quotation:', error);
-      toast.error(`Failed to download quotation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Error downloading document:', error);
+      toast.error(`Failed to download document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setProgressOpen(false);
       } finally {
       setIsDownloadingQuotation(false);
     }
@@ -194,7 +260,7 @@ export default function QuoteAccessPage() {
     
     setIsApproving(true);
     try {
-      const response = await fetch('/api/quotations/approve-optimized', {
+      const response = await fetch('/api/quotations/approve', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -226,7 +292,7 @@ export default function QuoteAccessPage() {
     
     setIsRejecting(true);
     try {
-      const response = await fetch('/api/quotations/reject-magic-link', {
+      const response = await fetch('/api/quotations/reject', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -473,7 +539,11 @@ export default function QuoteAccessPage() {
           {/* Next Step Indicator */}
           {(() => {
             let nextStepText = '';
-            if (quotation.status === 'draft') {
+            const isPaid = quotation.payment_completed_at || quotation.status === 'paid' || quotation.status === 'converted';
+            
+            if (isPaid) {
+              nextStepText = 'Payment completed - Service confirmed';
+            } else if (quotation.status === 'draft') {
               nextStepText = 'Next step: Quotation will be sent to customer';
             } else if (quotation.status === 'sent') {
               nextStepText = 'Next step: Waiting for customer approval';
@@ -501,7 +571,9 @@ export default function QuoteAccessPage() {
                        className="h-8 text-xs"
                      >
                        <Download className="h-4 w-4 mr-2" />
-                       {isDownloadingQuotation ? 'Downloading...' : 'Download Quotation'}
+                       {isDownloadingQuotation ? 'Downloading...' : 
+                         (quotation.payment_completed_at || quotation.status === 'paid' || quotation.status === 'converted') 
+                           ? 'Download Invoice' : 'Download Quotation'}
               </Button>
                    </div>
                    {/* Desktop: Download button */}
@@ -513,8 +585,10 @@ export default function QuoteAccessPage() {
                        className="h-8 text-sm"
                      >
                        <Download className="h-4 w-4 mr-2" />
-                       {isDownloadingQuotation ? 'Downloading...' : 'Download Quotation'}
-                     </Button>
+                       {isDownloadingQuotation ? 'Downloading...' : 
+                         (quotation.payment_completed_at || quotation.status === 'paid' || quotation.status === 'converted') 
+                           ? 'Download Invoice' : 'Download Quotation'}
+              </Button>
                    </div>
                  </div>
                </div>
@@ -1410,6 +1484,18 @@ export default function QuoteAccessPage() {
       </div>
 
     </div>
+    
+    {/* Progress Modal */}
+    <LoadingModal
+      open={progressOpen}
+      onOpenChange={setProgressOpen}
+      variant={progressVariant}
+      value={progressValue}
+      label={progressLabel}
+      steps={progressSteps}
+      title={progressVariant === 'invoice' ? 'Generating Invoice PDF' : 'Generating Quotation PDF'}
+      showSteps={true}
+    />
     </ThemeProvider>
   );
 }

@@ -13,6 +13,7 @@ import { useI18n } from "@/lib/i18n/context"
 import { ClipboardCheck, Filter, CalendarRange, X, Search, Clock, User, Truck, Eye, Calendar } from "lucide-react"
 import { DateRange } from "react-day-picker"
 import Link from "next/link"
+import { cn, getInspectionStatusBadgeClasses } from "@/lib/utils/styles"
 
 interface VehicleInspectionsProps {
   vehicle: DbVehicle
@@ -172,25 +173,6 @@ export function VehicleInspections({ vehicle }: VehicleInspectionsProps) {
     typeFilter !== 'all' || statusFilter !== 'all' || dateRange?.from || searchTerm
   , [typeFilter, statusFilter, dateRange, searchTerm])
 
-  const getStatusColor = useCallback((status: string) => {
-    const statusLower = status?.toLowerCase()
-    switch (statusLower) {
-      case 'completed':
-      case 'complete':
-        return 'border-green-200 text-green-700 bg-transparent dark:border-green-800 dark:text-green-300'
-      case 'in_progress':
-      case 'in progress':
-      case 'progress':
-        return 'border-blue-200 text-blue-700 bg-transparent dark:border-blue-800 dark:text-blue-300'
-      case 'pending':
-        return 'border-yellow-200 text-yellow-700 bg-transparent dark:border-yellow-800 dark:text-yellow-300'
-      case 'failed':
-      case 'fail':
-        return 'border-red-200 text-red-700 bg-transparent dark:border-red-800 dark:text-red-300'
-      default:
-        return 'border-gray-200 text-gray-700 bg-transparent dark:border-gray-800 dark:text-gray-300'
-    }
-  }, [])
 
   if (isLoading) {
     return (
@@ -523,7 +505,7 @@ export function VehicleInspections({ vehicle }: VehicleInspectionsProps) {
                     </span>
                   </div>
                   {/* Status Badge */}
-                  <Badge variant="outline" className={getStatusColor(inspection.status)}>
+                  <Badge variant="outline" className={getInspectionStatusBadgeClasses(inspection.status)}>
                     {inspection.status}
                   </Badge>
                 </div>

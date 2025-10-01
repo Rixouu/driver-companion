@@ -29,6 +29,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { cn } from "@/lib/utils"
+import { getVehicleStatusBadgeClasses } from "@/lib/utils/styles"
 import { Car, Tag, Trash2, Download, TrendingUp, Users, EyeIcon, FileEditIcon, EditIcon } from "lucide-react"
 import { DeleteConfirmationModal } from "@/components/shared/delete-confirmation-modal"
 import { toast } from "@/components/ui/use-toast"
@@ -493,9 +494,7 @@ export function VehicleList({
                           <Badge 
                             className={cn(
                               "font-medium border-0 px-2.5 py-1.5 h-6",
-                              vehicle.status === 'active' && "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-                              vehicle.status === 'maintenance' && "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-                              vehicle.status === 'inactive' && "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
+                              getVehicleStatusBadgeClasses(vehicle.status)
                             )}
                           >
                             {t(`vehicles.status.${vehicle.status}`)}
@@ -612,9 +611,7 @@ export function VehicleList({
                         <Badge 
                           className={cn(
                             "font-medium border px-2.5 py-1.5 h-6",
-                            vehicle.status === 'active' && "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700",
-                            vehicle.status === 'maintenance' && "bg-orange-100 text-orange-800 border-orange-300 dark:bg-green-900/20 dark:text-orange-300 dark:border-orange-700",
-                            vehicle.status === 'inactive' && "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700"
+                            getVehicleStatusBadgeClasses(vehicle.status)
                           )}
                         >
                           {t(`vehicles.status.${vehicle.status}`)}
@@ -705,9 +702,7 @@ export function VehicleList({
                             <Badge 
                               className={cn(
                                 "text-xs font-medium px-2 py-1 h-auto flex-shrink-0",
-                                vehicle.status === 'active' && "bg-green-100 text-green-800 border-2 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-600",
-                                vehicle.status === 'maintenance' && "bg-orange-100 text-orange-800 border-2 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-600",
-                                vehicle.status === 'inactive' && "bg-gray-100 text-gray-800 border-2 border-gray-300 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-600"
+                                getVehicleStatusBadgeClasses(vehicle.status)
                               )}
                             >
                               {t(`vehicles.status.${vehicle.status}`)}

@@ -46,16 +46,10 @@ const emailRoutes = [
   
   // Old System (Needs Migration)
   { 
-    path: '/api/quotations/send-email-optimized', 
-    name: 'Quotation Email (Old)', 
-    status: 'old', 
-    description: 'Old hardcoded quotation email' 
-  },
-  { 
-    path: '/api/quotations/send-email', 
-    name: 'Quotation Email (Legacy)', 
-    status: 'old', 
-    description: 'Legacy quotation email system' 
+    path: '/api/quotations/send-email-unified', 
+    name: 'Quotation Email (Unified)', 
+    status: 'active', 
+    description: 'Unified quotation email system' 
   },
   { 
     path: '/api/quotations/send-reminder', 

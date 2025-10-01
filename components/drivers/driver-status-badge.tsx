@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/context"
 import { cn } from "@/lib/utils/styles"
-import { getStatusBadgeClasses } from "@/lib/utils/styles"
+import { getDriverStatusBadgeClasses } from "@/lib/utils/styles"
 
 interface DriverStatusBadgeProps {
   status: string;
@@ -28,7 +28,7 @@ export function DriverStatusBadge({ status }: DriverStatusBadgeProps) {
   return (
     <Badge
       variant="outline"
-      className={cn(getStatusBadgeClasses(status), "capitalize")}
+      className={cn(getDriverStatusBadgeClasses(status), "capitalize")}
     >
       {t(`drivers.status.${getTranslationKey()}` as any, { defaultValue: status })}
     </Badge>

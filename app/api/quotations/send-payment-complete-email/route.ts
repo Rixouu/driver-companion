@@ -240,23 +240,35 @@ export async function POST(request: NextRequest) {
 
     console.log('🔄 [UNIFIED-EMAIL-API] Using direct template service')
     
-    // Generate quotation PDF attachment
-    console.log('🔄 [UNIFIED-EMAIL-API] Generating quotation PDF attachment')
+    // Generate invoice PDF attachment with PAID status
+    console.log('🔄 [UNIFIED-EMAIL-API] Generating invoice PDF attachment with PAID status')
     let pdfAttachment = null
     try {
-      const pdfBuffer = await generateOptimizedQuotationPDF(
-        quotation,
-        language,
-        selectedPackage,
-        selectedPromotion
-      )
+      // Generate invoice PDF with PAID status label
+      const pdfResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/quotations/generate-invoice-pdf`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
+        },
+        body: JSON.stringify({
+          quotation_id: quotation.id,
+          language: language,
+          status_label: 'PAID' // Always PAID for payment completion emails
+        })
+      })
       
-      pdfAttachment = {
-        filename: `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || quotation.id.slice(-6).toUpperCase()}.pdf`,
-        content: pdfBuffer,
-        contentType: 'application/pdf'
+      if (pdfResponse.ok) {
+        const pdfBuffer = await pdfResponse.arrayBuffer()
+        pdfAttachment = {
+          filename: `INV-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || quotation.id.slice(-6).toUpperCase()}.pdf`,
+          content: Buffer.from(pdfBuffer),
+          contentType: 'application/pdf'
+        }
+        console.log('✅ [UNIFIED-EMAIL-API] Invoice PDF attachment generated:', pdfAttachment.filename)
+      } else {
+        console.error('❌ [UNIFIED-EMAIL-API] Failed to generate invoice PDF:', pdfResponse.status)
       }
-      console.log('✅ [UNIFIED-EMAIL-API] PDF attachment generated:', pdfAttachment.filename)
     } catch (error) {
       console.warn('⚠️ [UNIFIED-EMAIL-API] Could not generate PDF attachment:', error)
     }

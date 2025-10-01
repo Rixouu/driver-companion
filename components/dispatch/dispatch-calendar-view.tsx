@@ -10,7 +10,7 @@ import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterva
 import { useI18n } from "@/lib/i18n/context";
 import { Calendar } from "@/components/ui/calendar";
 import { DispatchEntry, DispatchEntryWithRelations } from "@/types/dispatch";
-import { cn } from "@/lib/utils/styles";
+import { cn, getDispatchStatusBadgeClasses } from "@/lib/utils/styles";
 import { createClient } from "@/lib/supabase";
 import { toast } from "@/components/ui/use-toast";
 
@@ -117,24 +117,6 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
   }, {} as Record<string, DispatchEntryWithRelations[]>);
   
   // Get status badge color based on status
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-      case "assigned":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
-      case "confirmed":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-      case "en_route":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
-      case "completed":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-      case "cancelled":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
-    }
-  };
 
   // Navigation functions
   const navigatePrevious = () => {
@@ -256,7 +238,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
                             
                             {/* Simplified booking entry */}
                             <div className="flex items-center gap-1 mt-1.5">
-                              <Badge className={`text-[10px] h-4 ${getStatusColor(entry.status)}`}>
+                              <Badge className={`text-[10px] h-4 ${getDispatchStatusBadgeClasses(entry.status)}`}>
                                 {entry.status}
                               </Badge>
                               <span className="truncate text-xs">{entry.booking?.customer_name || "Customer"}</span>
@@ -692,7 +674,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
                     {Object.entries(groupedEntries).map(([status, statusEntries]) => (
                       <div key={status} className="space-y-3">
                         <div className="pl-2">
-                          <Badge className={cn(getStatusColor(status), "py-0.5")}>
+                          <Badge className={cn(getDispatchStatusBadgeClasses(status), "py-0.5")}>
                             {t(`dispatch.status.${status}`)} ({statusEntries.length})
                           </Badge>
                         </div>

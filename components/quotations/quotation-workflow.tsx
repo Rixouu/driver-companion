@@ -182,9 +182,6 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     }
 
     setIsSendingQuotation(true);
-    setProgressOpen(true);
-    setProgressVariant('email');
-    setProgressTitle('Sending Quotation');
     
     try {
       // Use the new unified email system
@@ -199,7 +196,12 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         body: formData,
       });
       
-      // Start progress simulation with API promise
+      // Start progress modal and animation BEFORE API call
+      setProgressOpen(true);
+      setProgressVariant('email');
+      setProgressTitle('Sending Quotation');
+      
+      // Start progress simulation with API promise - this will sync the animation with the API
       const progressPromise = startProgress(progressConfigs.sendEmail, responsePromise);
       
       // Wait for both progress animation and API call to complete
@@ -210,7 +212,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         throw new Error(errorData.error || 'Failed to send quotation email');
       }
 
-      // Don't show toast here - let the parent component handle it
+      // Close dialogs and show success
       setProgressOpen(false);
       setIsSendQuotationDialogOpen(false);
       

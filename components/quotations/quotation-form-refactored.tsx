@@ -555,11 +555,6 @@ export default function QuotationFormRefactored({
           }
           
           if (sendToCustomer && result) {
-            // Set up email progress modal with unified approach
-            setProgressVariant('email');
-            setProgressTitle('Sending Quotation');
-            setProgressSteps(progressConfigs.sendEmail.steps);
-            
             // Start API call first
             const emailResponsePromise = fetch('/api/quotations/send-email-unified', {
               method: 'POST',
@@ -573,6 +568,12 @@ export default function QuotationFormRefactored({
                 bcc_emails: bccEmails
               }),
             });
+            
+            // Start progress modal and animation AFTER API call starts
+            setProgressOpen(true);
+            setProgressVariant('email');
+            setProgressTitle('Sending Quotation');
+            setProgressSteps(progressConfigs.sendEmail.steps);
             
             // Start progress simulation with API promise
             const progressPromise = startProgress(progressConfigs.sendEmail, emailResponsePromise);

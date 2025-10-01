@@ -59,7 +59,7 @@ export const useProgressSteps = () => {
             clearInterval(progressInterval);
             // Don't complete yet, wait for API
           }
-        }, Math.max(400, totalDuration / maxSteps)); // Minimum 400ms per step, adjusted for 4-5s API
+        }, Math.max(300, totalDuration / maxSteps)); // Reduced minimum to 300ms per step for faster animation
         
         // Clean up interval when API completes
         apiPromise.finally(() => {

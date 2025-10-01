@@ -2,6 +2,7 @@ import puppeteer from 'puppeteer';
 import chromium from '@sparticuz/chromium';
 import { enhancedPdfCache } from './enhanced-pdf-cache';
 import { generateOptimizedFontCSS, createFontReadyCheck } from './optimized-fonts';
+import { browserSingleton } from './browser-singleton';
 
 // Performance monitoring
 interface PerformanceMetrics {
@@ -22,17 +23,22 @@ async function ensureFontsLoadedOptimized(page: any): Promise<void> {
     console.log('⏱️  Starting optimized font loading...');
     const fontLoadStart = Date.now();
     
-    // Use a simpler font loading approach
+    // Use a much faster font loading approach
     await page.evaluate(() => {
       return new Promise((resolve) => {
         if (document.fonts && document.fonts.ready) {
+          // Check if fonts are already loaded
+          if (document.fonts.status === 'loaded') {
+            resolve(undefined);
+            return;
+          }
+          // Wait for fonts to load with shorter timeout
           document.fonts.ready.then(() => {
-            // Wait a bit more for fonts to fully load
-            setTimeout(resolve, 500);
+            setTimeout(() => resolve(undefined), 100); // Reduced from 500ms
           });
         } else {
-          // Fallback for older browsers
-          setTimeout(resolve, 1000);
+          // Fallback with shorter timeout
+          setTimeout(() => resolve(undefined), 200); // Reduced from 1000ms
         }
       });
     });
@@ -40,8 +46,8 @@ async function ensureFontsLoadedOptimized(page: any): Promise<void> {
     const fontLoadTime = Date.now() - fontLoadStart;
     console.log(`⏱️  Fonts loaded in ${fontLoadTime}ms`);
     
-    // Minimal wait for rendering stability
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Minimal wait for rendering stability - reduced from 500ms
+    await new Promise(resolve => setTimeout(resolve, 100));
   } catch (error) {
     console.warn('⚠️  Font loading error (proceeding anyway):', error);
   }
@@ -226,14 +232,12 @@ export async function generateOptimizedPdfFromHtml(
 
   let browser;
   try {
-    // Launch browser with optimized config
+    // Use browser singleton for reuse
     const launchStart = Date.now();
-    const config = await getOptimizedPuppeteerConfig(isProduction);
-    
-    browser = await puppeteer.launch(config);
+    browser = await browserSingleton.getBrowser();
     
     metrics.browserLaunchTime = Date.now() - launchStart;
-    console.log(`⏱️  Browser launched in ${metrics.browserLaunchTime}ms`);
+    console.log(`⏱️  Browser obtained in ${metrics.browserLaunchTime}ms`);
 
     // Create page with optimization
     const pageStart = Date.now();
@@ -285,7 +289,7 @@ export async function generateOptimizedPdfFromHtml(
     metrics.pdfGenerationTime = Date.now() - pdfStart;
     console.log(`⏱️  PDF generated in ${metrics.pdfGenerationTime}ms`);
 
-    await browser.close();
+    // Don't close browser - let singleton manage it
     
     const buffer = Buffer.from(pdfBuffer);
     metrics.totalTime = Date.now() - metrics.startTime;
@@ -307,15 +311,8 @@ export async function generateOptimizedPdfFromHtml(
     return buffer;
     
   } catch (error) {
-    // Always close the browser to prevent memory leaks
-    if (browser) {
-      try {
-        await browser.close();
-        console.log('🧹 Browser closed successfully');
-      } catch (closeError) {
-        console.error('⚠️ Error closing browser:', closeError);
-      }
-    }
+    // Don't close browser on error - let singleton manage it
+    // The singleton will handle cleanup based on idle time
     
     metrics.totalTime = Date.now() - metrics.startTime;
     console.error('❌ Optimized PDF generation failed, trying fallback:', {

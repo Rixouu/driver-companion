@@ -340,8 +340,6 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
     }
     
     setIsEmailing(true)
-    setProgressOpen(true)
-    setProgressVariant('email')
     
     try {
       // Start API call first
@@ -355,6 +353,10 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
         method: 'POST',
         body: formData,
       });
+
+      // Start progress modal and animation AFTER API call starts
+      setProgressOpen(true)
+      setProgressVariant('email')
 
       // Start progress animation with API promise
       const progressPromise = startProgress(progressConfigs.sendEmail, apiPromise);

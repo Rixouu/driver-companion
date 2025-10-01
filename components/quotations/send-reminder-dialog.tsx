@@ -38,9 +38,6 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
     if (!quotation?.id) return
 
     setIsLoading(true)
-    setProgressOpen(true)
-    setProgressTitle('Sending Reminder')
-    setProgressVariant('reminder')
     
     try {
       // Start API call first
@@ -56,6 +53,11 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
           bcc_emails: bccEmails
         }),
       })
+      
+      // Start progress modal and animation AFTER API call starts
+      setProgressOpen(true)
+      setProgressTitle('Sending Reminder')
+      setProgressVariant('reminder')
       
       // Start progress simulation synchronized with API call
       const progressPromise = startProgress(progressConfigs.sendReminder, apiCall)

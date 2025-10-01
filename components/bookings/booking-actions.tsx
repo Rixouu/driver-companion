@@ -19,6 +19,9 @@ import { cn } from '@/lib/utils/styles'
 import { cancelBookingAction } from '@/app/actions/bookings'
 import { useToast } from '@/components/ui/use-toast'
 import SmartAssignmentModal from '@/components/shared/smart-assignment-modal'
+import LoadingModal from '@/components/ui/loading-modal'
+import { useProgressSteps } from '@/lib/hooks/useProgressSteps'
+import { progressConfigs } from '@/lib/config/progressConfigs'
 
 interface BookingActionsProps {
   bookingId: string;
@@ -54,6 +57,12 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
   
   // Payment link modal state
   const [isPaymentLinkModalOpen, setIsPaymentLinkModalOpen] = useState(false)
+  
+  // Progress modal state
+  const [progressOpen, setProgressOpen] = useState(false)
+  const [progressTitle, setProgressTitle] = useState('Processing')
+  const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice'>('default')
+  const { progressValue, progressLabel, progressSteps, startProgress, resetProgress } = useProgressSteps()
   const [paymentLinkBccEmails, setPaymentLinkBccEmails] = useState<string>("booking@japandriver.com")
 
 
@@ -160,10 +169,12 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
     }
 
     setIsSendingInvoice(true)
+    
     try {
       const bccEmailList = invoiceBccEmails.split(',').map(email => email.trim()).filter(email => email)
       
-      const response = await fetch('/api/bookings/send-booking-invoice', {
+      // Start API call first
+      const responsePromise = fetch('/api/bookings/send-booking-invoice', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -174,6 +185,17 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
           customer_email: booking.customer_email || booking.customer?.email
         }),
       })
+
+      // Start progress modal and animation AFTER API call starts
+      setProgressOpen(true)
+      setProgressVariant('invoice')
+      setProgressTitle('Sending Booking Invoice')
+      
+      // Start progress simulation with API promise - this will sync the animation with the API
+      const progressPromise = startProgress(progressConfigs.sendEmail, responsePromise)
+
+      // Wait for both to complete
+      const [response] = await Promise.all([responsePromise, progressPromise])
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -187,12 +209,14 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
         description: "Booking invoice sent successfully!",
       })
 
-      // Close modal and reset form
+      // Close modals and reset form
+      setProgressOpen(false)
       setIsInvoiceModalOpen(false)
       setInvoiceBccEmails("booking@japandriver.com")
       
     } catch (error) {
       console.error('Error sending booking invoice:', error)
+      setProgressOpen(false)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to send invoice",
@@ -819,6 +843,18 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
         vehicles={vehicles}
         title={`Smart Assignment for #${booking.wp_id || bookingId}`}
         subtitle="Select a driver and vehicle for this booking. The system will suggest the best matches based on the service type."
+      />
+
+      {/* Progress Modal */}
+      <LoadingModal
+        open={progressOpen}
+        onOpenChange={setProgressOpen}
+        variant={progressVariant}
+        value={progressValue}
+        label={progressLabel}
+        steps={progressSteps}
+        title={progressTitle}
+        showSteps={true}
       />
     </>
   )

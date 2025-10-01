@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
+import { CountryFlag } from '@/components/ui/country-flag'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -252,9 +253,24 @@ export function SimplePDFTemplateEditor({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="japan">Japan</SelectItem>
-                        <SelectItem value="thailand">Thailand</SelectItem>
-                        <SelectItem value="both">Both</SelectItem>
+                        <SelectItem value="japan">
+                          <div className="flex items-center gap-2">
+                            <CountryFlag country="japan" size="sm" />
+                            <span>Japan</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="thailand">
+                          <div className="flex items-center gap-2">
+                            <CountryFlag country="thailand" size="sm" />
+                            <span>Thailand</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="both">
+                          <div className="flex items-center gap-2">
+                            <CountryFlag country="both" size="sm" />
+                            <span>Both</span>
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

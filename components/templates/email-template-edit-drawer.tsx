@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/components/ui/use-toast'
 import { useI18n } from '@/lib/i18n/context'
 import { generateEmailTemplate } from '@/lib/email/email-partials'
+import { CountryFlag } from '@/components/ui/country-flag'
 import { 
   X, 
   Save, 
@@ -319,7 +320,7 @@ export function EmailTemplateEditDrawer({
                   <Mail className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex items-center gap-4">
-                  <h1 className="text-xl font-semibold">Edit Template</h1>
+                  <h1 className="text-xl font-semibold text-foreground">Edit Template</h1>
                   <div className="flex items-center gap-3">
                     <Badge 
                       variant="secondary" 
@@ -345,7 +346,7 @@ export function EmailTemplateEditDrawer({
                     >
                       {template.is_active ? "Active" : "Inactive"}
                     </Badge>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-foreground">
                       Updated {new Date(template.updated_at).toLocaleDateString()}
                     </span>
                   </div>
@@ -363,51 +364,51 @@ export function EmailTemplateEditDrawer({
             <div className="w-80 border-r border-border bg-muted/20 flex flex-col">
               <ScrollArea className="flex-1">
                 <div className="p-6">
-                  <h2 className="text-lg font-semibold mb-4">Template Settings</h2>
+                  <h2 className="text-lg font-semibold mb-4 text-foreground">Template Settings</h2>
                   
                   {/* Basic Information */}
                   <div className="space-y-6">
                     <div className="space-y-4">
-                      <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Basic Information</h3>
+                      <h3 className="text-sm font-medium text-foreground uppercase tracking-wide">Basic Information</h3>
                       
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <Label htmlFor="name" className="text-sm font-medium">Template Name</Label>
+                          <Label htmlFor="name" className="text-sm font-medium text-foreground">Template Name</Label>
                           <Input
                             id="name"
                             value={formData.name}
                             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                             placeholder="Enter template name"
-                            className="h-10"
+                            className="h-10 text-foreground bg-background border-input"
                           />
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="subject" className="text-sm font-medium">Subject Line</Label>
+                          <Label htmlFor="subject" className="text-sm font-medium text-foreground">Subject Line</Label>
                           <Input
                             id="subject"
                             value={formData.subject}
                             onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
                             placeholder="Enter email subject"
-                            className="h-10"
+                            className="h-10 text-foreground bg-background border-input"
                           />
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-foreground">
                             Use variables like {`{{customer_name}}`} for dynamic content
                           </p>
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="category" className="text-sm font-medium">Category</Label>
+                          <Label htmlFor="category" className="text-sm font-medium text-foreground">Category</Label>
                           <Select 
                             value={formData.category} 
                             onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
                           >
-                            <SelectTrigger className="h-10">
+                            <SelectTrigger className="h-10 text-foreground bg-background border-input">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-background border-input">
                               {categories.map((category) => (
-                                <SelectItem key={category.value} value={category.value}>
+                                <SelectItem key={category.value} value={category.value} className="text-foreground">
                                   <div className="flex items-center gap-2">
                                     <category.icon className="h-4 w-4" />
                                     {category.label}
@@ -424,13 +425,13 @@ export function EmailTemplateEditDrawer({
 
                     {/* Template Settings */}
                     <div className="space-y-4">
-                      <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Template Settings</h3>
+                      <h3 className="text-sm font-medium text-foreground uppercase tracking-wide">Template Settings</h3>
                       
                       <div className="space-y-4">
                         <div className="flex items-center justify-between p-4 rounded-xl border bg-background hover:bg-muted/50 transition-colors">
                           <div className="space-y-1">
-                            <Label className="text-sm font-medium">Active Template</Label>
-                            <p className="text-xs text-muted-foreground">
+                            <Label className="text-sm font-medium text-foreground">Active Template</Label>
+                            <p className="text-xs text-foreground">
                               Enable this template for sending emails
                             </p>
                           </div>
@@ -442,8 +443,8 @@ export function EmailTemplateEditDrawer({
 
                         <div className="flex items-center justify-between p-4 rounded-xl border bg-background hover:bg-muted/50 transition-colors">
                           <div className="space-y-1">
-                            <Label className="text-sm font-medium">Default Template</Label>
-                            <p className="text-xs text-muted-foreground">
+                            <Label className="text-sm font-medium text-foreground">Default Template</Label>
+                            <p className="text-xs text-foreground">
                               Use as fallback when specific templates are not found
                             </p>
                           </div>
@@ -460,155 +461,148 @@ export function EmailTemplateEditDrawer({
 
             </div>
 
-            {/* Right Side - Content Editor & Preview */}
-            <div className="flex-1 flex flex-col min-h-0">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-                {/* Tab Navigation */}
+            {/* Right Side - Split Layout */}
+            <div className="flex-1 flex min-h-0">
+              {/* HTML Content Editor */}
+              <div className="flex-1 flex flex-col border-r border-border">
                 <div className="border-b border-border px-6 py-4">
-                  <TabsList className="grid w-full grid-cols-2 max-w-md">
-                    <TabsTrigger value="content" className="flex items-center gap-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
                       <Code className="h-4 w-4" />
-                      Content & Preview
-                    </TabsTrigger>
-                    <TabsTrigger value="preview" className="flex items-center gap-2">
-                      <Eye className="h-4 w-4" />
-                      Live Preview
-                    </TabsTrigger>
-                  </TabsList>
-                </div>
-
-                <TabsContent value="content" className="flex-1 flex flex-col m-0">
-                  <ScrollArea className="flex-1">
-                    <div className="flex h-full min-h-[600px]">
-                      {/* HTML Editor */}
-                      <div className="flex-1 flex flex-col border-r border-border">
-                        <div className="px-6 py-4 border-b border-border bg-muted/30">
-                            <div className="flex items-center justify-between">
-                              <h3 className="text-sm font-medium">HTML Content</h3>
-                             <div className="flex items-center gap-4">
-                               {/* Preview Controls */}
-                               <div className="flex items-center gap-2">
-                                 <span className="text-xs text-muted-foreground">Team:</span>
-                                 <Select value={previewTeam} onValueChange={setPreviewTeam}>
-                                   <SelectTrigger className="h-8 w-16 text-xs">
-                                     <SelectValue />
-                                   </SelectTrigger>
-                                   <SelectContent>
-                                     <SelectItem value="TH">TH</SelectItem>
-                                     <SelectItem value="JP">JP</SelectItem>
-                                   </SelectContent>
-                                 </Select>
-                               </div>
-                               
-                               <div className="flex items-center gap-2">
-                                 <span className="text-xs text-muted-foreground">Lang:</span>
-                                 <Select value={previewLanguage} onValueChange={setPreviewLanguage}>
-                                   <SelectTrigger className="h-8 w-16 text-xs">
-                                     <SelectValue />
-                                   </SelectTrigger>
-                                   <SelectContent>
-                                     <SelectItem value="en">EN</SelectItem>
-                                     <SelectItem value="ja">JA</SelectItem>
-                                   </SelectContent>
-                                 </Select>
-                               </div>
-                               
-                               <div className="flex items-center gap-2">
-                                 <span className="text-xs text-muted-foreground">Scale:</span>
-                                 <div className="flex items-center gap-1">
-                                   <Button
-                                     variant="outline"
-                                     size="sm"
-                                     className="h-8 w-8 p-0"
-                                     onClick={() => setPreviewScale(Math.max(30, previewScale - 10))}
-                                   >
-                                     -
-                                   </Button>
-                                   <span className="text-xs w-12 text-center">{previewScale}%</span>
-                                   <Button
-                                     variant="outline"
-                                     size="sm"
-                                     className="h-8 w-8 p-0"
-                                     onClick={() => setPreviewScale(Math.min(150, previewScale + 10))}
-                                   >
-                                     +
-                                   </Button>
-                                 </div>
-                               </div>
-                               
-                               <div className="flex items-center gap-1">
-                                 <Button 
-                                   variant={previewMode === 'desktop' ? "default" : "outline"} 
-                                   size="sm" 
-                                   className="h-8 w-8 p-0"
-                                   onClick={() => setPreviewMode('desktop')}
-                                 >
-                                   <Monitor className="h-4 w-4" />
-                                 </Button>
-                                 <Button 
-                                   variant={previewMode === 'tablet' ? "default" : "outline"} 
-                                   size="sm" 
-                                   className="h-8 w-8 p-0"
-                                   onClick={() => setPreviewMode('tablet')}
-                                 >
-                                   <Tablet className="h-4 w-4" />
-                                 </Button>
-                                 <Button 
-                                   variant={previewMode === 'mobile' ? "default" : "outline"} 
-                                   size="sm" 
-                                   className="h-8 w-8 p-0"
-                                   onClick={() => setPreviewMode('mobile')}
-                                 >
-                                   <Smartphone className="h-4 w-4" />
-                                 </Button>
-                               </div>
-                             </div>
-                            </div>
-                        </div>
-                        <div className="flex-1 p-6">
-                          <Textarea
-                            value={formData.html_content}
-                            onChange={(e) => setFormData(prev => ({ ...prev, html_content: e.target.value }))}
-                            placeholder="Enter HTML content here..."
-                            className="min-h-[500px] resize-none border-0 rounded-none focus-visible:ring-0 font-mono text-sm w-full"
-                          />
-                        </div>
-                        <div className="px-6 py-3 border-t border-border bg-muted/30">
-                          <p className="text-xs text-muted-foreground">
-                            Use HTML tags and Handlebars variables for dynamic content
-                          </p>
-                        </div>
+                      HTML Editor
+                    </h3>
+                    {/* Scale Controls */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-foreground">Scale:</span>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => setPreviewScale(Math.max(30, previewScale - 10))}
+                        >
+                          -
+                        </Button>
+                        <span className="text-xs w-12 text-center text-foreground">{previewScale}%</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => setPreviewScale(Math.min(150, previewScale + 10))}
+                        >
+                          +
+                        </Button>
                       </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 p-6">
+                  <ScrollArea className="h-full">
+                    <Textarea
+                      value={formData.html_content}
+                      onChange={(e) => setFormData(prev => ({ ...prev, html_content: e.target.value }))}
+                      placeholder="Enter HTML content here..."
+                      className="min-h-[500px] resize-none border-0 rounded-none focus-visible:ring-0 font-mono text-sm w-full bg-background text-foreground"
+                      style={{ 
+                        minHeight: 'calc(100vh - 200px)',
+                        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace'
+                      }}
+                    />
+                  </ScrollArea>
+                </div>
+                <div className="px-6 py-3 border-t border-border bg-muted/30">
+                  <p className="text-xs text-foreground">
+                    Use HTML tags and Handlebars variables for dynamic content
+                  </p>
+                </div>
+              </div>
 
-                      {/* Preview */}
-                      <div className="flex-1 flex flex-col min-h-0">
-                        <div className="px-6 py-4 border-b border-border bg-muted/30">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-medium">Live Preview</h3>
-                            <div className="flex items-center gap-2">
-                              <Select value={previewMode} onValueChange={(value: any) => setPreviewMode(value)}>
-                                <SelectTrigger className="w-24 h-8">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="desktop">Desktop</SelectItem>
-                                  <SelectItem value="tablet">Tablet</SelectItem>
-                                  <SelectItem value="mobile">Mobile</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        </div>
-                        <ScrollArea className="flex-1">
-                          <div 
-                            className="p-1 bg-muted/20 min-h-[350px] flex items-center justify-center"
-                            style={{ transform: `scale(${previewScale / 100})`, transformOrigin: 'center' }}
-                          >
+              {/* Live Preview */}
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="border-b border-border px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+                      <Eye className="h-4 w-4" />
+                      Preview
+                    </h3>
+                    {/* Preview Controls */}
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-foreground">Team:</span>
+                        <Select value={previewTeam} onValueChange={setPreviewTeam}>
+                          <SelectTrigger className="h-8 w-16 text-xs text-foreground bg-background border-input">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border-input">
+                            <SelectItem value="TH" className="text-foreground">
+                              <div className="flex items-center gap-2">
+                                <CountryFlag country="thailand" size="sm" />
+                                <span>TH</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="JP" className="text-foreground">
+                              <div className="flex items-center gap-2">
+                                <CountryFlag country="japan" size="sm" />
+                                <span>JP</span>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-foreground">Lang:</span>
+                        <Select value={previewLanguage} onValueChange={setPreviewLanguage}>
+                          <SelectTrigger className="h-8 w-16 text-xs text-foreground bg-background border-input">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border-input">
+                            <SelectItem value="en" className="text-foreground">EN</SelectItem>
+                            <SelectItem value="ja" className="text-foreground">JA</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant={previewMode === 'desktop' ? "default" : "outline"} 
+                          size="sm" 
+                          className="h-8 w-8 p-0"
+                          onClick={() => setPreviewMode('desktop')}
+                        >
+                          <Monitor className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant={previewMode === 'tablet' ? "default" : "outline"} 
+                          size="sm" 
+                          className="h-8 w-8 p-0"
+                          onClick={() => setPreviewMode('tablet')}
+                        >
+                          <Tablet className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant={previewMode === 'mobile' ? "default" : "outline"} 
+                          size="sm" 
+                          className="h-8 w-8 p-0"
+                          onClick={() => setPreviewMode('mobile')}
+                        >
+                          <Smartphone className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 p-1 bg-muted/20 flex items-center justify-center overflow-auto">
+                  <div 
+                    className="w-full h-full flex items-center justify-center"
+                    style={{ transform: `scale(${previewScale / 100})`, transformOrigin: 'center' }}
+                  >
                             {previewMode === 'desktop' ? (
                           <div className="w-full max-w-5xl">
                             {/* Desktop Mockup */}
                             <div className="bg-gray-800 rounded-2xl p-3 shadow-2xl mx-auto">
-                              <div className="bg-gray-100 rounded-xl overflow-hidden flex flex-col h-[600px]">
+                              <div className="bg-gray-100 rounded-xl overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 300px)', minHeight: '500px' }}>
                                     <div className="bg-gray-300 h-8 flex items-center justify-between px-4 flex-shrink-0">
                                       <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 bg-red-400 rounded-full"></div>
@@ -618,15 +612,13 @@ export function EmailTemplateEditDrawer({
                                       <div className="text-xs text-gray-600 font-medium">Email Preview</div>
                                       <div className="w-16"></div>
                                     </div>
-                                    <div className="p-4 flex-1 overflow-hidden">
-                                      <ScrollArea className="h-full">
-                                        <div 
-                                          className="w-full bg-white rounded-lg p-4"
-                                          dangerouslySetInnerHTML={{ 
-                                            __html: processContent(formData.html_content)
-                                          }}
-                                        />
-                                      </ScrollArea>
+                                    <div className="p-4 flex-1 overflow-auto">
+                                      <div 
+                                        className="w-full bg-white rounded-lg p-4"
+                                        dangerouslySetInnerHTML={{ 
+                                          __html: processContent(formData.html_content)
+                                        }}
+                                      />
                                     </div>
                                   </div>
                                 </div>
@@ -635,28 +627,26 @@ export function EmailTemplateEditDrawer({
                           <div className="w-full max-w-md">
                             {/* Tablet Mockup - Optimized for complete email visibility */}
                             <div className="bg-gray-800 rounded-3xl p-1.5 shadow-2xl mx-auto">
-                              <div className="bg-gray-100 rounded-2xl overflow-hidden flex flex-col h-[600px] w-[350px] mx-auto">
+                              <div className="bg-gray-100 rounded-2xl overflow-hidden flex flex-col w-[350px] mx-auto" style={{ height: 'calc(100vh - 300px)', minHeight: '500px' }}>
                                     <div className="bg-gray-300 h-5 flex items-center justify-center flex-shrink-0">
                                       <div className="w-12 h-1 bg-gray-400 rounded-full"></div>
                                     </div>
-                                    <div className="p-1.5 flex-1 overflow-hidden">
-                                      <ScrollArea className="h-full">
-                                        <div 
-                                          className="w-full bg-white rounded-lg p-1.5"
-                                          style={{ 
-                                            transform: 'scale(0.6)', 
-                                            transformOrigin: 'top left', 
-                                            width: '167%',
-                                            fontSize: '10px',
-                                            lineHeight: '1.0',
-                                            minHeight: '100%',
-                                            maxWidth: '100%'
-                                          }}
-                                          dangerouslySetInnerHTML={{ 
-                                            __html: processContent(formData.html_content)
-                                          }}
-                                        />
-                                      </ScrollArea>
+                                    <div className="p-1.5 flex-1 overflow-auto">
+                                      <div 
+                                        className="w-full bg-white rounded-lg p-1.5"
+                                        style={{ 
+                                          transform: 'scale(0.6)', 
+                                          transformOrigin: 'top left', 
+                                          width: '167%',
+                                          fontSize: '10px',
+                                          lineHeight: '1.0',
+                                          minHeight: '100%',
+                                          maxWidth: '100%'
+                                        }}
+                                        dangerouslySetInnerHTML={{ 
+                                          __html: processContent(formData.html_content)
+                                        }}
+                                      />
                                     </div>
                                   </div>
                                 </div>
@@ -665,231 +655,45 @@ export function EmailTemplateEditDrawer({
                           <div className="w-full max-w-[280px]">
                             {/* Mobile Mockup */}
                             <div className="bg-gray-800 rounded-3xl p-1 shadow-2xl mx-auto">
-                              <div className="bg-gray-100 rounded-2xl overflow-hidden flex flex-col h-[600px] w-[240px] mx-auto">
+                              <div className="bg-gray-100 rounded-2xl overflow-hidden flex flex-col w-[240px] mx-auto" style={{ height: 'calc(100vh - 300px)', minHeight: '500px' }}>
                                     <div className="bg-gray-300 h-6 flex items-center justify-center flex-shrink-0">
                                       <div className="w-10 h-1 bg-gray-400 rounded-full"></div>
                                     </div>
-                                    <div className="p-1 flex-1 overflow-hidden">
-                                      <ScrollArea className="h-full">
-                                        <div 
-                                          className="w-full bg-white rounded-lg p-1"
-                                          style={{ 
-                                            transform: 'scale(0.42)', 
-                                            transformOrigin: 'top left', 
-                                            width: '238%',
-                                            fontSize: '6px',
-                                            lineHeight: '0.75',
-                                            minHeight: '100%',
-                                            maxWidth: '100%'
-                                          }}
-                                          dangerouslySetInnerHTML={{ 
-                                            __html: processContent(formData.html_content)
-                                          }}
-                                        />
-                                      </ScrollArea>
+                                    <div className="p-1 flex-1 overflow-auto">
+                                      <div 
+                                        className="w-full bg-white rounded-lg p-1"
+                                        style={{ 
+                                          transform: 'scale(0.42)', 
+                                          transformOrigin: 'top left', 
+                                          width: '238%',
+                                          fontSize: '6px',
+                                          lineHeight: '0.75',
+                                          minHeight: '100%',
+                                          maxWidth: '100%'
+                                        }}
+                                        dangerouslySetInnerHTML={{ 
+                                          __html: processContent(formData.html_content)
+                                        }}
+                                      />
                                     </div>
                                   </div>
                                 </div>
                               </div>
                             )}
-                          </div>
-                        </ScrollArea>
-                      </div>
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-
-                <TabsContent value="preview" className="flex-1 m-0">
-                  <div className="flex flex-col h-full min-h-0">
-                    {/* Preview Header with Device Buttons */}
-                      <div className="px-6 py-4 border-b border-border bg-muted/30">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-medium">Live Preview</h3>
-                         <div className="flex items-center gap-4">
-                           {/* Preview Controls */}
-                           <div className="flex items-center gap-2">
-                             <span className="text-xs text-muted-foreground">Team:</span>
-                             <Select value={previewTeam} onValueChange={setPreviewTeam}>
-                               <SelectTrigger className="h-8 w-16 text-xs">
-                                 <SelectValue />
-                               </SelectTrigger>
-                               <SelectContent>
-                                 <SelectItem value="TH">TH</SelectItem>
-                                 <SelectItem value="JP">JP</SelectItem>
-                               </SelectContent>
-                             </Select>
-                           </div>
-                           
-                           <div className="flex items-center gap-2">
-                             <span className="text-xs text-muted-foreground">Lang:</span>
-                             <Select value={previewLanguage} onValueChange={setPreviewLanguage}>
-                               <SelectTrigger className="h-8 w-16 text-xs">
-                                 <SelectValue />
-                               </SelectTrigger>
-                               <SelectContent>
-                                 <SelectItem value="en">EN</SelectItem>
-                                 <SelectItem value="ja">JA</SelectItem>
-                               </SelectContent>
-                             </Select>
-                           </div>
-                           
-                           <div className="flex items-center gap-2">
-                             <span className="text-xs text-muted-foreground">Scale:</span>
-                             <div className="flex items-center gap-1">
-                               <Button
-                                 variant="outline"
-                                 size="sm"
-                                 className="h-8 w-8 p-0"
-                                 onClick={() => setPreviewScale(Math.max(30, previewScale - 10))}
-                               >
-                                 -
-                               </Button>
-                               <span className="text-xs w-12 text-center">{previewScale}%</span>
-                               <Button
-                                 variant="outline"
-                                 size="sm"
-                                 className="h-8 w-8 p-0"
-                                 onClick={() => setPreviewScale(Math.min(150, previewScale + 10))}
-                               >
-                                 +
-                               </Button>
-                             </div>
-                           </div>
-                           
-                           <div className="flex items-center gap-1">
-                             <Button 
-                               variant={previewMode === 'desktop' ? "default" : "outline"} 
-                               size="sm" 
-                               className="h-8 w-8 p-0"
-                               onClick={() => setPreviewMode('desktop')}
-                             >
-                               <Monitor className="h-4 w-4" />
-                             </Button>
-                             <Button 
-                               variant={previewMode === 'tablet' ? "default" : "outline"} 
-                               size="sm" 
-                               className="h-8 w-8 p-0"
-                               onClick={() => setPreviewMode('tablet')}
-                             >
-                               <Tablet className="h-4 w-4" />
-                             </Button>
-                             <Button 
-                               variant={previewMode === 'mobile' ? "default" : "outline"} 
-                               size="sm" 
-                               className="h-8 w-8 p-0"
-                               onClick={() => setPreviewMode('mobile')}
-                             >
-                               <Smartphone className="h-4 w-4" />
-                             </Button>
-                           </div>
-                         </div>
-                        </div>
-                      </div>
-                    
-                    <div className="flex-1 p-1 bg-muted/20 min-h-[350px] flex items-center justify-center">
-                        {previewMode === 'desktop' ? (
-                          <div className="w-full max-w-5xl">
-                            {/* Desktop Mockup */}
-                            <div className="bg-gray-800 rounded-2xl p-3 shadow-2xl mx-auto">
-                              <div className="bg-gray-100 rounded-xl overflow-hidden flex flex-col h-[600px]">
-                                <div className="bg-gray-300 h-8 flex items-center justify-between px-4 flex-shrink-0">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                                    <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                                    <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                                  </div>
-                                  <div className="text-xs text-gray-600 font-medium">Email Preview</div>
-                                  <div className="w-16"></div>
-                                </div>
-                                <div className="p-4 flex-1 overflow-hidden">
-                                  <ScrollArea className="h-full">
-                                    <div 
-                                      className="w-full bg-white rounded-lg p-4"
-                                      dangerouslySetInnerHTML={{ 
-                                        __html: processContent(formData.html_content)
-                                      }}
-                                    />
-                                  </ScrollArea>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ) : previewMode === 'tablet' ? (
-                          <div className="w-full max-w-md">
-                            {/* Tablet Mockup - Optimized for complete email visibility */}
-                            <div className="bg-gray-800 rounded-3xl p-1.5 shadow-2xl mx-auto">
-                              <div className="bg-gray-100 rounded-2xl overflow-hidden flex flex-col h-[600px] w-[350px] mx-auto">
-                                <div className="bg-gray-300 h-5 flex items-center justify-center flex-shrink-0">
-                                  <div className="w-12 h-1 bg-gray-400 rounded-full"></div>
-                                </div>
-                                <div className="p-1.5 flex-1 overflow-hidden">
-                                  <ScrollArea className="h-full">
-                                    <div 
-                                      className="w-full bg-white rounded-lg p-1.5"
-                                      style={{ 
-                                        transform: 'scale(0.6)', 
-                                        transformOrigin: 'top left', 
-                                        width: '167%',
-                                        fontSize: '10px',
-                                        lineHeight: '1.0',
-                                        minHeight: '100%',
-                                        maxWidth: '100%'
-                                      }}
-                                      dangerouslySetInnerHTML={{ 
-                                        __html: processContent(formData.html_content)
-                                      }}
-                                    />
-                                  </ScrollArea>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="w-full max-w-[280px]">
-                            {/* Mobile Mockup */}
-                            <div className="bg-gray-800 rounded-3xl p-1 shadow-2xl mx-auto">
-                              <div className="bg-gray-100 rounded-2xl overflow-hidden flex flex-col h-[600px] w-[240px] mx-auto">
-                                <div className="bg-gray-300 h-6 flex items-center justify-center flex-shrink-0">
-                                  <div className="w-10 h-1 bg-gray-400 rounded-full"></div>
-                                </div>
-                                <div className="p-1 flex-1 overflow-hidden">
-                                  <ScrollArea className="h-full">
-                                    <div 
-                                      className="w-full bg-white rounded-lg p-1"
-                                      style={{ 
-                                        transform: 'scale(0.42)', 
-                                        transformOrigin: 'top left', 
-                                        width: '238%',
-                                        fontSize: '6px',
-                                        lineHeight: '0.75',
-                                        minHeight: '100%',
-                                        maxWidth: '100%'
-                                      }}
-                                      dangerouslySetInnerHTML={{ 
-                                        __html: processContent(formData.html_content)
-                                      }}
-                                    />
-                                  </ScrollArea>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                    </div>
                   </div>
-                </TabsContent>
-              </Tabs>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Bottom Action Bar */}
           <div className="border-t border-border px-6 py-4 bg-background/95 backdrop-blur-sm">
             <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-foreground">
                 Last saved {new Date().toLocaleTimeString()}
               </div>
               <div className="flex items-center gap-3">
-                <Button variant="outline" onClick={onClose} className="h-10 px-6">
+                <Button variant="outline" onClick={onClose} className="h-10 px-6 text-foreground border-border hover:bg-muted">
                   Cancel
                 </Button>
                 <Button onClick={handleSave} disabled={isSaving} className="h-10 px-6">

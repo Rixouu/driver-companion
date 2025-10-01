@@ -28,6 +28,7 @@ import {
   MapPin
 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
+import { getStatusBadgeClasses } from "@/lib/utils/styles"
 import { AssignmentModal } from "./assignment-modal"
 import { ItemManagementModal } from "./item-management-modal"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -221,11 +222,8 @@ function SortableSection({
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
                 <Badge 
-                  variant={section.is_active ? "default" : "secondary"} 
-                  className={`text-xs ${section.is_active 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-muted text-muted-foreground border border-border'
-                  }`}
+                  variant="outline" 
+                  className={`text-xs ${getStatusBadgeClasses(section.is_active ? 'active' : 'inactive')}`}
                 >
                   {section.is_active ? t('common.active') : t('common.inactive')}
                 </Badge>
@@ -466,11 +464,8 @@ export function TemplateCard({
               </CardTitle>
               <div className="flex flex-wrap gap-1 sm:gap-2 mt-1">
                 <Badge 
-                  variant={template.isActive ? "default" : "secondary"} 
-                  className={`text-xs ${template.isActive 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-muted text-muted-foreground border border-border'
-                  }`}
+                  variant="outline" 
+                  className={`text-xs ${getStatusBadgeClasses(template.isActive ? 'active' : 'inactive')}`}
                 >
                   {template.isActive ? t('common.active') : t('common.inactive')}
                 </Badge>

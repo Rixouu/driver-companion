@@ -453,17 +453,12 @@ export default function BookingDetailsPage() {
     }
 
     setIsSendingInvoice(true);
-    setProgressOpen(true);
-    setProgressVariant('invoice');
-    setProgressTitle('Sending Booking Invoice');
     
     try {
       const bccEmailList = invoiceBccEmails.split(',').map(email => email.trim()).filter(email => email);
       
-      // Start progress simulation and API call in parallel
-      const progressPromise = startProgress(progressConfigs.sendEmail);
-      
-      const response = await fetch('/api/bookings/send-booking-invoice', {
+      // Start API call first
+      const responsePromise = fetch('/api/bookings/send-booking-invoice', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -475,8 +470,16 @@ export default function BookingDetailsPage() {
         }),
       });
 
+      // Start progress modal and animation AFTER API call starts
+      setProgressOpen(true);
+      setProgressVariant('invoice');
+      setProgressTitle('Sending Booking Invoice');
+      
+      // Start progress simulation with API promise - this will sync the animation with the API
+      const progressPromise = startProgress(progressConfigs.sendEmail, responsePromise);
+
       // Wait for both to complete
-      await Promise.all([progressPromise, response]);
+      const [response] = await Promise.all([responsePromise, progressPromise]);
 
       if (!response.ok) {
         const errorData = await response.json();

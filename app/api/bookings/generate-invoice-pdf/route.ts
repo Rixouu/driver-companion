@@ -19,7 +19,8 @@ async function generateBookingInvoiceHtml(
   refund_amount?: number,
   payment_amount?: number,
   previousVehicleInfo?: any,
-  newVehicleInfo?: any
+  newVehicleInfo?: any,
+  templateConfig?: any
 ): Promise<string> {
   const isJapanese = language === 'ja';
   const localeCode = isJapanese ? 'ja-JP' : 'en-US';
@@ -306,14 +307,26 @@ async function generateBookingInvoiceHtml(
   const date = booking.date || new Date().toISOString().split('T')[0];
   const time = booking.time || '';
 
-  // Determine payment status and operation type
-  // Simple logic: if booking status is not 'pending', it's considered PAID
+  // Determine payment status and operation type using template configuration
   const isPaid = booking.status !== 'pending';
   let statusText = isPaid ? 'PAID' : 'PENDING PAYMENT';
   let statusColor = isPaid ? '#10b981' : '#f59e0b'; // Green for paid, orange for pending
   
-  // Override status for upgrade/downgrade/update operations
-  if (operation_type === 'upgrade') {
+  // Use template configuration for status colors and text
+  if (templateConfig?.statusConfigs) {
+    const statusConfig = templateConfig.statusConfigs[booking.status] || templateConfig.statusConfigs.pending;
+    statusText = statusConfig.statusBadgeName || statusText;
+    statusColor = statusConfig.statusBadgeColor || statusColor;
+  }
+  
+  // Override status for upgrade/downgrade/update operations using template configuration
+  if (operation_type && templateConfig?.operationTypes) {
+    const operationConfig = templateConfig.operationTypes[operation_type];
+    if (operationConfig) {
+      statusText = operationConfig.statusBadgeName || statusText;
+      statusColor = operationConfig.statusBadgeColor || statusColor;
+    }
+  } else if (operation_type === 'upgrade') {
     statusText = 'UPGRADE';
     statusColor = '#f59e0b'; // Orange for upgrade
   } else if (operation_type === 'downgrade') {
@@ -361,7 +374,7 @@ async function generateBookingInvoiceHtml(
         </div>
         
         <div style="text-align: right;">
-          ${getTeamAddressHtml(booking.team_location || 'thailand', isJapanese)}
+          ${templateConfig?.showTeamInfo !== false ? getTeamAddressHtml(booking.team_location || 'thailand', isJapanese) : ''}
         </div>
       </div>
       
@@ -653,7 +666,7 @@ async function generateBookingInvoiceHtml(
     
     <!-- Footer -->
     <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 12px;">
-      ${getTeamFooterHtml(booking.team_location || 'thailand', isJapanese)}
+      ${templateConfig?.showTeamInfo !== false ? getTeamFooterHtml(booking.team_location || 'thailand', isJapanese) : ''}
     </div>
   `;
 }
@@ -829,7 +842,34 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Generate HTML content for invoice
+    // Get template configuration for PDF generation
+    const { data: templateData } = await supabase
+      .from('pdf_templates' as any)
+      .select('template_data, styling')
+      .eq('type', 'invoice')
+      .eq('variant', 'booking')
+      .eq('is_active', true)
+      .single()
+
+    const templateConfig = (templateData as any)?.template_data || {
+      showTeamInfo: true,
+      showLanguageToggle: true,
+      statusConfigs: {
+        pending: { showSignature: false, showStatusBadge: true, statusBadgeColor: '#F59E0B', statusBadgeName: 'PENDING' },
+        confirmed: { showSignature: false, showStatusBadge: true, statusBadgeColor: '#3B82F6', statusBadgeName: 'CONFIRMED' },
+        assigned: { showSignature: false, showStatusBadge: true, statusBadgeColor: '#3B82F6', statusBadgeName: 'ASSIGNED' },
+        completed: { showSignature: true, showStatusBadge: true, statusBadgeColor: '#10B981', statusBadgeName: 'COMPLETED' },
+        cancelled: { showSignature: true, showStatusBadge: true, statusBadgeColor: '#EF4444', statusBadgeName: 'CANCELLED' },
+        paid: { showSignature: true, showStatusBadge: true, statusBadgeColor: '#10B981', statusBadgeName: 'PAID' }
+      },
+      operationTypes: {
+        upgrade: { statusBadgeColor: '#F59E0B', statusBadgeName: 'UPGRADE' },
+        downgrade: { statusBadgeColor: '#10B981', statusBadgeName: 'DOWNGRADE' },
+        update: { statusBadgeColor: '#0EA5E9', statusBadgeName: 'UPDATE' }
+      }
+    }
+
+    // Generate HTML content for invoice using template configuration
     const htmlContent = await generateBookingInvoiceHtml(
       booking, 
       language as 'en' | 'ja',
@@ -840,7 +880,8 @@ export async function POST(request: NextRequest) {
       refund_amount,
       payment_amount,
       previousVehicleInfo,
-      newVehicleInfo
+      newVehicleInfo,
+      templateConfig
     );
     
     // Convert to PDF using optimized generator

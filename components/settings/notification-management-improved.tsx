@@ -17,6 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/components/ui/use-toast';
 import { useI18n } from '@/lib/i18n/context';
 import { generateEmailHeader, generateEmailFooter, generateEmailTemplate } from '@/lib/email/email-partials';
+import { CountryFlag } from '@/components/ui/country-flag';
 import { Plus, Edit, Trash2, Mail, Bell, Settings, Eye, Copy, Send, FileText, Calendar, CreditCard, Wrench, Globe, Download, RefreshCw, Code, Palette, Clock, ChevronLeft, ChevronRight, MoreHorizontal, Grid, List } from 'lucide-react';
 
 interface EmailTemplate {
@@ -625,18 +626,14 @@ export function NotificationManagementImproved() {
                   <SelectContent>
                     <SelectItem value="thailand">
                       <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">TH</span>
-                        </div>
-                        Thailand
+                        <CountryFlag country="thailand" size="sm" />
+                        <span>Thailand</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="japan">
                       <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">JP</span>
-                        </div>
-                        Japan
+                        <CountryFlag country="japan" size="sm" />
+                        <span>Japan</span>
                       </div>
                     </SelectItem>
                   </SelectContent>
@@ -1130,8 +1127,18 @@ export function NotificationManagementImproved() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="thailand">TH</SelectItem>
-                            <SelectItem value="japan">JP</SelectItem>
+                            <SelectItem value="thailand">
+                              <div className="flex items-center gap-2">
+                                <CountryFlag country="thailand" size="sm" />
+                                <span>TH</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="japan">
+                              <div className="flex items-center gap-2">
+                                <CountryFlag country="japan" size="sm" />
+                                <span>JP</span>
+                              </div>
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -1426,8 +1433,18 @@ export function NotificationManagementImproved() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="thailand">TH</SelectItem>
-                            <SelectItem value="japan">JP</SelectItem>
+                            <SelectItem value="thailand">
+                              <div className="flex items-center gap-2">
+                                <CountryFlag country="thailand" size="sm" />
+                                <span>TH</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="japan">
+                              <div className="flex items-center gap-2">
+                                <CountryFlag country="japan" size="sm" />
+                                <span>JP</span>
+                              </div>
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

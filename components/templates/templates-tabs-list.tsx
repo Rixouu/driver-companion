@@ -5,6 +5,7 @@ import { TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useI18n } from "@/lib/i18n/context"
 import { ClipboardCheck, Mail, FileText } from "lucide-react"
+import { getTemplateTabClasses, getTemplateTabIconClasses } from "@/lib/utils/styles"
 
 interface TemplatesTabsListProps {
   value: string
@@ -63,13 +64,14 @@ export function TemplatesTabsList({ value, onValueChange }: TemplatesTabsListPro
       <TabsList className="flex flex-wrap h-auto min-h-12 items-center justify-start rounded-none border-0 bg-transparent p-0 text-muted-foreground">
         {tabs.map((tab) => {
           const Icon = tab.icon
+          const isActive = value === tab.value
           return (
             <TabsTrigger 
               key={tab.value}
               value={tab.value} 
-              className="relative h-12 px-6 rounded-none border-b-2 border-transparent bg-transparent text-sm font-medium transition-all hover:text-foreground hover:bg-muted/50 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-muted/20 data-[state=active]:shadow-sm"
+              className={getTemplateTabClasses(isActive)}
             >
-              <Icon className="w-4 h-4 mr-2" />
+              <Icon className={getTemplateTabIconClasses(isActive)} />
               {tab.label}
             </TabsTrigger>
           )

@@ -341,4 +341,73 @@ export function getDriverStatusBorderColor(status: string): string {
     default:
       return 'border-l-gray-500';
   }
+}
+
+export function getTemplateTabClasses(isActive: boolean): string {
+  if (isActive) {
+    return 'relative h-12 px-6 rounded-none border-b-2 border-primary bg-muted/20 text-foreground shadow-sm font-medium transition-all hover:text-foreground hover:bg-muted/50';
+  }
+  return 'relative h-12 px-6 rounded-none border-b-2 border-transparent bg-transparent text-muted-foreground font-medium transition-all hover:text-foreground hover:bg-muted/50';
+}
+
+export function getTemplateTabIconClasses(isActive: boolean): string {
+  if (isActive) {
+    return 'w-4 h-4 mr-2 text-foreground';
+  }
+  return 'w-4 h-4 mr-2 text-muted-foreground';
+}
+
+export function getTemplateTypeBadgeClasses(type: string): string {
+  switch (type?.toLowerCase()) {
+    case 'quotation':
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
+    case 'invoice':
+      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300';
+  }
+}
+
+export function getTemplateLocationBadgeClasses(location: string): string {
+  switch (location?.toLowerCase()) {
+    case 'server':
+      return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300';
+    case 'client':
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300';
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300';
+  }
+}
+
+export function getTemplateTeamBadgeClasses(team: string): string {
+  switch (team?.toLowerCase()) {
+    case 'japan':
+      return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
+    case 'thailand':
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300';
+    case 'both':
+      return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300';
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300';
+  }
+}
+
+export function getTemplateStatusBadgeClasses(status: string): string {
+  switch (status?.toLowerCase()) {
+    case 'send':
+    case 'sent':
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
+    case 'approved':
+    case 'active':
+      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+    case 'rejected':
+    case 'inactive':
+      return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
+    case 'converted':
+      return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300';
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300';
+  }
 } 

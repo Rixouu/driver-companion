@@ -12,6 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { 
+  getTemplateTypeBadgeClasses,
+  getTemplateLocationBadgeClasses,
+  getTemplateTeamBadgeClasses,
+  getTemplateStatusBadgeClasses
+} from '@/lib/utils/styles'
+import { 
   FileText, 
   Edit, 
   Eye, 
@@ -185,30 +191,6 @@ export function RevampedPDFTemplateManagement() {
     }
   }
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'quotation': return 'bg-blue-100 text-blue-800'
-      case 'invoice': return 'bg-green-100 text-green-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getLocationColor = (location: string) => {
-    switch (location) {
-      case 'server': return 'bg-purple-100 text-purple-800'
-      case 'client': return 'bg-orange-100 text-orange-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getTeamColor = (team: string) => {
-    switch (team) {
-      case 'japan': return 'bg-red-100 text-red-800'
-      case 'thailand': return 'bg-orange-100 text-orange-800'
-      case 'both': return 'bg-indigo-100 text-indigo-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -222,17 +204,6 @@ export function RevampedPDFTemplateManagement() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'send': return 'bg-blue-100 text-blue-800'
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'approved': return 'bg-green-100 text-green-800'
-      case 'rejected': return 'bg-red-100 text-red-800'
-      case 'paid': return 'bg-emerald-100 text-emerald-800'
-      case 'converted': return 'bg-purple-100 text-purple-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
 
   const generatePreviewHTML = (template: RealPDFTemplate) => {
     const isJapanese = previewLanguage === 'ja'
@@ -945,13 +916,13 @@ export function RevampedPDFTemplateManagement() {
                   {/* Template Info */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <Badge className={getTypeColor(template.type)}>
+                      <Badge className={getTemplateTypeBadgeClasses(template.type)}>
                         {template.type}
                       </Badge>
-                      <Badge className={getLocationColor(template.location)}>
+                      <Badge className={getTemplateLocationBadgeClasses(template.location)}>
                         {template.location}
                       </Badge>
-                      <Badge className={getTeamColor(template.team)}>
+                      <Badge className={getTemplateTeamBadgeClasses(template.team)}>
                         {template.team}
                       </Badge>
                     </div>
@@ -963,7 +934,7 @@ export function RevampedPDFTemplateManagement() {
                   {/* Status Badges */}
                   <div className="flex flex-wrap gap-1 mb-4">
                     {template.config.statuses.map((status) => (
-                      <Badge key={status} className={`${getStatusColor(status)} text-xs`}>
+                      <Badge key={status} className={`${getTemplateStatusBadgeClasses(status)} text-xs`}>
                         {getStatusIcon(status)}
                         <span className="ml-1">{status}</span>
                       </Badge>

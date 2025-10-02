@@ -16,7 +16,7 @@ import { EmailTemplateEditDrawer } from '@/components/templates/email-template-e
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { useI18n } from '@/lib/i18n/context';
-import { generateEmailHeader, generateEmailFooter, generateEmailTemplate } from '@/lib/email/email-partials';
+import { generateEmailHeaderClient, generateEmailFooterClient, generateEmailTemplateClient } from '@/lib/email/email-partials-client';
 import { CountryFlag } from '@/components/ui/country-flag';
 import { Plus, Edit, Trash2, Mail, Bell, Settings, Eye, Copy, Send, FileText, Calendar, CreditCard, Wrench, Globe, Download, RefreshCw, Code, Palette, Clock, ChevronLeft, ChevronRight, MoreHorizontal, Grid, List } from 'lucide-react';
 import { EmailPartialsManagement } from '@/components/templates/email-partials-management';
@@ -175,7 +175,7 @@ export function NotificationManagementImproved() {
       const processedSubject = processLanguageConditionals(template.subject, language);
 
       // Use the generateEmailTemplate function from email-partials to create full email
-      return await generateEmailTemplate({
+      return await generateEmailTemplateClient({
         customerName: sampleData.customer_name,
         language: language,
         team: team,

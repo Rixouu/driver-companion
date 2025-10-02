@@ -347,7 +347,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
         })}
         
         <div className="pt-2 pb-1 flex justify-between items-center font-medium text-sm border-t">
-          <span>Total Amount (before discount/tax):</span>
+          <span>{t('quotationDetails.totalAmountBeforeDiscountTax')}</span>
           <span>{formatCurrency(quotation.quotation_items.reduce((total, item) => {
             // For Charter Services, calculate total based on duration (unit_price × service_days)
             if (item.service_type_name?.toLowerCase().includes('charter')) {
@@ -1640,8 +1640,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   <div className="flex items-center mb-4">
                     <StickyNote className="h-6 w-6 mr-3 text-primary" />
                     <div>
-                      <h2 className="text-xl font-semibold">Notes and Comments</h2>
-                      <p className="text-sm text-muted-foreground">Additional information and feedback</p>
+                      <h2 className="text-xl font-semibold">{t('quotationDetails.notesAndComments')}</h2>
+                      <p className="text-sm text-muted-foreground">{t('quotationDetails.additionalInformationFeedback')}</p>
             </div>
                   </div>
                   <div className={`${gridClasses} gap-6`}>
@@ -1650,7 +1650,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base flex items-center gap-2">
                         <User className="h-4 w-4" />
-                        Customer Notes
+                        {t('quotationDetails.customerNotes')}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -1660,7 +1660,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                         {processNotesText(quotation.customer_notes)}
             </div>
                       <p className="text-xs text-muted-foreground mt-2">
-                        Notes visible to the customer on the quotation
+                        {t('quotationDetails.customerNotesDescription')}
                       </p>
                     </CardContent>
                   </Card>
@@ -1671,7 +1671,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base flex items-center gap-2">
                         <StickyNote className="h-4 w-4" />
-                        Internal Notes
+                        {t('quotationDetails.internalNotes')}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -1681,7 +1681,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                         {processNotesText(quotation.merchant_notes)}
                       </div>
                       <p className="text-xs text-muted-foreground mt-2">
-                        Internal notes, not visible to the customer
+                        {t('quotationDetails.internalNotesDescription')}
                       </p>
                     </CardContent>
                   </Card>
@@ -1692,7 +1692,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base flex items-center gap-2">
                         <FileText className="h-4 w-4" />
-                        General Notes
+                        {t('quotationDetails.generalNotes')}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -1702,7 +1702,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                         {processNotesText(quotation.general_notes)}
                       </div>
                       <p className="text-xs text-muted-foreground mt-2">
-                        General notes and comments
+                        {t('quotationDetails.generalNotesDescription')}
                       </p>
                     </CardContent>
                   </Card>

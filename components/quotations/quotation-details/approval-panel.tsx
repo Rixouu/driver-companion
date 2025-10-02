@@ -76,10 +76,10 @@ export function QuotationDetailsApprovalPanel({
               <CheckCircle className="h-6 w-6 mr-3 text-primary" />
               <div>
                 <CardTitle className="text-xl font-semibold">
-                  {t('quotations.details.approvalPanel.title') || 'Quotation Approval'}
+                  {t('approvalPanel.title')}
                 </CardTitle>
                 <CardDescription className="text-sm text-muted-foreground">
-                  {t('quotations.details.approvalPanel.description') || 'Review this quotation and either approve to proceed or reject with detailed feedback.'}
+                  {t('approvalPanel.description')}
                 </CardDescription>
               </div>
             </div>
@@ -109,7 +109,7 @@ export function QuotationDetailsApprovalPanel({
                 ) : (
                   <CheckCircle className="h-5 w-5" />
                 )}
-                {t('quotations.details.approvalPanel.approveButton') || 'Approve'}
+                {t('approvalPanel.approveButton')}
               </div>
             </Button>
             
@@ -134,7 +134,7 @@ export function QuotationDetailsApprovalPanel({
                 ) : (
                   <XCircle className="h-5 w-5" />
                 )}
-                {t('quotations.details.approvalPanel.rejectButton') || 'Reject'}
+                {t('approvalPanel.rejectButton')}
               </div>
             </Button>
           </div>
@@ -142,7 +142,7 @@ export function QuotationDetailsApprovalPanel({
           {/* Info Notice */}
           <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
-              💡 Your decision will be recorded and you will be notified of the outcome automatically.
+              {t('approvalPanel.decisionRecordedNotification')}
             </p>
           </div>
         </CardContent>
@@ -158,10 +158,10 @@ export function QuotationDetailsApprovalPanel({
               </div>
               <div>
                 <AlertDialogTitle className="text-lg font-semibold">
-                  Approve Quotation #{quotation?.quote_number || 'N/A'}
+                  {t('approvalPanel.approveQuotation', { quoteNumber: quotation?.quote_number || 'N/A' })}
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-sm text-muted-foreground">
-                  Review and approve to proceed with the booking.
+                  {t('approvalPanel.approveDescription')}
                 </AlertDialogDescription>
               </div>
             </div>
@@ -169,40 +169,40 @@ export function QuotationDetailsApprovalPanel({
           
           <div className="space-y-4">
             <div>
-              <Label className="text-sm font-medium mb-2 block">Your Name</Label>
+              <Label className="text-sm font-medium mb-2 block">{t('approvalPanel.yourName')}</Label>
               <Input
                 value={approveSignatureName}
                 onChange={(e) => setApproveSignatureName(e.target.value)}
-                placeholder="Enter your name for the signature"
+                placeholder={t('approvalPanel.yourNamePlaceholder')}
                 className="w-full text-sm"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                This will be used for signature presets and identification.
+                {t('approvalPanel.yourNameDescription')}
               </p>
             </div>
             
             <div>
-              <Label className="text-sm font-medium mb-2 block">Notes (Optional)</Label>
+              <Label className="text-sm font-medium mb-2 block">{t('approvalPanel.notes')}</Label>
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add any notes or comments about your decision"
+                placeholder={t('approvalPanel.notesPlaceholder')}
                 className="w-full h-20 text-sm"
               />
             </div>
             
             {showBccFields && (
               <div>
-                <Label htmlFor="approve-bcc-emails" className="text-sm font-medium mb-2 block">BCC Emails</Label>
+                <Label htmlFor="approve-bcc-emails" className="text-sm font-medium mb-2 block">{t('approvalPanel.bccEmails')}</Label>
                 <Input
                   id="approve-bcc-emails"
                   value={approveBccEmails}
                   onChange={(e) => setApproveBccEmails(e.target.value)}
-                  placeholder="Enter email addresses separated by commas"
+                  placeholder={t('approvalPanel.bccEmailsPlaceholder')}
                   className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Default: booking@japandriver.com. Add more emails separated by commas.
+                  {t('approvalPanel.bccEmailsDescription')}
                 </p>
               </div>
             )}
@@ -211,17 +211,17 @@ export function QuotationDetailsApprovalPanel({
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  <Label className="text-sm font-medium">Approval Signature *</Label>
+                  <Label className="text-sm font-medium">{t('approvalPanel.approvalSignature')}</Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button type="button" variant="ghost" size="sm" className="text-xs px-2 py-1 h-auto"
                     onClick={() => approvePadRef.current?.clear()}>
-                    {t('common.clearSignature') || 'Clear'}
+                    {t('approvalPanel.clearSignature')}
                   </Button>
                   {customerName && (
                     <Button type="button" variant="ghost" size="sm" className="text-xs px-2 py-1 h-auto"
                       onClick={() => approvePadRef.current?.togglePresets()}>
-                      {t('common.showPresets') || 'Show Presets'}
+                      {t('approvalPanel.showPresets')}
                     </Button>
                   )}
                 </div>
@@ -245,7 +245,7 @@ export function QuotationDetailsApprovalPanel({
               disabled={isProcessing}
               className="flex-1"
             >
-              Cancel
+              {t('approvalPanel.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={(e) => {
@@ -258,12 +258,12 @@ export function QuotationDetailsApprovalPanel({
               {isProcessing ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  {t('common.processing') || 'Processing...'}
+                  {t('approvalPanel.processing')}
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4" />
-                  {t('quotations.details.approvalPanel.approveButton') || 'Approve'}
+                  {t('approvalPanel.approveButton')}
                 </div>
               )}
             </AlertDialogAction>
@@ -281,10 +281,10 @@ export function QuotationDetailsApprovalPanel({
               </div>
               <div>
                 <AlertDialogTitle className="text-lg font-semibold">
-                  Reject Quotation #{quotation?.quote_number || 'N/A'}
+                  {t('approvalPanel.rejectQuotation', { quoteNumber: quotation?.quote_number || 'N/A' })}
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-sm text-muted-foreground">
-                  Are you sure you want to reject this quotation?
+                  {t('approvalPanel.rejectDescription')}
                 </AlertDialogDescription>
               </div>
             </div>
@@ -292,49 +292,49 @@ export function QuotationDetailsApprovalPanel({
           
           <div className="space-y-4">
             <div>
-              <Label className="text-sm font-medium mb-2 block">Your Name</Label>
+              <Label className="text-sm font-medium mb-2 block">{t('approvalPanel.yourName')}</Label>
               <Input
                 value={rejectSignatureName}
                 onChange={(e) => setRejectSignatureName(e.target.value)}
-                placeholder="Enter your name for the signature"
+                placeholder={t('approvalPanel.yourNamePlaceholder')}
                 className="w-full text-sm"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                This will be used for signature presets and identification.
+                {t('approvalPanel.yourNameDescription')}
               </p>
             </div>
             
             <div>
               <div className="flex items-center gap-1 mb-2">
                 <span className="text-red-500">*</span>
-                <Label className="text-sm font-medium">Reason for Rejection</Label>
+                <Label className="text-sm font-medium">{t('approvalPanel.rejectionReason')}</Label>
               </div>
               <Textarea
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Please provide a reason for rejecting this quotation"
+                placeholder={t('approvalPanel.rejectionReasonPlaceholder')}
                 className="w-full h-20 text-sm"
                 required
               />
               {rejectionReason.trim() && (
                 <p className="text-xs text-green-500 mt-1">
-                  ✓ Reason provided ({rejectionReason.length} characters)
+                  {t('approvalPanel.reasonProvided', { count: rejectionReason.length })}
                 </p>
               )}
             </div>
             
             {showBccFields && (
               <div>
-                <Label htmlFor="reject-bcc-emails" className="text-sm font-medium mb-2 block">BCC Emails</Label>
+                <Label htmlFor="reject-bcc-emails" className="text-sm font-medium mb-2 block">{t('approvalPanel.bccEmails')}</Label>
                 <Input
                   id="reject-bcc-emails"
                   value={rejectBccEmails}
                   onChange={(e) => setRejectBccEmails(e.target.value)}
-                  placeholder="Enter email addresses separated by commas"
+                  placeholder={t('approvalPanel.bccEmailsPlaceholder')}
                   className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Default: booking@japandriver.com. Add more emails separated by commas.
+                  {t('approvalPanel.bccEmailsDescription')}
                 </p>
               </div>
             )}
@@ -343,17 +343,17 @@ export function QuotationDetailsApprovalPanel({
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  <Label className="text-sm font-medium">Rejection Signature *</Label>
+                  <Label className="text-sm font-medium">{t('approvalPanel.rejectionSignature')}</Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button type="button" variant="ghost" size="sm" className="text-xs px-2 py-1 h-auto"
                     onClick={() => rejectPadRef.current?.clear()}>
-                    {t('common.clearSignature') || 'Clear'}
+                    {t('approvalPanel.clearSignature')}
                   </Button>
                   {customerName && (
                     <Button type="button" variant="ghost" size="sm" className="text-xs px-2 py-1 h-auto"
                       onClick={() => rejectPadRef.current?.togglePresets()}>
-                      {t('common.showPresets') || 'Show Presets'}
+                      {t('approvalPanel.showPresets')}
                     </Button>
                   )}
                 </div>
@@ -377,7 +377,7 @@ export function QuotationDetailsApprovalPanel({
               disabled={isProcessing}
               className="flex-1"
             >
-              Cancel
+              {t('approvalPanel.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={(e) => {
@@ -390,12 +390,12 @@ export function QuotationDetailsApprovalPanel({
               {isProcessing ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  {t('common.processing') || 'Processing...'}
+                  {t('approvalPanel.processing')}
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <X className="h-4 w-4" />
-                  {t('quotations.details.approvalPanel.rejectButton') || 'Reject'}
+                  {t('approvalPanel.rejectButton')}
                 </div>
               )}
             </AlertDialogAction>

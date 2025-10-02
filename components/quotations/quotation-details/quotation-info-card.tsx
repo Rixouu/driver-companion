@@ -51,7 +51,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
     if (isExpired && (quotation.status === 'draft' || quotation.status === 'sent') && !quotation.approved_at) {
       return {
         variant: 'outline' as const,
-        label: 'Expired',
+        label: t('quotationInfo.expired'),
         icon: XCircle,
         color: 'text-red-600',
         className: 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20'
@@ -62,7 +62,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
     if (quotation.status === 'converted') {
       return {
         variant: 'outline' as const,
-        label: 'Converted to Booking',
+        label: t('quotationInfo.convertedToBooking'),
         icon: CheckCircle,
         color: 'text-purple-600',
         className: 'text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20'
@@ -73,7 +73,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
     if (quotation.status === 'paid' || quotation.payment_completed_at) {
       return {
         variant: 'outline' as const,
-        label: 'Paid',
+        label: t('quotationInfo.paid'),
         icon: CheckCircle,
         color: 'text-gray-600',
         className: 'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
@@ -84,7 +84,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
     if (quotation.status === 'approved' || quotation.approved_at) {
       return {
         variant: 'outline' as const,
-        label: 'Approved',
+        label: t('quotationInfo.approved'),
         icon: CheckCircle,
         color: 'text-green-600',
         className: 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20'
@@ -95,7 +95,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
     if (quotation.status === 'rejected' || quotation.rejected_at) {
       return {
         variant: 'outline' as const,
-        label: 'Rejected',
+        label: t('quotationInfo.rejected'),
         icon: XCircle,
         color: 'text-red-600',
         className: 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20'
@@ -106,7 +106,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
       case 'draft':
         return {
           variant: 'outline' as const,
-          label: 'Draft',
+          label: t('quotationInfo.draft'),
           icon: Clock,
           color: 'text-gray-600',
           className: 'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
@@ -114,7 +114,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
       case 'sent':
         return {
           variant: 'outline' as const,
-          label: 'Sent',
+          label: t('quotationInfo.sent'),
           icon: CheckCircle,
           color: 'text-blue-600',
           className: 'text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20'
@@ -122,7 +122,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
       case 'approved':
         return {
           variant: 'outline' as const,
-          label: 'Approved',
+          label: t('quotationInfo.approved'),
           icon: CheckCircle,
           color: 'text-green-600',
           className: 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20'
@@ -130,7 +130,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
       case 'rejected':
         return {
           variant: 'outline' as const,
-          label: 'Rejected',
+          label: t('quotationInfo.rejected'),
           icon: XCircle,
           color: 'text-red-600',
           className: 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20'
@@ -138,7 +138,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
       case 'converted':
         return {
           variant: 'outline' as const,
-          label: 'Converted',
+          label: t('quotationInfo.converted'),
           icon: CheckCircle,
           color: 'text-purple-600',
           className: 'text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20'
@@ -146,7 +146,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
       case 'paid':
         return {
           variant: 'outline' as const,
-          label: 'Paid',
+          label: t('quotationInfo.paid'),
           icon: CheckCircle,
           color: 'text-green-700',
           className: 'text-green-700 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20'
@@ -170,7 +170,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold">
-            Quotation Status
+            {t('quotationInfo.quotationStatus')}
           </CardTitle>
           {onRefresh && (
             <Button variant="ghost" size="sm" onClick={onRefresh}>
@@ -182,7 +182,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
       <CardContent className="space-y-4">
         {/* Status */}
         <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
-          <span className="text-sm font-medium text-muted-foreground">Status</span>
+          <span className="text-sm font-medium text-muted-foreground">{t('quotationInfo.status')}</span>
           <div className="flex items-center gap-2">
             <StatusIcon className={`h-4 w-4 ${statusConfig.color}`} />
             <Badge variant={statusConfig.variant} className={`font-medium ${statusConfig.className}`}>
@@ -216,10 +216,10 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
                   : 'text-green-700 dark:text-green-300'
               }`}>
                 {isExpired 
-                  ? 'Expired' 
+                  ? t('quotationInfo.expired') 
                   : isExpiringSoon
-                  ? 'Expiring Soon'
-                  : 'Valid'
+                  ? t('quotationInfo.expiringSoon')
+                  : t('quotationInfo.valid')
                 }
               </span>
             </div>
@@ -231,15 +231,15 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
                 : 'text-green-600 dark:text-green-400'
             }`}>
               {isExpired 
-                ? `Expired ${Math.abs(daysUntilExpiry)} day${Math.abs(daysUntilExpiry) !== 1 ? 's' : ''} ago`
+                ? t('quotationInfo.expiredDaysAgo', { days: Math.abs(daysUntilExpiry) })
                 : isExpiringSoon
-                ? `Expires ${daysUntilExpiry === 0 ? 'today' : `in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}`}`
-                : `Valid for ${daysUntilExpiry} more day${daysUntilExpiry !== 1 ? 's' : ''}`
+                ? daysUntilExpiry === 0 ? t('quotationInfo.expiresToday') : t('quotationInfo.expiresInDays', { days: daysUntilExpiry })
+                : t('quotationInfo.validForDays', { days: daysUntilExpiry })
               }
             </div>
             <div className="text-xs text-muted-foreground mt-1">
               <Calendar className="h-3 w-3 inline mr-1" />
-              Valid until {formatDateDDMMYYYY(properExpiryDate)} at {format(properExpiryDate, 'h:mm a')}
+              {t('quotationInfo.validUntil', { date: formatDateDDMMYYYY(properExpiryDate), time: format(properExpiryDate, 'h:mm a') })}
             </div>
           </div>
         )}
@@ -249,7 +249,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
           <div className="p-3 bg-muted/30 rounded-lg border">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-3 w-3" />
-              <span>Created {formatDateDDMMYYYY(createdDate)}</span>
+              <span>{t('quotationInfo.created')} {formatDateDDMMYYYY(createdDate)}</span>
             </div>
           </div>
         )}

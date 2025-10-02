@@ -702,7 +702,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     const steps: WorkflowStep[] = [
       {
         id: 'draft',
-        title: 'Created',
+        title: t('workflowSteps.created'),
         description: t('quotations.workflow.draft.description'),
         icon: <FileText className="h-4 w-4" />,
         status: 'completed',
@@ -710,7 +710,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       },
       {
         id: 'send',
-        title: 'Sent',
+        title: t('workflowSteps.sent'),
         description: t('quotations.workflow.send.description'),
         icon: <Send className="h-4 w-4" />,
         status: quotation.status === 'draft' ? 'current' : 
@@ -718,7 +718,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         date: quotation.last_sent_at || (['sent', 'approved', 'rejected', 'paid', 'converted'].includes(quotation.status) ? quotation.created_at : undefined),
         ...(quotation.status === 'draft' && isOrganizationMember ? {
           action: {
-            label: t('quotationWorkflow.sendQuotation'),
+            label: t('quotations.actions.send'),
             onClick: () => setIsSendQuotationDialogOpen(true),
             disabled: false
           }
@@ -752,8 +752,8 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     steps.push({
       id: 'approve',
       title: quotation.status === 'rejected' 
-        ? 'Rejected'
-        : 'Approval',
+        ? t('workflowSteps.rejected')
+        : t('workflowSteps.approval'),
       description: quotation.status === 'rejected'
         ? (t('quotations.workflow.rejected.description') || 'Quotation was rejected by customer')
         : t('quotations.workflow.approve.description'),
@@ -771,8 +771,8 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     steps.push(
       {
         id: 'payment_link_sent',
-        title: 'Payment',
-        description: 'Payment link sent to customer or bank transfer method selected',
+        title: t('workflowSteps.payment'),
+        description: t('workflowSteps.paymentDescription'),
         icon: <Mail className="h-4 w-4" />,
         status: quotation.payment_completed_at ? 'completed' : 
                 quotation.payment_link_sent_at ? 'completed' : 
@@ -781,7 +781,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         date: quotation.payment_link_sent_at,
         ...((quotation.status === 'approved' || quotation.status === 'paid' || quotation.approved_at) && !quotation.payment_link_sent_at && !quotation.payment_completed_at && isOrganizationMember ? {
           action: {
-            label: t('quotationWorkflow.sendPaymentLink'),
+            label: t('quotations.workflow.actions.sendPaymentLink'),
             onClick: () => setIsPaymentLinkDialogOpen(true),
             variant: 'default' as const
           }
@@ -789,15 +789,15 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       },
       {
         id: 'paid',
-        title: 'Confirmed',
-        description: 'Quotation has been marked as paid',
+        title: t('workflowSteps.confirmed'),
+        description: t('workflowSteps.confirmedDescription'),
         icon: <CheckCircle className="h-4 w-4" />,
         status: (quotation.status === 'paid' || quotation.payment_completed_at) ? 'completed' : 
                 (quotation.payment_link_sent_at || quotation.status === 'sent' || quotation.status === 'approved' || quotation.approved_at) ? 'current' : 'pending',
         date: quotation.payment_completed_at,
         ...((quotation.payment_link_sent_at || quotation.status === 'sent' || quotation.status === 'approved' || quotation.approved_at) && quotation.status !== 'paid' && !quotation.payment_completed_at && isOrganizationMember ? {
           action: {
-            label: t('quotationWorkflow.markAsPaid'),
+            label: t('quotations.actions.markAsPaid'),
             onClick: () => setIsMarkAsPaidDialogOpen(true),
             variant: 'default' as const
           }
@@ -805,15 +805,15 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       },
       {
         id: 'booking',
-        title: 'Converted',
-        description: 'Convert approved quotation to a booking',
+        title: t('workflowSteps.converted'),
+        description: t('workflowSteps.convertedDescription'),
         icon: <Calendar className="h-4 w-4" />,
         status: quotation.booking_created_at ? 'completed' :
                 (quotation.status === 'paid' || quotation.payment_completed_at) ? 'current' : 'pending',
         date: quotation.booking_created_at,
         ...((quotation.status === 'paid' || quotation.payment_completed_at) && !quotation.booking_created_at && isOrganizationMember ? {
           action: {
-            label: isConvertingToBooking ? t('quotationWorkflow.converting') : t('quotationWorkflow.convertToBooking'),
+            label: isConvertingToBooking ? t('quotations.workflow.actions.converting') : t('quotations.workflow.actions.createBooking'),
             onClick: async () => {
               if (isConvertingToBooking) return; // Prevent multiple clicks
               
@@ -849,14 +849,14 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                   // Show success message based on number of bookings created
                   if (result.total_bookings > 1) {
                     toast({
-                      title: "Successfully converted to bookings",
-                      description: `${result.total_bookings} bookings have been created from this quotation`,
+                      title: t('quotationDetails.successfullyConvertedToBookings'),
+                      description: t('quotationDetails.bookingsCreatedFromQuotation', { count: result.total_bookings }),
                       variant: "default",
                     });
                   } else {
                     toast({
-                      title: "Successfully converted to booking",
-                      description: `Booking has been created successfully`,
+                      title: t('quotationDetails.successfullyConvertedToBooking'),
+                      description: t('quotationDetails.bookingCreatedSuccessfully'),
                       variant: "default",
                     });
                   }
@@ -878,8 +878,8 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
               } catch (error) {
                 console.error('Error converting to booking:', error);
                 toast({
-                  title: "Failed to convert to booking",
-                  description: error instanceof Error ? error.message : "Please try again later",
+                  title: t('quotationDetails.failedToConvertToBooking'),
+                  description: error instanceof Error ? error.message : t('quotationDetails.pleaseTryAgainLater'),
                   variant: "destructive",
                 });
               } finally {
@@ -898,8 +898,8 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     if (quotation.status === 'converted') {
       steps.push({
         id: 'converted',
-        title: 'Converted',
-        description: 'Quotation has been successfully converted to a booking',
+        title: t('workflowSteps.converted'),
+        description: t('workflowSteps.convertedStatusDescription'),
         icon: <CheckCircle className="h-4 w-4" />,
         status: 'completed',
         date: quotation.booking_created_at
@@ -993,7 +993,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                       {step.title}
                     </h4>
                     <p className="text-xs text-muted-foreground transition-colors duration-200">
-                      {t('quotationWorkflow.clickForDetails')}
+                      {t('quotations.workflow.clickForDetails')}
                     </p>
                     
                     
@@ -1029,7 +1029,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                       ? `${step.description} on ${format(parseISO(step.date), 'MMM dd, yyyy \'at\' h:mm:ss a')}`
                       : step.status === 'current'
                       ? step.description
-                      : `⏳ Not ${step.title} Yet`
+                      : t('quotationDetails.notYet', { title: step.title })
                     }
                   </p>
                   {step.status === 'current' && step.action && (
@@ -1054,7 +1054,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">{t('quotationWorkflow.status')}</span>
+              <span className="text-muted-foreground">{t('quotations.workflow.status')}</span>
                <StatusBadge
                  status={quotation.status}
                  rejectedAt={quotation.rejected_at}
@@ -1070,14 +1070,14 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                 {daysUntilExpiry > 0 ? (
                   <span className="text-red-600 font-medium">
                     {daysUntilExpiry === 1 
-                      ? "⚠️ Expires tomorrow - Send reminder now" 
-                      : `⚠️ Expires in ${daysUntilExpiry} days - Consider sending reminder`
+                      ? t('quotationDetails.expiresTomorrowSendReminderNow')
+                      : t('quotationDetails.expiresInDaysConsiderSendingReminder', { days: daysUntilExpiry })
                     }
                   </span>
                 ) : daysUntilExpiry === 0 ? (
-                  <span className="text-orange-600 font-medium">⚠️ Expires today - Send reminder immediately</span>
+                  <span className="text-orange-600 font-medium">{t('quotationDetails.expiresTodaySendReminderImmediately')}</span>
                 ) : (
-                  <span className="text-red-600 font-medium">❌ Expired {Math.abs(daysUntilExpiry)} day{Math.abs(daysUntilExpiry) === 1 ? '' : 's'} ago</span>
+                  <span className="text-red-600 font-medium">{t('quotationDetails.expiredDaysAgo', { days: Math.abs(daysUntilExpiry) })}</span>
                 )}
               </div>
             )}

@@ -123,7 +123,7 @@ export function PricingBreakdown({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Car className="h-5 w-5 text-blue-600" />
-                <CardTitle className="text-lg">{t('quotations.details.selectedServices')} ({quotationItems.length})</CardTitle>
+                <CardTitle className="text-lg">{t('priceDetails.selectedServices')} ({quotationItems.length})</CardTitle>
               </div>
               <Badge variant="outline" className="px-3 py-1">
                 {formatCurrency(totals.serviceTotal)}
@@ -146,13 +146,13 @@ export function PricingBreakdown({
               const getServiceTypeBadge = (serviceTypeName: string = '') => {
                 const serviceLower = serviceTypeName.toLowerCase();
                 if (serviceLower.includes('transfer')) {
-                  return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Transfer</Badge>;
+                  return <Badge className="bg-blue-100 text-blue-800 border-blue-200">{t('priceDetails.transfer')}</Badge>;
                 } else if (serviceLower.includes('charter')) {
-                  return <Badge className="bg-green-100 text-green-800 border-green-200">Charter</Badge>;
+                  return <Badge className="bg-green-100 text-green-800 border-green-200">{t('priceDetails.charter')}</Badge>;
                 } else if (serviceLower.includes('package')) {
-                  return <Badge className="bg-purple-100 text-purple-800 border-purple-200">Package</Badge>;
+                  return <Badge className="bg-purple-100 text-purple-800 border-purple-200">{t('priceDetails.package')}</Badge>;
                 }
-                return <Badge variant="outline">Service</Badge>;
+                return <Badge variant="outline">{t('priceDetails.service')}</Badge>;
               };
               
               return (
@@ -168,17 +168,17 @@ export function PricingBreakdown({
                   </div>
                   
                   <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-                    <div><span className="font-medium">{t('quotations.details.vehicle')}:</span> <span className="ml-2">{item.vehicle_type}</span></div>
-                    <div><span className="font-medium">{t('quotations.details.duration')}:</span> <span className="ml-2">
+                    <div><span className="font-medium">{t('priceDetails.vehicle')}</span> <span className="ml-2">{item.vehicle_type}</span></div>
+                    <div><span className="font-medium">{t('priceDetails.duration')}</span> <span className="ml-2">
                       {item.service_type_name?.toLowerCase().includes('charter') 
-                        ? `${item.service_days || 1} ${t('quotations.details.days')} × ${item.hours_per_day || 8}h/day`
-                        : `${item.duration_hours || 1} ${t('quotations.details.hours')}`}
+                        ? `${item.service_days || 1} ${t('priceDetails.days')} × ${item.hours_per_day || 8}h/day`
+                        : `${item.duration_hours || 1} ${t('priceDetails.hours')}`}
                     </span></div>
                                          {item.pickup_date && (
-                       <div><span className="font-medium">{t('quotations.details.date')}:</span> <span className="ml-2">{formatDateDDMMYYYY(item.pickup_date)}</span></div>
+                       <div><span className="font-medium">{t('priceDetails.date')}</span> <span className="ml-2">{formatDateDDMMYYYY(item.pickup_date)}</span></div>
                      )}
                      {item.pickup_time && (
-                       <div><span className="font-medium">{t('quotations.details.time')}:</span> <span className="ml-2">{item.pickup_time}</span></div>
+                       <div><span className="font-medium">{t('priceDetails.time')}</span> <span className="ml-2">{item.pickup_time}</span></div>
                      )}
                   </div>
                   
@@ -188,7 +188,7 @@ export function PricingBreakdown({
                       <div className="space-y-2">
                         <div className="flex justify-between items-start">
                           <div className="text-orange-700 dark:text-orange-300">
-                            <div className="font-medium text-sm">Time-based Adjustment</div>
+                            <div className="font-medium text-sm">{t('priceDetails.timeBasedAdjustmentTitle')}</div>
                             <div className="text-xs">
                               ({timeAdjustment.adjustmentPercentage > 0 ? '+' : ''}{timeAdjustment.adjustmentPercentage}%)
                             </div>
@@ -203,9 +203,9 @@ export function PricingBreakdown({
                           </div>
                         </div>
                         {timeAdjustment.ruleName && (
-                          <div className="text-xs text-orange-600 dark:text-orange-400 font-medium bg-orange-100 dark:bg-orange-900/40 px-2 py-1 rounded">
-                            Rule: {String(timeAdjustment.ruleName)}
-                          </div>
+                            <div className="text-xs text-orange-600 dark:text-orange-400 font-medium bg-orange-100 dark:bg-orange-900/40 px-2 py-1 rounded">
+                              {t('priceDetails.rule')}: {String(timeAdjustment.ruleName)}
+                            </div>
                         )}
                       </div>
                     </div>
@@ -224,7 +224,7 @@ export function PricingBreakdown({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Package className="h-5 w-5 text-purple-600" />
-                <CardTitle className="text-lg">Package</CardTitle>
+                <CardTitle className="text-lg">{t('priceDetails.package')}</CardTitle>
               </div>
               <Badge variant="outline" className="px-3 py-1">
                 {formatCurrency(selectedPackage.base_price)}
@@ -237,7 +237,7 @@ export function PricingBreakdown({
               <p className="text-sm text-muted-foreground mb-3">{selectedPackage.description}</p>
               
               <div className="flex justify-between items-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                <span className="text-sm font-medium">Package Service:</span>
+                <span className="text-sm font-medium">{t('priceDetails.packageService')}</span>
                 <span className="font-bold text-lg text-purple-600">{formatCurrency(selectedPackage.base_price)}</span>
               </div>
             </div>
@@ -245,7 +245,7 @@ export function PricingBreakdown({
             {/* Included Services like in pricing-step.tsx */}
             {selectedPackage.items && selectedPackage.items.length > 0 && (
               <div className="space-y-3">
-                <div className="text-sm font-medium">{t('quotations.details.includedServices')}:</div>
+                <div className="text-sm font-medium">{t('priceDetails.includedServices')}:</div>
                 
                 <div className="space-y-2">
                   {selectedPackage.items.map((item: any, index: number) => (
@@ -265,11 +265,11 @@ export function PricingBreakdown({
                 
                 <div className="pt-2 border-t border-purple-200">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Individual Total:</span>
+                    <span className="text-muted-foreground">{t('priceDetails.individualTotal')}:</span>
                     <span>{formatCurrency(selectedPackage.items.reduce((sum: number, item: any) => sum + (item.price || 0), 0))}</span>
                   </div>
                   <div className="flex justify-between text-sm font-medium text-green-600">
-                    <span>Package Savings:</span>
+                    <span>{t('priceDetails.packageSavings')}:</span>
                     <span>-{formatCurrency(selectedPackage.items.reduce((sum: number, item: any) => sum + (item.price || 0), 0) - selectedPackage.base_price)}</span>
                   </div>
                 </div>
@@ -286,17 +286,17 @@ export function PricingBreakdown({
             <div>
               <CardTitle className="text-base flex items-center gap-2">
                 <Calculator className="h-4 w-4" />
-                {t('quotations.details.pricingSummary')}
+                {t('priceDetails.pricingSummary')}
               </CardTitle>
               <CardDescription>
-                {t('quotations.details.finalPricingBreakdown')}
+                {t('priceDetails.finalPricingBreakdown')}
               </CardDescription>
             </div>
             <div className="flex items-center space-x-2">
               <Globe className="h-4 w-4 text-muted-foreground" />
               <Select value={selectedCurrency} onValueChange={onCurrencyChange}>
                 <SelectTrigger className="w-[110px] h-8">
-                  <SelectValue placeholder="Currency" />
+                  <SelectValue placeholder={t('priceDetails.currency')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="JPY">JPY (¥)</SelectItem>
@@ -315,7 +315,7 @@ export function PricingBreakdown({
             {/* Service Subtotal */}
             {totals.serviceBaseTotal > 0 && (
               <div className="flex justify-between text-sm">
-                <span>{t('quotations.details.servicesBaseTotal')}</span>
+                <span>{t('priceDetails.servicesBaseTotal')}</span>
                 <span>{formatCurrency(totals.serviceBaseTotal)}</span>
               </div>
             )}
@@ -325,7 +325,7 @@ export function PricingBreakdown({
               <div className="flex justify-between text-sm font-medium text-amber-600">
                 <span className="flex items-center gap-1">
                   <Timer className="h-3 w-3" />
-                  {t('quotations.details.timeBasedAdjustments')}
+                  {t('priceDetails.timeBasedAdjustments')}
                 </span>
                 <span>{totals.totalTimeAdjustment > 0 ? '+' : ''}{formatCurrency(totals.totalTimeAdjustment)}</span>
               </div>
@@ -334,7 +334,7 @@ export function PricingBreakdown({
             {/* Package Subtotal */}
             {totals.packageTotal > 0 && (
               <div className="flex justify-between text-sm text-purple-600">
-                <span>{t('quotations.details.packageTotal')}</span>
+                <span>{t('priceDetails.packageTotal')}</span>
                 <span>{formatCurrency(totals.packageTotal)}</span>
               </div>
             )}
@@ -343,14 +343,14 @@ export function PricingBreakdown({
             
             {/* Base Total */}
             <div className="flex justify-between text-sm font-medium">
-              <span>{t('quotations.details.totalAmount')}</span>
+              <span>{t('priceDetails.totalAmount')}</span>
               <span>{formatCurrency(totals.baseTotal)}</span>
             </div>
             
             {/* Promotion Discount (if applied) */}
             {totals.promotionDiscount > 0 && (
               <div className="flex justify-between text-sm text-green-600">
-                <span>{t('quotations.details.promotionDiscount')} ({selectedPromotion?.name})</span>
+                <span>{t('priceDetails.promotionDiscount')} ({selectedPromotion?.name})</span>
                 <span>-{formatCurrency(totals.promotionDiscount)}</span>
               </div>
             )}
@@ -358,7 +358,7 @@ export function PricingBreakdown({
             {/* Regular Discount (if applied) */}
             {totals.regularDiscount > 0 && (
               <div className="flex justify-between text-sm text-red-600">
-                <span>{t('quotations.details.regularDiscount')} ({discountPercentage || 0}%)</span>
+                <span>{t('priceDetails.regularDiscount')} ({discountPercentage || 0}%)</span>
                 <span>-{formatCurrency(totals.regularDiscount)}</span>
               </div>
             )}
@@ -366,13 +366,13 @@ export function PricingBreakdown({
             <Separator className="my-1" />
             
             <div className="flex justify-between text-sm font-medium">
-              <span>{t('quotations.details.subtotal')}</span>
+              <span>{t('priceDetails.subtotal')}</span>
               <span>{formatCurrency(totals.subtotal)}</span>
             </div>
             
             {(taxPercentage || 0) > 0 && (
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>{t('quotations.details.tax')} ({taxPercentage || 0}%)</span>
+                <span>{t('priceDetails.tax')} ({taxPercentage || 0}%)</span>
                 <span>+{formatCurrency(totals.taxAmount)}</span>
               </div>
             )}
@@ -380,7 +380,7 @@ export function PricingBreakdown({
             <Separator className="my-2" />
             
             <div className="flex justify-between font-semibold text-lg">
-              <span>{t('quotations.details.total')}</span>
+              <span>{t('priceDetails.total')}</span>
               <span>{formatCurrency(totals.finalTotal)}</span>
             </div>
           </div>

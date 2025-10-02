@@ -13,7 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/components/ui/use-toast'
 import { useI18n } from '@/lib/i18n/context'
-import { generateEmailTemplate } from '@/lib/email/email-partials'
+import { generateEmailTemplateClient } from '@/lib/email/email-partials-client'
 import { CountryFlag } from '@/components/ui/country-flag'
 import { 
   X, 
@@ -216,7 +216,7 @@ export function EmailTemplateEditDrawer({
     const teamKey = previewTeam === 'TH' ? 'thailand' : 'japan'
     
     // Generate complete email template with proper styling
-    const completeEmail = await generateEmailTemplate({
+    const completeEmail = await generateEmailTemplateClient({
       customerName: 'John Doe',
       language: previewLanguage,
       team: teamKey,

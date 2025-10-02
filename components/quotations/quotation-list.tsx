@@ -559,7 +559,7 @@ export default function QuotationList({
         {/* Total Quotations - Blue */}
         <Card className="relative overflow-hidden border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300">Total Quotations</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300">{t("quotations.summaryCards.totalQuotations")}</CardTitle>
             <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
           </CardHeader>
           <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
@@ -570,7 +570,7 @@ export default function QuotationList({
         {/* Total Revenue - Green */}
         <Card className="relative overflow-hidden border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300">Total Revenue</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300">{t("quotations.summaryCards.totalRevenue")}</CardTitle>
             <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
           </CardHeader>
           <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
@@ -583,7 +583,7 @@ export default function QuotationList({
         {/* Pending Quotations - Orange */}
         <Card className="relative overflow-hidden border-l-4 border-l-orange-500 bg-orange-50/50 dark:bg-orange-950/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-orange-700 dark:text-orange-300">Pending Quotations</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium text-orange-700 dark:text-orange-300">{t("quotations.summaryCards.pendingQuotations")}</CardTitle>
             <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600 dark:text-orange-400" />
           </CardHeader>
           <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
@@ -596,7 +596,7 @@ export default function QuotationList({
         {/* Converted Quotations - Purple */}
         <Card className="relative overflow-hidden border-l-4 border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300">Converted</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300">{t("quotations.summaryCards.converted")}</CardTitle>
             <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
           </CardHeader>
           <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
@@ -612,7 +612,7 @@ export default function QuotationList({
         <div className="relative">
           <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search quotations by number, customer, email..."
+            placeholder={t("quotations.searchPlaceholder")}
             value={filters.searchQuery}
             onChange={(e) => handleFiltersChange({ ...filters, searchQuery: e.target.value })}
             className="pl-10"
@@ -628,7 +628,7 @@ export default function QuotationList({
           >
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4" />
-              <span className="font-medium">Advanced Filters</span>
+              <span className="font-medium">{t("quotations.advancedFilters")}</span>
             </div>
             <ChevronDownIcon className={`h-4 w-4 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
           </Button>
@@ -646,7 +646,7 @@ export default function QuotationList({
         {/* Quotation Count and View Toggle */}
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {filteredQuotations.length} quotations
+            {t("quotations.showingQuotations", { count: filteredQuotations.length })}
           </div>
         </div>
 
@@ -660,7 +660,7 @@ export default function QuotationList({
               className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
               aria-label="Select all quotations"
             />
-            <span className="text-sm font-medium text-muted-foreground">Select All</span>
+            <span className="text-sm font-medium text-muted-foreground">{t("quotations.selectAll")}</span>
             {selectedQuotations.size > 0 && (
               <span className="text-sm text-muted-foreground">
                 ({selectedQuotations.size} of {filteredQuotations.length} selected)
@@ -710,22 +710,22 @@ export default function QuotationList({
           {/* Column Headers */}
           <div className="grid grid-cols-12 items-center gap-4 px-4 py-3 bg-muted/20 rounded-lg">
             <div className="col-span-1">
-              <span className="text-sm font-medium text-muted-foreground">Select</span>
+              <span className="text-sm font-medium text-muted-foreground">{t("quotations.select")}</span>
             </div>
             <div className="col-span-1">
-              <span className="text-sm font-medium text-muted-foreground">ID</span>
+              <span className="text-sm font-medium text-muted-foreground">{t("quotations.tableHeaders.id")}</span>
             </div>
             <div className="col-span-3">
-              <span className="text-sm font-medium text-muted-foreground">Customer</span>
+              <span className="text-sm font-medium text-muted-foreground">{t("quotations.tableHeaders.customer")}</span>
             </div>
             <div className="col-span-3">
-              <span className="text-sm font-medium text-muted-foreground">Date</span>
+              <span className="text-sm font-medium text-muted-foreground">{t("quotations.tableHeaders.date")}</span>
             </div>
             <div className="col-span-2">
-              <span className="text-sm font-medium text-muted-foreground">Amount</span>
+              <span className="text-sm font-medium text-muted-foreground">{t("quotations.tableHeaders.amount")}</span>
             </div>
             <div className="col-span-2">
-              <span className="text-sm font-medium text-muted-foreground">Actions</span>
+              <span className="text-sm font-medium text-muted-foreground">{t("quotations.tableHeaders.actions")}</span>
             </div>
           </div>
 
@@ -782,12 +782,12 @@ export default function QuotationList({
                     {quotation.created_at && formatDateDDMMYYYY(quotation.created_at)}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Expires: {getExpiryDate(quotation) ? formatDateDDMMYYYY(getExpiryDate(quotation)!) : '—'}
+                    {t("quotations.expires")}: {getExpiryDate(quotation) ? formatDateDDMMYYYY(getExpiryDate(quotation)!) : '—'}
                   </div>
                   {needsReminder(quotation) && (
                     <div className="flex items-center gap-2 mt-1">
                       <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Needs Reminder</span>
+                      <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">{t("quotations.needsReminder")}</span>
                       <button
                         onClick={(e) => { 
                           e.stopPropagation(); 
@@ -828,7 +828,7 @@ export default function QuotationList({
                     className="flex items-center gap-2"
                   >
                     <EyeIcon className="h-4 w-4" />
-                    View
+                    {t("quotations.actions.view")}
                   </Button>
                   
                   <Button 
@@ -838,7 +838,7 @@ export default function QuotationList({
                     className="flex items-center gap-2"
                   >
                     <CopyIcon className="h-4 w-4" />
-                    Copy
+                    {t("quotations.actions.copy")}
                   </Button>
                 </div>
               </div>
@@ -898,12 +898,12 @@ export default function QuotationList({
                       <span>{quotation.created_at && format(parseISO(quotation.created_at), 'MMM d, yyyy')}</span>
                     </div>
                     <div>
-                      <span>Expires: {getExpiryDate(quotation) ? format(getExpiryDate(quotation)!, 'MMM d, yyyy') : '—'}</span>
+                      <span>{t("quotations.expires")}: {getExpiryDate(quotation) ? format(getExpiryDate(quotation)!, 'MMM d, yyyy') : '—'}</span>
                     </div>
                     {needsReminder(quotation) && (
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-                        <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Needs Reminder</span>
+                        <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">{t("quotations.needsReminder")}</span>
                         <button
                           onClick={(e) => { 
                             e.stopPropagation(); 
@@ -931,7 +931,7 @@ export default function QuotationList({
                     className="flex items-center gap-2 w-full justify-center"
                   >
                     <EyeIcon className="h-4 w-4" />
-                    View Details
+                    {t("quotations.actions.view")} Details
                   </Button>
                   
                   <Button 
@@ -941,7 +941,7 @@ export default function QuotationList({
                     className="flex items-center gap-2 w-full justify-center"
                   >
                     <CopyIcon className="h-4 w-4" />
-                    Copy
+                    {t("quotations.actions.copy")}
                   </Button>
                 </div>
               </div>

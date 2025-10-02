@@ -38,6 +38,7 @@ export function PricingSummary({
   taxPercentage = 0,
   formatCurrency
 }: PricingSummaryProps) {
+  const { t } = useI18n();
 
   // Calculate totals exactly like the PDF generator
   const calculateTotals = () => {
@@ -105,8 +106,8 @@ export function PricingSummary({
           <div className="space-y-4">
             {/* Header Row */}
             <div className="flex justify-between items-center border-b border-border pb-2">
-              <span className="font-medium text-sm text-muted-foreground">Description</span>
-              <span className="font-medium text-sm text-muted-foreground">Price</span>
+              <span className="font-medium text-sm text-muted-foreground">{t('priceDetails.description')}</span>
+              <span className="font-medium text-sm text-muted-foreground">{t('priceDetails.price')}</span>
             </div>
             
             {/* Service Items */}
@@ -121,11 +122,11 @@ export function PricingSummary({
                     <div className="text-xs text-muted-foreground">
                       {item.service_days && item.service_days > 1 ? (
                         <span>
-                          {item.service_days} day(s) × {formatCurrency(item.unit_price)} = {formatCurrency(item.unit_price * item.service_days)}
+                          {item.service_days} {t('priceDetails.daySingular')} × {formatCurrency(item.unit_price)} = {formatCurrency(item.unit_price * item.service_days)}
                         </span>
                       ) : (
                         <span>
-                          Qty: {item.quantity} × {formatCurrency(item.unit_price)} = {formatCurrency(item.unit_price * item.quantity)}
+                          {t('priceDetails.qty')}: {item.quantity} × {formatCurrency(item.unit_price)} = {formatCurrency(item.unit_price * item.quantity)}
                         </span>
                       )}
                     </div>
@@ -144,41 +145,41 @@ export function PricingSummary({
             
             {/* Summary Section */}
             <div className="bg-muted/30 rounded-lg p-4 space-y-3">
-              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Summary</h4>
+              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">{t('priceDetails.summary')}</h4>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Services Subtotal</span>
+                  <span>{t('priceDetails.servicesSubtotal')}</span>
                   <span>{formatCurrency(totals.serviceTotal)}</span>
                 </div>
                 
                 {totals.promotionDiscount > 0 && selectedPromotion && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>Promotion ({selectedPromotion.discount_type === 'percentage' ? `-${selectedPromotion.discount_value}%` : `-${formatCurrency(selectedPromotion.discount_value)}`}): {selectedPromotion.name}</span>
+                    <span>{t('priceDetails.promotion')} ({selectedPromotion.discount_type === 'percentage' ? `-${selectedPromotion.discount_value}%` : `-${formatCurrency(selectedPromotion.discount_value)}`}): {selectedPromotion.name}</span>
                     <span>-{formatCurrency(totals.promotionDiscount)}</span>
                   </div>
                 )}
                 
                 {totals.regularDiscount > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>Discount ({discountPercentage || 0}%)</span>
+                    <span>{t('priceDetails.discount')} ({discountPercentage || 0}%)</span>
                     <span>-{formatCurrency(totals.regularDiscount)}</span>
                   </div>
                 )}
                 
                 <div className="flex justify-between text-sm">
-                  <span>Subtotal</span>
+                  <span>{t('priceDetails.subtotal')}</span>
                   <span>{formatCurrency(totals.subtotal)}</span>
                 </div>
                 
                 {(taxPercentage || 0) > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span>Tax ({taxPercentage || 0}%)</span>
+                    <span>{t('priceDetails.tax')} ({taxPercentage || 0}%)</span>
                     <span>+{formatCurrency(totals.taxAmount)}</span>
                   </div>
                 )}
                 
                 <div className="flex justify-between text-lg font-bold border-t pt-2">
-                  <span>Total Amount Due</span>
+                  <span>{t('priceDetails.totalAmountDue')}</span>
                   <span className="text-primary">{formatCurrency(totals.finalTotal)}</span>
                 </div>
               </div>

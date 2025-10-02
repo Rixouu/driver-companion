@@ -9,6 +9,7 @@ import { PencilIcon, Copy, Trash, Car, Calendar, Clock, Plane, MapPin, Users, Ch
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ServiceItemInput, PricingPackage } from '@/types/quotations';
+import { useI18n } from '@/lib/i18n/context';
 
 interface ServiceCardProps {
   item: ServiceItemInput;
@@ -41,6 +42,7 @@ export function ServiceCard({
   className,
   originalPrice
 }: ServiceCardProps) {
+  const { t } = useI18n();
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [customPrice, setCustomPrice] = useState(item.unit_price?.toString() || '0');
   
@@ -152,7 +154,7 @@ export function ServiceCard({
             <div className="grid grid-cols-2 gap-6">
               {/* Pick Up Date & Time */}
               <div>
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">PICK UP DATE & TIME</h4>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">{t('serviceCard.pickUpDateTime')}</h4>
                 <div className="text-sm text-foreground">
                   {item.pickup_date && item.pickup_time ? (
                     `${formatDate(item.pickup_date)} at ${formatTime(item.pickup_time)}`
@@ -161,7 +163,7 @@ export function ServiceCard({
                   ) : item.pickup_time ? (
                     formatTime(item.pickup_time)
                   ) : (
-                    'Not specified'
+                    t('serviceCard.notSpecified')
                   )}
                 </div>
               </div>
@@ -169,17 +171,17 @@ export function ServiceCard({
               {/* Duration or Fixed Rates */}
               <div>
                 <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">
-                  {item.service_type_name?.toLowerCase().includes('airport') ? 'RATE TYPE' : 'DURATION'}
+                  {item.service_type_name?.toLowerCase().includes('airport') ? t('serviceCard.rateType') : t('serviceCard.duration')}
                 </h4>
                 <div className="space-y-1">
                   {item.service_type_name?.toLowerCase().includes('airport') ? (
-                    <div className="text-sm text-foreground">Fixed rates</div>
+                    <div className="text-sm text-foreground">{t('serviceCard.fixedRates')}</div>
                   ) : (
                     <>
                       {item.service_days && item.hours_per_day ? (
-                        <div className="text-sm text-foreground">{item.service_days} days × {item.hours_per_day}h/day</div>
+                        <div className="text-sm text-foreground">{item.service_days} {t('serviceCard.days')} × {item.hours_per_day}{t('serviceCard.hoursPerDay')}</div>
                       ) : item.duration_hours && (
-                        <div className="text-sm text-foreground">{item.duration_hours} hour(s)</div>
+                        <div className="text-sm text-foreground">{item.duration_hours} {item.duration_hours === 1 ? t('serviceCard.hour') : t('serviceCard.hours')}</div>
                       )}
                     </>
                   )}
@@ -192,18 +194,18 @@ export function ServiceCard({
               {/* Passenger and Bag Details */}
               {(item.number_of_passengers || item.number_of_bags) && (
                 <div>
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">PASSENGER & BAG DETAILS</h4>
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">{t('serviceCard.passengerBagDetails')}</h4>
                   <div className="space-y-1">
                     {item.number_of_passengers && (
                       <div className="flex items-center gap-2 text-sm text-foreground">
                         <Users className="h-3 w-3" />
-                        <span>{item.number_of_passengers} passengers</span>
+                        <span>{item.number_of_passengers} {t('serviceCard.passengers')}</span>
                       </div>
                     )}
                     {item.number_of_bags && (
                       <div className="flex items-center gap-2 text-sm text-foreground">
                         <MapPin className="h-3 w-3" />
-                        <span>{item.number_of_bags} bags</span>
+                        <span>{item.number_of_bags} {t('serviceCard.bags')}</span>
                       </div>
                     )}
                   </div>
@@ -213,7 +215,7 @@ export function ServiceCard({
               {/* Locations */}
               {(item.pickup_location || item.dropoff_location) && (
                 <div>
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">LOCATIONS</h4>
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">{t('serviceCard.locations')}</h4>
                   <div className="space-y-1">
                     {item.pickup_location && (
                       <div className="flex items-start gap-2 text-sm">
@@ -241,13 +243,13 @@ export function ServiceCard({
                   {item.flight_number && (
                     <div className="flex items-center gap-2 text-sm text-foreground">
                       <Plane className="h-3 w-3" />
-                      <span>Flight {item.flight_number}</span>
+                      <span>{t('serviceCard.flight')} {item.flight_number}</span>
                     </div>
                   )}
                   {item.terminal && (
                     <div className="flex items-center gap-2 text-sm text-foreground">
                       <MapPin className="h-3 w-3" />
-                      <span>Terminal {item.terminal}</span>
+                      <span>{t('serviceCard.terminal')} {item.terminal}</span>
                     </div>
                   )}
                 </div>
@@ -256,10 +258,10 @@ export function ServiceCard({
 
             {/* Pricing */}
             <div className="mt-4 pt-4 border-t border-muted/30">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3">PRICING</h4>
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3">{t('serviceCard.pricing')}</h4>
               <div className="bg-muted/20 rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-foreground">Unit Price:</span>
+                  <span className="text-foreground">{t('serviceCard.unitPrice')}</span>
                   <div className="flex items-center gap-2">
                     <span className={cn(
                       "font-semibold",
@@ -277,7 +279,7 @@ export function ServiceCard({
                         title="Edit Price"
                       >
                         <Edit3 className="h-3 w-3 mr-1" />
-                        Edit
+{t('serviceCard.edit')}
                       </Button>
                     )}
                   </div>
@@ -300,7 +302,7 @@ export function ServiceCard({
                   </div>
                 )}
                 <div className="flex items-center justify-between font-bold text-white pt-2 border-t border-border">
-                  <span>Total:</span>
+                  <span>{t('serviceCard.total')}</span>
                   <span>{formatCurrency((() => {
                     // For Charter Services, calculate total based on duration (unit_price × service_days)
                     if (isCharter) {
@@ -377,11 +379,11 @@ export function ServiceCard({
           <div className="bg-background p-4 rounded-lg border border-border min-w-[300px]">
             <div className="flex items-center gap-2 mb-3">
               <Edit3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <span className="font-semibold text-foreground">Edit Unit Price</span>
+              <span className="font-semibold text-foreground">{t('serviceCard.editUnitPrice')}</span>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">New Price</label>
+                <label className="text-sm text-muted-foreground mb-1 block">{t('serviceCard.newPrice')}</label>
                 <Input
                   type="number"
                   value={customPrice}
@@ -410,7 +412,7 @@ export function ServiceCard({
                   onClick={handlePriceCancel}
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  Cancel
+{t('serviceCard.cancel')}
                 </Button>
                 <Button
                   type="button"
@@ -418,7 +420,7 @@ export function ServiceCard({
                   onClick={handlePriceSave}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
-                  Save
+{t('serviceCard.save')}
                 </Button>
               </div>
             </div>

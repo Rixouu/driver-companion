@@ -718,7 +718,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         date: quotation.last_sent_at || (['sent', 'approved', 'rejected', 'paid', 'converted'].includes(quotation.status) ? quotation.created_at : undefined),
         ...(quotation.status === 'draft' && isOrganizationMember ? {
           action: {
-            label: 'Send Quotation',
+            label: t('quotationWorkflow.sendQuotation'),
             onClick: () => setIsSendQuotationDialogOpen(true),
             disabled: false
           }
@@ -781,7 +781,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         date: quotation.payment_link_sent_at,
         ...((quotation.status === 'approved' || quotation.status === 'paid' || quotation.approved_at) && !quotation.payment_link_sent_at && !quotation.payment_completed_at && isOrganizationMember ? {
           action: {
-            label: 'Send Payment Link',
+            label: t('quotationWorkflow.sendPaymentLink'),
             onClick: () => setIsPaymentLinkDialogOpen(true),
             variant: 'default' as const
           }
@@ -797,7 +797,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         date: quotation.payment_completed_at,
         ...((quotation.payment_link_sent_at || quotation.status === 'sent' || quotation.status === 'approved' || quotation.approved_at) && quotation.status !== 'paid' && !quotation.payment_completed_at && isOrganizationMember ? {
           action: {
-            label: 'Mark As Paid',
+            label: t('quotationWorkflow.markAsPaid'),
             onClick: () => setIsMarkAsPaidDialogOpen(true),
             variant: 'default' as const
           }
@@ -813,7 +813,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         date: quotation.booking_created_at,
         ...((quotation.status === 'paid' || quotation.payment_completed_at) && !quotation.booking_created_at && isOrganizationMember ? {
           action: {
-            label: isConvertingToBooking ? 'Converting...' : 'Convert to Booking',
+            label: isConvertingToBooking ? t('quotationWorkflow.converting') : t('quotationWorkflow.convertToBooking'),
             onClick: async () => {
               if (isConvertingToBooking) return; // Prevent multiple clicks
               
@@ -993,7 +993,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                       {step.title}
                     </h4>
                     <p className="text-xs text-muted-foreground transition-colors duration-200">
-                      Click for details
+                      {t('quotationWorkflow.clickForDetails')}
                     </p>
                     
                     
@@ -1054,7 +1054,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Status:</span>
+              <span className="text-muted-foreground">{t('quotationWorkflow.status')}</span>
                <StatusBadge
                  status={quotation.status}
                  rejectedAt={quotation.rejected_at}
@@ -1117,7 +1117,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              Send Payment Link
+              {t('quotationWorkflow.sendPaymentLinkTitle')}
             </DialogTitle>
             <DialogDescription>
               Send the invoice with payment link to the customer, or skip if using bank transfer.
@@ -1309,7 +1309,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsPaymentLinkDialogOpen(false)}>
-              Cancel
+              {t('quotationWorkflow.cancel')}
             </Button>
             
             {/* Skip button for bank transfer */}
@@ -1383,7 +1383,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
               {isSendingPaymentLink ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending...
+{t('quotationWorkflow.sending')}
                 </>
               ) : paymentLinkSent ? (
                 <>
@@ -1393,7 +1393,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
               ) : (
                 <>
                   <CreditCard className="mr-2 h-4 w-4" />
-                  Send Payment Link
+{t('quotationWorkflow.sendPaymentLink')}
                 </>
               )}
             </Button>
@@ -1419,9 +1419,9 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       <Dialog open={isMarkAsPaidDialogOpen} onOpenChange={setIsMarkAsPaidDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Mark Quotation as Paid</DialogTitle>
+            <DialogTitle>{t('quotationWorkflow.markAsPaidTitle')}</DialogTitle>
             <DialogDescription>
-              Mark this quotation as paid and optionally upload a receipt.
+              {t('quotationWorkflow.markAsPaidDescription')}
             </DialogDescription>
           </DialogHeader>
           
@@ -1646,7 +1646,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsMarkAsPaidDialogOpen(false)}>
-              Cancel
+              {t('quotationWorkflow.cancel')}
             </Button>
             <Button onClick={handleMarkAsPaid} disabled={isMarkingAsPaid || !paymentAmount || !paymentMethod}>
               {isMarkingAsPaid ? (
@@ -1671,7 +1671,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Send className="h-5 w-5" />
-              Send Quotation
+              {t('quotationWorkflow.sendQuotationTitle')}
             </DialogTitle>
             <DialogDescription>
               Send this quotation to the customer via email.
@@ -1738,7 +1738,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsSendQuotationDialogOpen(false)}>
-              Cancel
+              {t('quotationWorkflow.cancel')}
             </Button>
             <Button 
               onClick={handleSendQuotationWithSettings}
@@ -1748,12 +1748,12 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
               {isSendingQuotation ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending...
+{t('quotationWorkflow.sending')}
                 </>
               ) : (
                 <>
                   <Send className="mr-2 h-4 w-4" />
-                  Send Quotation
+{t('quotationWorkflow.sendQuotation')}
                 </>
               )}
             </Button>

@@ -10,6 +10,7 @@ import { QuotationItem } from '@/types/quotations';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { formatDateDDMMYYYY } from '@/lib/utils/formatting';
+import { useI18n } from '@/lib/i18n/context';
 
 interface TimeBasedRule {
   id: string;
@@ -62,6 +63,7 @@ export function PriceDetails({
   pickup_date,
   pickup_time
 }: PriceDetailsProps) {
+  const { t } = useI18n();
   
   const calculateFinalAmounts = () => {
     let serviceTotal = 0;
@@ -231,13 +233,13 @@ export function PriceDetails({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Car className="h-5 w-5 text-blue-600" />
-                <CardTitle className="text-lg">Selected Services ({quotation_items.length})</CardTitle>
+                <CardTitle className="text-lg">{t('priceDetails.selectedServices')} ({quotation_items.length})</CardTitle>
               </div>
               <Badge variant="outline" className="px-3 py-1">
                 {formatCurrency(serviceTotal + serviceTimeAdjustment)}
               </Badge>
             </div>
-            <CardDescription>Detailed breakdown of your services</CardDescription>
+            <CardDescription>{t('priceDetails.detailedBreakdown')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {quotation_items.map((item, index) => {
@@ -305,17 +307,17 @@ export function PriceDetails({
                             item.service_type_name?.toLowerCase().includes('package') ? "secondary" : 
                             item.service_type_name?.toLowerCase().includes('charter') ? "default" : "outline"
                           } className="text-xs">
-                            {item.service_type_name?.toLowerCase().includes('package') ? 'Package' : 
+                            {item.service_type_name?.toLowerCase().includes('package') ? t('priceDetails.package') : 
                              item.service_type_name?.toLowerCase().includes('charter') ? 'Charter' : 'Transfer'}
                           </Badge>
                           <span className="font-medium">{item.description}</span>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-2">
-                          <span><strong>Vehicle:</strong> {item.vehicle_type}</span>
+                          <span><strong>{t('priceDetails.vehicle')}</strong> {item.vehicle_type}</span>
                           {!item.service_type_name?.toLowerCase().includes('package') && (
                             <span>
-                              <strong>Duration:</strong> {
+                              <strong>{t('priceDetails.duration')}</strong> {
                                 item.service_type_name?.toLowerCase().includes('charter') 
                                   ? `${item.service_days || 1} day(s) × ${item.hours_per_day || 8}h`
                                   : `${item.duration_hours || 1} hour(s)`
@@ -323,10 +325,10 @@ export function PriceDetails({
                             </span>
                           )}
                           {item.pickup_date && (
-                            <span><strong>Date:</strong> {formatDateDDMMYYYY(item.pickup_date)}</span>
+                            <span><strong>{t('priceDetails.date')}</strong> {formatDateDDMMYYYY(item.pickup_date)}</span>
                           )}
                           {item.pickup_time && (
-                            <span><strong>Time:</strong> {item.pickup_time}</span>
+                            <span><strong>{t('priceDetails.time')}</strong> {item.pickup_time}</span>
                           )}
                         </div>
                       </div>
@@ -340,7 +342,7 @@ export function PriceDetails({
                       <div className="bg-orange-50 dark:bg-orange-900/20 rounded p-2">
                         <div className="flex justify-between text-xs">
                           <span className="text-orange-700 dark:text-orange-300">
-                            Time-based adjustment ({applicableRules.length > 0 ? (applicableRules[0].adjustment_percentage > 0 ? '+' : '') + applicableRules[0].adjustment_percentage : '0'}%)
+{t('priceDetails.timeBasedAdjustment')} ({applicableRules.length > 0 ? (applicableRules[0].adjustment_percentage > 0 ? '+' : '') + applicableRules[0].adjustment_percentage : '0'}%)
                             {applicableRules.length > 0 && applicableRules[0].name && (
                               <span className="text-muted-foreground ml-1">- {applicableRules[0].name}</span>
                             )}
@@ -356,7 +358,7 @@ export function PriceDetails({
                               "text-xs font-medium",
                               itemTimeAdjustment > 0 ? "text-orange-600" : "text-green-600"
                             )}>
-                              ({applicableRules.length > 0 ? (applicableRules[0].adjustment_percentage > 0 ? '+' : '') + applicableRules[0].adjustment_percentage : '0'}%) - {itemTimeAdjustment > 0 ? 'Overtime' : 'Discount'}
+                              ({applicableRules.length > 0 ? (applicableRules[0].adjustment_percentage > 0 ? '+' : '') + applicableRules[0].adjustment_percentage : '0'}%) - {itemTimeAdjustment > 0 ? t('priceDetails.overtime') : t('priceDetails.discount')}
                             </div>
                           </div>
                         </div>
@@ -377,13 +379,13 @@ export function PriceDetails({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Package className="h-5 w-5 text-purple-600" />
-                <CardTitle className="text-lg">Package</CardTitle>
+                <CardTitle className="text-lg">{t('priceDetails.package')}</CardTitle>
               </div>
               <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
                 {selectedPackage.package_type || 'Bundle'}
               </Badge>
             </div>
-            <CardDescription>Special package offer</CardDescription>
+            <CardDescription>{t('priceDetails.specialPackageOffer')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -391,7 +393,7 @@ export function PriceDetails({
               <p className="text-sm text-muted-foreground mb-3">{selectedPackage.description}</p>
               
               <div className="flex justify-between items-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                <span className="text-sm font-medium">Package Service:</span>
+                <span className="text-sm font-medium">{t('priceDetails.packageService')}</span>
                 <span className="font-bold text-lg text-purple-600">{formatCurrency(selectedPackage.base_price)}</span>
               </div>
             </div>
@@ -399,7 +401,7 @@ export function PriceDetails({
             {/* Package included services matching pricing-step.tsx */}
             {selectedPackage.items && selectedPackage.items.length > 0 && (
               <div className="space-y-3">
-                <div className="text-sm font-medium">Included Services:</div>
+                <div className="text-sm font-medium">{t('priceDetails.includedServices')}</div>
                 
                 <div className="space-y-2">
                   {selectedPackage.items.map((item: any, index: number) => (
@@ -419,11 +421,11 @@ export function PriceDetails({
                 
                 <div className="pt-2 border-t border-purple-200">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Individual Total:</span>
+                    <span className="text-muted-foreground">{t('priceDetails.individualTotal')}</span>
                     <span>{formatCurrency(selectedPackage.items.reduce((sum: number, item: any) => sum + (item.price || 0), 0))}</span>
                   </div>
                   <div className="flex justify-between text-sm font-medium text-green-600">
-                    <span>Package Savings:</span>
+                    <span>{t('priceDetails.packageSavings')}</span>
                     <span>-{formatCurrency(selectedPackage.items.reduce((sum: number, item: any) => sum + (item.price || 0), 0) - selectedPackage.base_price)}</span>
                   </div>
                 </div>
@@ -438,9 +440,9 @@ export function PriceDetails({
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base font-medium">Pricing Summary</CardTitle>
+              <CardTitle className="text-base font-medium">{t('priceDetails.pricingSummary')}</CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
-                Detailed breakdown
+                {t('priceDetails.detailedBreakdown')}
               </CardDescription>
             </div>
             <div className="flex items-center space-x-2">
@@ -466,7 +468,7 @@ export function PriceDetails({
             {/* Service Subtotal */}
             {serviceTotal > 0 && (
               <div className="flex justify-between text-sm">
-                <span>Services Base Total</span>
+                <span>{t('priceDetails.servicesBaseTotal')}</span>
                 <span>{formatCurrency(serviceTotal)}</span>
               </div>
             )}
@@ -476,7 +478,7 @@ export function PriceDetails({
               <div className="flex justify-between text-sm font-medium text-amber-600">
                 <span className="flex items-center gap-1">
                   <Timer className="h-3 w-3" />
-                  Time-based Adjustments
+{t('priceDetails.timeBasedAdjustments')}
                 </span>
                 <span>{serviceTimeAdjustment > 0 ? '+' : ''}{formatCurrency(serviceTimeAdjustment)}</span>
               </div>
@@ -485,7 +487,7 @@ export function PriceDetails({
             {/* Package Subtotal */}
             {packageTotal > 0 && (
               <div className="flex justify-between text-sm text-purple-600">
-                <span>Package Total</span>
+                <span>{t('priceDetails.packageTotal')}</span>
                 <span>{formatCurrency(packageTotal)}</span>
               </div>
             )}
@@ -494,14 +496,14 @@ export function PriceDetails({
             
             {/* Base Total */}
             <div className="flex justify-between text-sm font-medium">
-              <span>Total Amount</span>
+              <span>{t('priceDetails.totalAmount')}</span>
               <span>{formatCurrency(baseTotal)}</span>
             </div>
             
             {/* Promotion Discount (if applied) */}
             {promotionDiscount > 0 && (
               <div className="flex justify-between text-sm text-green-600">
-                <span>Promotion ({selectedPromotion?.discount_type === 'percentage' ? `-${selectedPromotion.discount_value}%` : `-${formatCurrency(selectedPromotion.discount_value)}`}): {selectedPromotion?.name}</span>
+                <span>{t('priceDetails.promotion')} ({selectedPromotion?.discount_type === 'percentage' ? `-${selectedPromotion.discount_value}%` : `-${formatCurrency(selectedPromotion.discount_value)}`}): {selectedPromotion?.name}</span>
                 <span>-{formatCurrency(promotionDiscount)}</span>
               </div>
             )}
@@ -509,7 +511,7 @@ export function PriceDetails({
             {/* Regular Discount (if applied) */}
             {regularDiscountAmount > 0 && (
               <div className="flex justify-between text-sm text-red-600">
-                <span>Regular Discount ({discount_percentage || 0}%)</span>
+                <span>{t('priceDetails.regularDiscount')} ({discount_percentage || 0}%)</span>
                 <span>-{formatCurrency(regularDiscountAmount)}</span>
               </div>
             )}
@@ -517,13 +519,13 @@ export function PriceDetails({
             <Separator className="my-1" />
             
             <div className="flex justify-between text-sm font-medium">
-              <span>Subtotal</span>
+              <span>{t('priceDetails.subtotal')}</span>
               <span>{formatCurrency(subtotal)}</span>
             </div>
             
             {(tax_percentage || 0) > 0 && (
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Tax ({tax_percentage || 0}%)</span>
+                <span>{t('priceDetails.tax')} ({tax_percentage || 0}%)</span>
                 <span>+{formatCurrency(taxAmount)}</span>
               </div>
             )}
@@ -531,7 +533,7 @@ export function PriceDetails({
             <Separator className="my-2" />
             
             <div className="flex justify-between font-semibold text-lg">
-              <span>Total</span>
+              <span>{t('priceDetails.total')}</span>
               <span>{formatCurrency(finalTotal)}</span>
             </div>
           </div>

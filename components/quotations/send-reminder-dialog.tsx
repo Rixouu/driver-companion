@@ -24,7 +24,7 @@ interface SendReminderDialogProps {
 export function SendReminderDialog({ quotation, open, onOpenChange }: SendReminderDialogProps) {
   const { t } = useI18n()
   const [language, setLanguage] = useState<'en' | 'ja'>('en')
-  const [bccEmails, setBccEmails] = useState<string>("admin.rixou@gmail.com")
+  const [bccEmails, setBccEmails] = useState<string>("booking@japandriver.com")
   const [customerEmail, setCustomerEmail] = useState(quotation?.customer_email || '')
   const [isLoading, setIsLoading] = useState(false)
   
@@ -134,7 +134,7 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
               className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Default: admin.rixou@gmail.com. Add more emails separated by commas.
+              Default: booking@japandriver.com. Add more emails separated by commas.
             </p>
           </div>
           

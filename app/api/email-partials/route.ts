@@ -1,25 +1,72 @@
-// Email Partials Manager - Syncs branding interface with actual email partials
-import { getTeamAddress, getTeamFooterHtml } from '@/lib/team-addresses'
-import { 
-  generateEmailHeaderFromDB, 
-  generateEmailFooterFromDB, 
-  generateEmailCSSFromDB 
-} from './email-partials-database-fetcher'
+import { NextRequest, NextResponse } from 'next/server'
+import { getSupabaseServerClient } from '@/lib/supabase/server'
 
-export interface EmailTemplateData {
-  customerName: string
-  language: 'en' | 'ja'
-  team: 'japan' | 'thailand'
-  logoUrl?: string
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const type = searchParams.get('type') as 'header' | 'footer' | 'css'
+    const team = searchParams.get('team') as 'japan' | 'thailand' | 'both'
+    const documentType = searchParams.get('documentType') as 'email'
+
+    if (!type || !team || !documentType) {
+      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 })
+    }
+
+    const supabase = await getSupabaseServerClient()
+    
+    // Try to get team-specific template first
+    let { data: partial, error } = await supabase
+      .from('partial_templates')
+      .select('content')
+      .eq('type', type)
+      .eq('document_type', documentType)
+      .eq('team', team)
+      .eq('is_active', true)
+      .single()
+
+    // If no team-specific template and team is not 'both', try 'both' template
+    if (error && team !== 'both') {
+      const { data: bothPartial, error: bothError } = await supabase
+        .from('partial_templates')
+        .select('content')
+        .eq('type', type)
+        .eq('document_type', documentType)
+        .eq('team', 'both')
+        .eq('is_active', true)
+        .single()
+      
+      if (!bothError && bothPartial) {
+        partial = bothPartial
+        error = null
+      }
+    }
+
+    if (error || !partial) {
+      console.warn(`No email ${type} template found for team ${team}`)
+      return NextResponse.json({ 
+        content: getDefaultTemplate(type),
+        fallback: true 
+      })
+    }
+
+    return NextResponse.json({ 
+      content: partial.content,
+      fallback: false 
+    })
+    
+  } catch (error) {
+    console.error('Error fetching email partial from database:', error)
+    return NextResponse.json({ 
+      content: getDefaultTemplate('header'),
+      fallback: true 
+    })
+  }
 }
 
-export function getTeamCompanyName(team: 'japan' | 'thailand'): string {
-  const address = getTeamAddress(team)
-  return address.companyName
-}
-
-// Default header template - this is what gets loaded in the Header tab
-export const DEFAULT_HEADER_TEMPLATE = `<!-- Header -->
+function getDefaultTemplate(type: 'header' | 'footer' | 'css'): string {
+  switch (type) {
+    case 'header':
+      return `<!-- Header -->
 <tr>
   <td style="background:linear-gradient(135deg,{{primary_color}} 0%,{{secondary_color}} 100%);">
     <table width="100%" role="presentation">
@@ -43,9 +90,9 @@ export const DEFAULT_HEADER_TEMPLATE = `<!-- Header -->
     </table>
   </td>
 </tr>`
-
-// Default footer template - this is what gets loaded in the Footer tab
-export const DEFAULT_FOOTER_TEMPLATE = `<!-- Footer -->
+    
+    case 'footer':
+      return `<!-- Footer -->
 <tr>
   <td style="padding:32px 24px; background:#f8f9fa; border-top:1px solid #e2e8f0;">
     <div style="text-align:center;">
@@ -53,9 +100,9 @@ export const DEFAULT_FOOTER_TEMPLATE = `<!-- Footer -->
     </div>
   </td>
 </tr>`
-
-// Default CSS template - this is what gets loaded in the CSS tab
-export const DEFAULT_CSS_TEMPLATE = `body, table, td, a {
+    
+    case 'css':
+      return `body, table, td, a {
   -webkit-text-size-adjust:100%;
   -ms-text-size-adjust:100%;
   font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
@@ -201,32 +248,8 @@ body {
   color: black !important;
   text-decoration: none !important;
 }`
-
-// Function to generate header from custom template (now uses database)
-export async function generateEmailHeaderFromTemplate(
-  template: string,
-  data: EmailTemplateData & { title: string; subtitle?: string; primaryColor?: string; secondaryColor?: string }
-) {
-  // Use database function with fallback to provided template
-  return await generateEmailHeaderFromDB(data, template)
-}
-
-// Function to generate footer from custom template (now uses database)
-export async function generateEmailFooterFromTemplate(
-  template: string,
-  data: EmailTemplateData
-) {
-  // Use database function with fallback to provided template
-  return await generateEmailFooterFromDB(data, template)
-}
-
-// Function to generate CSS from custom template (now uses database)
-export async function generateEmailStylesFromTemplate(
-  template: string,
-  primaryColor: string = '#FF2800',
-  customCSS?: string,
-  team: 'japan' | 'thailand' | 'both' = 'both'
-) {
-  // Use database function with fallback to provided template
-  return await generateEmailCSSFromDB(team, primaryColor, customCSS, template)
+    
+    default:
+      return ''
+  }
 }

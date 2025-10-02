@@ -19,6 +19,7 @@ import { useI18n } from '@/lib/i18n/context';
 import { generateEmailHeader, generateEmailFooter, generateEmailTemplate } from '@/lib/email/email-partials';
 import { CountryFlag } from '@/components/ui/country-flag';
 import { Plus, Edit, Trash2, Mail, Bell, Settings, Eye, Copy, Send, FileText, Calendar, CreditCard, Wrench, Globe, Download, RefreshCw, Code, Palette, Clock, ChevronLeft, ChevronRight, MoreHorizontal, Grid, List } from 'lucide-react';
+import { EmailPartialsManagement } from '@/components/templates/email-partials-management';
 
 interface EmailTemplate {
   id: string;
@@ -41,6 +42,20 @@ export function NotificationManagementImproved() {
   const [selectedTeam, setSelectedTeam] = useState<'japan' | 'thailand'>('thailand');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ja'>('en');
+  const [activeTab, setActiveTab] = useState('templates');
+  const [previewContents, setPreviewContents] = useState<{[key: string]: string}>({});
+  
+  // Function to update preview content
+  const updatePreviewContent = async (template: EmailTemplate, team: 'japan' | 'thailand', language: 'en' | 'ja') => {
+    const key = `${template.id}-${team}-${language}`;
+    try {
+      const content = await generatePreviewContent(template, team, language);
+      setPreviewContents(prev => ({ ...prev, [key]: content }));
+    } catch (error) {
+      console.error('Error updating preview content:', error);
+      setPreviewContents(prev => ({ ...prev, [key]: template.html_content }));
+    }
+  };
   
   // Modal-specific team and language states for preview
   const [modalTeam, setModalTeam] = useState<'japan' | 'thailand'>('thailand');
@@ -52,6 +67,7 @@ export function NotificationManagementImproved() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [populatingTemplates, setPopulatingTemplates] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
   const [sendingTemplate, setSendingTemplate] = useState<EmailTemplate | null>(null);
   const [sendEmail, setSendEmail] = useState('');
@@ -88,14 +104,28 @@ export function NotificationManagementImproved() {
 
   // Process language conditionals in template content
   const processLanguageConditionals = (content: string, language: 'en' | 'ja'): string => {
+    let processed = content;
+    
     // Replace {{language == "ja" ? "Japanese text" : "English text"}} patterns
-    return content.replace(/\{\{language\s*==\s*"ja"\s*\?\s*"([^"]*)"\s*:\s*"([^"]*)"\}\}/g, (match, japaneseText, englishText) => {
+    processed = processed.replace(/\{\{language\s*==\s*"ja"\s*\?\s*"([^"]*)"\s*:\s*"([^"]*)"\}\}/g, (match, japaneseText, englishText) => {
       return language === 'ja' ? japaneseText : englishText;
     });
+    
+    // Replace {{LANGUAGE=="JA"?"Japanese text":"English text"}} patterns (uppercase)
+    processed = processed.replace(/\{\{LANGUAGE\s*==\s*"JA"\s*\?\s*"([^"]*)"\s*:\s*"([^"]*)"\}\}/g, (match, japaneseText, englishText) => {
+      return language === 'ja' ? japaneseText : englishText;
+    });
+    
+    // Replace {{language == "ja"? "Japanese text": "English text"}} patterns (no spaces around ?)
+    processed = processed.replace(/\{\{language\s*==\s*"ja"\s*\?\s*"([^"]*)"\s*:\s*"([^"]*)"\}\}/g, (match, japaneseText, englishText) => {
+      return language === 'ja' ? japaneseText : englishText;
+    });
+    
+    return processed;
   };
 
   // Generate preview content with sample data
-  const generatePreviewContent = (template: EmailTemplate, team: 'japan' | 'thailand' = selectedTeam, language: 'en' | 'ja' = selectedLanguage) => {
+  const generatePreviewContent = async (template: EmailTemplate, team: 'japan' | 'thailand' = selectedTeam, language: 'en' | 'ja' = selectedLanguage) => {
     try {
       const sampleData = {
         customer_name: 'John Doe',
@@ -145,7 +175,7 @@ export function NotificationManagementImproved() {
       const processedSubject = processLanguageConditionals(template.subject, language);
 
       // Use the generateEmailTemplate function from email-partials to create full email
-      return generateEmailTemplate({
+      return await generateEmailTemplate({
         customerName: sampleData.customer_name,
         language: language,
         team: team,
@@ -182,29 +212,71 @@ export function NotificationManagementImproved() {
     { value: 'system', label: 'System Alerts', icon: Bell, color: 'text-yellow-500' },
   ];
 
-  // Load templates from database
+  // Load templates from database only once
   useEffect(() => {
-    loadTemplates();
-    loadAppSettings();
-  }, []);
+    if (!hasLoaded) {
+      loadTemplates();
+      loadAppSettings();
+    }
+  }, [hasLoaded]);
+
+  // Update preview content when templates, team, or language changes
+  useEffect(() => {
+    if (templates.length > 0) {
+      templates.forEach(template => {
+        updatePreviewContent(template, selectedTeam, selectedLanguage);
+      });
+    }
+  }, [templates, selectedTeam, selectedLanguage]);
+
+  // Update preview content when modal team or language changes
+  useEffect(() => {
+    if (isTemplateDialogOpen && previewTemplate) {
+      updatePreviewContent(previewTemplate, modalTeam, modalLanguage);
+    }
+  }, [modalTeam, modalLanguage, isTemplateDialogOpen, previewTemplate]);
+
+  // Update preview content when edit drawer team or language changes
+  useEffect(() => {
+    if (isEditDrawerOpen && editingTemplate) {
+      const previewTemplate = {
+        ...editingTemplate,
+        id: editingTemplate.id || 'preview',
+        variables: editingTemplate.variables || {},
+        created_at: editingTemplate.created_at || new Date().toISOString(),
+        updated_at: editingTemplate.updated_at || new Date().toISOString()
+      };
+      updatePreviewContent(previewTemplate, modalTeam, modalLanguage);
+    }
+  }, [modalTeam, modalLanguage, isEditDrawerOpen, editingTemplate]);
 
   // Update preview when HTML content changes (with debounce)
   useEffect(() => {
     if (isTemplateDialogOpen && templateForm.html_content) {
-      const timeoutId = setTimeout(() => {
-        setPreviewKey(prev => prev + 1);
+      const timeoutId = setTimeout(async () => {
+        // Update preview content when editing
+        const previewTemplate = {
+          ...templateForm,
+          id: editingTemplate?.id || 'preview',
+          variables: editingTemplate?.variables || {},
+          created_at: editingTemplate?.created_at || new Date().toISOString(),
+          updated_at: editingTemplate?.updated_at || new Date().toISOString()
+        };
+        await updatePreviewContent(previewTemplate, modalTeam, modalLanguage);
       }, 500); // 500ms debounce
 
       return () => clearTimeout(timeoutId);
     }
-  }, [templateForm.html_content, isTemplateDialogOpen]);
+  }, [templateForm.html_content, isTemplateDialogOpen, modalTeam, modalLanguage]);
 
   const loadTemplates = async () => {
     try {
+      setLoading(true);
       const response = await fetch('/api/admin/notification-templates');
       if (response.ok) {
         const data = await response.json();
         setTemplates(data);
+        setHasLoaded(true);
       }
     } catch (error) {
       console.error('Error loading templates:', error);
@@ -553,6 +625,15 @@ export function NotificationManagementImproved() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="templates">Email Templates</TabsTrigger>
+          <TabsTrigger value="partials">Email Partials</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="templates" className="space-y-6">
+
 
       {/* Search and Controls Bar */}
       <Card>
@@ -763,7 +844,7 @@ export function NotificationManagementImproved() {
                               }}>
                                 <iframe
                                   key={`thumbnail-${template.id}-${template.updated_at}-${selectedTeam}-${selectedLanguage}`}
-                                  srcDoc={generatePreviewContent(template, selectedTeam, selectedLanguage)}
+                                  srcDoc={previewContents[`${template.id}-${selectedTeam}-${selectedLanguage}`] || template.html_content}
                                   className="border-0 thumbnail-iframe"
                                   title="Email Preview Thumbnail"
                                   sandbox="allow-same-origin"
@@ -1183,7 +1264,7 @@ export function NotificationManagementImproved() {
                     {previewTemplate?.html_content ? (
                       <iframe
                         key={`modal-preview-${previewTemplate.id}-${previewTemplate.updated_at}-${modalTeam}-${modalLanguage}`}
-                        srcDoc={generatePreviewContent(previewTemplate, modalTeam, modalLanguage)}
+                        srcDoc={previewContents[`${previewTemplate.id}-${modalTeam}-${modalLanguage}`] || previewTemplate.html_content}
                         className="w-full h-full border-0"
                         title="Email Preview"
                         sandbox="allow-same-origin"
@@ -1489,13 +1570,7 @@ export function NotificationManagementImproved() {
                     {templateForm.html_content ? (
                       <iframe
                         key={`edit-preview-${editingTemplate?.id || 'preview'}-${modalTeam}-${modalLanguage}`}
-                        srcDoc={generatePreviewContent({
-                          ...templateForm,
-                          id: editingTemplate?.id || 'preview',
-                          variables: editingTemplate?.variables || {},
-                          created_at: editingTemplate?.created_at || new Date().toISOString(),
-                          updated_at: editingTemplate?.updated_at || new Date().toISOString()
-                        }, modalTeam, modalLanguage)}
+                        srcDoc={previewContents[`${editingTemplate?.id || 'preview'}-${modalTeam}-${modalLanguage}`] || templateForm.html_content}
                         className="w-full h-full border-0"
                         title="Email Preview"
                         sandbox="allow-same-origin"
@@ -1573,6 +1648,16 @@ export function NotificationManagementImproved() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+
+        <TabsContent value="partials" className="space-y-6">
+          <div className="p-4 border rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Email Partials Management</h3>
+            <p className="text-muted-foreground mb-4">This is the email partials tab. The component should load here.</p>
+            <EmailPartialsManagement />
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Email Template Edit Drawer */}
       <EmailTemplateEditDrawer

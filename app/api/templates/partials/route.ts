@@ -6,12 +6,22 @@ export async function GET(request: NextRequest) {
     console.log('Fetching partials...')
     const supabase = await getSupabaseServerClient()
     
-    // Simple query first to test
-    const { data: partials, error } = await supabase
+    // Get document type filter from query params
+    const { searchParams } = new URL(request.url)
+    const documentType = searchParams.get('documentType')
+    
+    // Build query with optional document type filter
+    let query = supabase
       .from('partial_templates')
       .select('*')
       .eq('is_active', true)
       .order('last_modified', { ascending: false })
+    
+    if (documentType) {
+      query = query.eq('document_type', documentType)
+    }
+    
+    const { data: partials, error } = await query
 
     if (error) {
       console.error('Error fetching partials:', error)

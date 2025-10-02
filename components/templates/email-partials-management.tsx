@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { CountryFlag } from '@/components/ui/country-flag'
-import { PartialEditor } from './partial-editor'
+import { EmailPartialEditor } from './email-partial-editor'
 import { 
   FileText, 
   Edit, 
@@ -41,14 +41,16 @@ import {
   Copy,
   Download,
   Upload,
-  X
+  X,
+  Mail,
+  Type,
+  Styling
 } from 'lucide-react'
 
-interface PartialTemplate {
+interface EmailPartialTemplate {
   id: string
   name: string
   type: 'header' | 'footer' | 'css'
-  documentType: 'quotation' | 'invoice' | 'email'
   team: 'japan' | 'thailand' | 'both'
   content: string
   isActive: boolean
@@ -57,16 +59,10 @@ interface PartialTemplate {
   preview?: string
 }
 
-const PARTIAL_TYPES = [
-  { value: 'header', label: 'Header', icon: FileText, description: 'Document header with logo and company info' },
-  { value: 'footer', label: 'Footer', icon: FileText, description: 'Document footer with signatures and terms' },
-  { value: 'css', label: 'CSS', icon: Code, description: 'Email CSS styling and responsive design' }
-]
-
-const DOCUMENT_TYPES = [
-  { value: 'quotation', label: 'Quotation', icon: FileText, color: 'blue' },
-  { value: 'invoice', label: 'Invoice', icon: FileText, color: 'green' },
-  { value: 'email', label: 'Email', icon: Send, color: 'purple' }
+const EMAIL_PARTIAL_TYPES = [
+  { value: 'header', label: 'Header', icon: Mail, description: 'Email header with logo and branding' },
+  { value: 'footer', label: 'Footer', icon: FileText, description: 'Email footer with company info and links' },
+  { value: 'css', label: 'CSS', icon: Code, description: 'Email styling and responsive design' }
 ]
 
 const TEAMS = [
@@ -75,61 +71,61 @@ const TEAMS = [
   { value: 'both', label: 'Both Teams', flag: '🌍', color: 'indigo' }
 ]
 
-const COMMON_VARIABLES = [
+const COMMON_EMAIL_VARIABLES = [
   '{{company_name}}',
   '{{company_address}}',
   '{{company_phone}}',
   '{{company_email}}',
   '{{company_website}}',
   '{{logo_url}}',
-  '{{current_date}}',
-  '{{current_time}}',
-  '{{document_number}}',
+  '{{primary_color}}',
+  '{{secondary_color}}',
+  '{{title}}',
+  '{{subtitle}}',
   '{{customer_name}}',
-  '{{customer_address}}',
-  '{{total_amount}}',
-  '{{currency}}',
   '{{language}}',
-  '{{team}}'
+  '{{team}}',
+  '{{team_footer_html}}',
+  '{{contact_email}}',
+  '{{support_email}}'
 ]
 
-export function PartialsManagement() {
+export function EmailPartialsManagement() {
   const { t } = useI18n()
-  const [partials, setPartials] = useState<PartialTemplate[]>([])
+  const [partials, setPartials] = useState<EmailPartialTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [hasLoaded, setHasLoaded] = useState(false)
-  const [selectedPartial, setSelectedPartial] = useState<PartialTemplate | null>(null)
+  const [selectedPartial, setSelectedPartial] = useState<EmailPartialTemplate | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
-  const [filterDocumentType, setFilterDocumentType] = useState('all')
   const [filterTeam, setFilterTeam] = useState('all')
   const [activeTab, setActiveTab] = useState('headers')
   const [previewMode, setPreviewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
   const [previewLanguage, setPreviewLanguage] = useState<'en' | 'ja'>('en')
   const [previewTeam, setPreviewTeam] = useState<'japan' | 'thailand'>('japan')
 
-  // Load partials from database
+  // Load email partials from database
   const loadPartials = async () => {
     try {
       setLoading(true)
-      console.log('Loading partials...')
-      const response = await fetch('/api/templates/partials')
+      console.log('Loading email partials...')
+      const response = await fetch('/api/templates/partials?documentType=email')
       console.log('Response status:', response.status)
       
       if (response.ok) {
         const data = await response.json()
-        console.log('Loaded partials:', data)
+        console.log('Loaded email partials:', data)
         setPartials(data)
         setHasLoaded(true)
       } else {
         const errorText = await response.text()
-        console.error('Failed to load partials:', response.status, errorText)
+        console.error('Failed to load email partials:', response.status, errorText)
         setPartials([])
       }
     } catch (error) {
-      console.error('Error loading partials:', error)
+      console.error('Error loading email partials:', error)
       setPartials([])
     } finally {
       setLoading(false)
@@ -146,29 +142,27 @@ export function PartialsManagement() {
     const matchesSearch = partial.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          partial.content.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesType = filterType === 'all' || partial.type === filterType
-    const matchesDocumentType = filterDocumentType === 'all' || partial.documentType === filterDocumentType
     const matchesTeam = filterTeam === 'all' || partial.team === filterTeam || partial.team === 'both'
     
-    return matchesSearch && matchesType && matchesDocumentType && matchesTeam
+    return matchesSearch && matchesType && matchesTeam
   })
 
-  const handleEdit = (partial: PartialTemplate) => {
-    console.log('Editing partial:', partial)
+  const handleEdit = (partial: EmailPartialTemplate) => {
+    console.log('Editing email partial:', partial)
     setSelectedPartial(partial)
     setIsEditModalOpen(true)
   }
 
-  const handlePreview = (partial: PartialTemplate) => {
+  const handlePreview = (partial: EmailPartialTemplate) => {
     setSelectedPartial(partial)
     setIsPreviewOpen(true)
   }
 
   const handleCreate = () => {
-    const newPartial: PartialTemplate = {
+    const newPartial: EmailPartialTemplate = {
       id: Date.now().toString(),
-      name: 'New Partial',
+      name: 'New Email Partial',
       type: 'header',
-      documentType: 'quotation',
       team: 'both',
       content: '',
       isActive: true,
@@ -179,14 +173,17 @@ export function PartialsManagement() {
     setIsEditModalOpen(true)
   }
 
-  const handleSave = async (partial: PartialTemplate) => {
+  const handleSave = async (partial: EmailPartialTemplate) => {
     try {
       const response = await fetch('/api/templates/partials', {
         method: partial.id ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(partial),
+        body: JSON.stringify({
+          ...partial,
+          documentType: 'email' // Ensure it's always email
+        }),
       })
       
       if (response.ok) {
@@ -194,15 +191,15 @@ export function PartialsManagement() {
         setIsEditModalOpen(false)
         setSelectedPartial(null)
       } else {
-        console.error('Failed to save partial:', response.statusText)
+        console.error('Failed to save email partial:', response.statusText)
       }
     } catch (error) {
-      console.error('Error saving partial:', error)
+      console.error('Error saving email partial:', error)
     }
   }
 
-  const handleDelete = async (partial: PartialTemplate) => {
-    if (confirm('Are you sure you want to delete this partial?')) {
+  const handleDelete = async (partial: EmailPartialTemplate) => {
+    if (confirm('Are you sure you want to delete this email partial?')) {
       try {
         const response = await fetch(`/api/templates/partials/${partial.id}`, {
           method: 'DELETE',
@@ -211,16 +208,16 @@ export function PartialsManagement() {
         if (response.ok) {
           await loadPartials() // Reload from database
         } else {
-          console.error('Failed to delete partial:', response.statusText)
+          console.error('Failed to delete email partial:', response.statusText)
         }
       } catch (error) {
-        console.error('Error deleting partial:', error)
+        console.error('Error deleting email partial:', error)
       }
     }
   }
 
-  const handleDuplicate = (partial: PartialTemplate) => {
-    const duplicated: PartialTemplate = {
+  const handleDuplicate = (partial: EmailPartialTemplate) => {
+    const duplicated: EmailPartialTemplate = {
       ...partial,
       id: Date.now().toString(),
       name: `${partial.name} (Copy)`,
@@ -229,10 +226,10 @@ export function PartialsManagement() {
     setPartials(prev => [...prev, duplicated])
   }
 
-  const generatePreviewContent = (partial: PartialTemplate) => {
+  const generatePreviewContent = (partial: EmailPartialTemplate) => {
     let preview = partial.content
     
-    // Replace variables with sample data for PDF documents
+    // Replace variables with sample data for email templates
     const teamData = partial.team === 'japan' 
       ? { company: 'Driver (Japan) Company Limited', address: '#47 11F TOC Bldg 7-22-17 Nishi-Gotanda, Shinagawa-Ku Tokyo Japan 141-0031', taxId: 'T2020001153198' }
       : { company: 'Driver (Thailand) Company Limited', address: '580/17 Soi Ramkhamhaeng 39, Wang Thong Lang, Bangkok 10310, Thailand', taxId: '0105566135845' }
@@ -244,28 +241,16 @@ export function PartialsManagement() {
       '{{company_email}}': 'booking@japandriver.com',
       '{{company_website}}': 'www.japandriver.com',
       '{{logo_url}}': '/placeholder-logo.png',
-      '{{current_date}}': new Date().toLocaleDateString(),
-      '{{current_time}}': new Date().toLocaleTimeString(),
-      '{{document_number}}': partial.documentType === 'quotation' ? 'QUO-2025-001' : 'INV-2025-001',
-      '{{quotation_number}}': 'QUO-2025-001',
-      '{{invoice_number}}': 'INV-2025-001',
-      '{{customer_name}}': 'John Doe',
-      '{{customer_address}}': '456 Customer Ave, Bangkok, Thailand',
-      '{{total_amount}}': '¥50,000',
-      '{{currency}}': 'JPY',
-      '{{language}}': 'en',
-      '{{team}}': partial.team,
-      '{{payment_terms}}': 'Net 30 days',
-      '{{signature_line}}': '_________________',
-      '{{footer_text}}': 'Thank you for your business!',
-      '{{tax_id}}': teamData.taxId,
-      '{{due_date}}': new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-      '{{issue_date}}': new Date().toLocaleDateString(),
-      '{{contact_email}}': 'booking@japandriver.com',
       '{{primary_color}}': '#FF2800',
       '{{secondary_color}}': '#FF2800dd',
-      '{{title}}': partial.documentType === 'quotation' ? 'Quotation' : 'Invoice',
-      '{{subtitle}}': 'Document Preview'
+      '{{title}}': 'Email Template Preview',
+      '{{subtitle}}': 'Testing Email Partials',
+      '{{customer_name}}': 'John Doe',
+      '{{language}}': 'en',
+      '{{team}}': partial.team,
+      '{{team_footer_html}}': `<p style="color: #1f2937;">Thank you for choosing ${teamData.company}!</p>`,
+      '{{contact_email}}': 'booking@japandriver.com',
+      '{{support_email}}': 'support@japandriver.com'
     }
     
     Object.entries(sampleData).forEach(([key, value]) => {
@@ -273,45 +258,38 @@ export function PartialsManagement() {
     })
     
     // Add dark mode friendly styling for better contrast
-    preview = preview.replace(
-      /<([^>]+)>/g, 
-      (match, tagContent) => {
-        // Add dark mode text color to common elements
-        if (tagContent.includes('style=')) {
-          return match.replace(
-            /style="([^"]*)"/g, 
-            (styleMatch, styleContent) => {
-              if (!styleContent.includes('color:')) {
-                return `style="${styleContent}; color: #1f2937;"` // dark gray for better contrast
+    if (partial.type !== 'css') {
+      preview = preview.replace(
+        /<([^>]+)>/g, 
+        (match, tagContent) => {
+          // Add dark mode text color to common elements
+          if (tagContent.includes('style=')) {
+            return match.replace(
+              /style="([^"]*)"/g, 
+              (styleMatch, styleContent) => {
+                if (!styleContent.includes('color:')) {
+                  return `style="${styleContent}; color: #1f2937;"` // dark gray for better contrast
+                }
+                return styleMatch
               }
-              return styleMatch
-            }
-          )
-        } else if (['p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'td', 'th'].some(tag => tagContent.startsWith(tag))) {
-          return match.replace('>', ' style="color: #1f2937;">')
+            )
+          } else if (['p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].some(tag => tagContent.startsWith(tag))) {
+            return match.replace('>', ' style="color: #1f2937;">')
+          }
+          return match
         }
-        return match
-      }
-    )
+      )
+    }
     
     return preview
   }
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'header': return <FileText className="h-4 w-4 text-blue-500" />
+      case 'header': return <Mail className="h-4 w-4 text-blue-500" />
       case 'footer': return <FileText className="h-4 w-4 text-green-500" />
       case 'css': return <Code className="h-4 w-4 text-purple-500" />
       default: return <FileText className="h-4 w-4" />
-    }
-  }
-
-  const getDocumentTypeColor = (type: string) => {
-    switch (type) {
-      case 'quotation': return 'text-blue-600 bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300'
-      case 'invoice': return 'text-green-600 bg-green-100 dark:bg-green-900/20 dark:text-green-300'
-      case 'email': return 'text-purple-600 bg-purple-100 dark:bg-purple-900/20 dark:text-purple-300'
-      default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-300'
     }
   }
 
@@ -324,19 +302,28 @@ export function PartialsManagement() {
     }
   }
 
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'header': return 'text-blue-600 bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300'
+      case 'footer': return 'text-green-600 bg-green-100 dark:bg-green-900/20 dark:text-green-300'
+      case 'css': return 'text-purple-600 bg-purple-100 dark:bg-purple-900/20 dark:text-purple-300'
+      default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-300'
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-      <div>
-        <h2 className="text-2xl font-bold">PDF Partials Management</h2>
-        <p className="text-muted-foreground">
-          Manage header and footer templates for quotation and invoice PDF documents
-        </p>
-      </div>
+        <div>
+          <h2 className="text-2xl font-bold">Email Templates Management</h2>
+          <p className="text-muted-foreground">
+            Manage email header, footer, and CSS templates for different teams
+          </p>
+        </div>
         <Button onClick={handleCreate} className="gap-2">
           <Plus className="h-4 w-4" />
-          Create Partial
+          Create Email Template
         </Button>
       </div>
 
@@ -345,7 +332,7 @@ export function PartialsManagement() {
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
-              <Label htmlFor="search">Search Partials</Label>
+              <Label htmlFor="search">Search Email Templates</Label>
               <Input
                 id="search"
                 placeholder="Search by name or content..."
@@ -369,20 +356,6 @@ export function PartialsManagement() {
               </Select>
             </div>
             <div className="sm:w-48">
-              <Label htmlFor="document-filter">Document</Label>
-              <Select value={filterDocumentType} onValueChange={setFilterDocumentType}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="All Documents" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Documents</SelectItem>
-                  <SelectItem value="quotation">Quotations</SelectItem>
-                  <SelectItem value="invoice">Invoices</SelectItem>
-                  <SelectItem value="email">Emails</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="sm:w-48">
               <Label htmlFor="team-filter">Team</Label>
               <Select value={filterTeam} onValueChange={setFilterTeam}>
                 <SelectTrigger className="mt-1">
@@ -400,7 +373,7 @@ export function PartialsManagement() {
         </CardContent>
       </Card>
 
-      {/* Partials Grid */}
+      {/* Email Partials Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
         {filteredPartials.map((partial) => (
           <Card key={partial.id} className="hover:shadow-lg transition-all duration-200 group border-2 hover:border-primary/20">
@@ -413,7 +386,9 @@ export function PartialsManagement() {
                       {partial.name}
                     </CardTitle>
                     <CardDescription className="text-sm mt-1">
-                      {partial.type === 'header' ? 'Document header template' : partial.type === 'footer' ? 'Document footer template' : 'Email CSS styling template'}
+                      {partial.type === 'header' ? 'Email header template' : 
+                       partial.type === 'footer' ? 'Email footer template' : 
+                       'Email CSS styling template'}
                     </CardDescription>
                   </div>
                 </div>
@@ -428,18 +403,14 @@ export function PartialsManagement() {
 
               {/* Badges */}
               <div className="flex flex-wrap items-center gap-2 mb-4">
-                <Badge variant="secondary" className="text-xs">
+                <Badge className={getTypeColor(partial.type)}>
                   {partial.type === 'header' ? 'Header' : partial.type === 'footer' ? 'Footer' : 'CSS'}
-                </Badge>
-                <Badge className={getDocumentTypeColor(partial.documentType)}>
-                  {partial.documentType === 'quotation' ? 'Quotation' : partial.documentType === 'invoice' ? 'Invoice' : partial.documentType === 'email' ? 'Email' : partial.documentType}
                 </Badge>
                 <Badge className={getTeamColor(partial.team)}>
                   <CountryFlag country={partial.team} size="sm" className="mr-1" />
                   {partial.team === 'both' ? 'Universal' : partial.team === 'japan' ? 'Japan' : 'Thailand'}
                 </Badge>
               </div>
-
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2 pt-4 border-t">
@@ -472,22 +443,22 @@ export function PartialsManagement() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
-            <p>Loading partials...</p>
+            <p>Loading email templates...</p>
           </CardContent>
         </Card>
       ) : filteredPartials.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Settings className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Partials Found</h3>
+            <Mail className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No Email Templates Found</h3>
             <p className="text-muted-foreground text-center mb-4">
-              {searchTerm || filterType !== 'all' || filterDocumentType !== 'all' || filterTeam !== 'all'
-                ? 'No partials found matching your search criteria'
-                : 'No partials found. Create your first partial to get started.'}
+              {searchTerm || filterType !== 'all' || filterTeam !== 'all'
+                ? 'No email templates found matching your search criteria'
+                : 'No email templates found. Create your first email template to get started.'}
             </p>
             <Button onClick={handleCreate}>
               <Plus className="h-4 w-4 mr-2" />
-              Create First Partial
+              Create First Email Template
             </Button>
           </CardContent>
         </Card>
@@ -495,7 +466,7 @@ export function PartialsManagement() {
 
       {/* Editor Modal */}
       {isEditModalOpen && selectedPartial && (
-        <PartialEditor
+        <EmailPartialEditor
           isOpen={isEditModalOpen}
           onClose={() => {
             setIsEditModalOpen(false)
@@ -528,16 +499,22 @@ export function PartialsManagement() {
                     <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                     <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-xs text-muted-foreground ml-2">Preview</span>
+                    <span className="text-xs text-muted-foreground ml-2">Email Preview</span>
                   </div>
                 </div>
                 <div className="p-4 bg-white min-h-[400px]">
-                  <div 
-                    dangerouslySetInnerHTML={{ 
-                      __html: generatePreviewContent(selectedPartial)
-                    }}
-                    className="prose prose-sm max-w-none text-gray-900 dark:text-gray-900"
-                  />
+                  {selectedPartial.type === 'css' ? (
+                    <pre className="text-sm overflow-auto text-gray-900 dark:text-gray-900">
+                      <code>{generatePreviewContent(selectedPartial)}</code>
+                    </pre>
+                  ) : (
+                    <div 
+                      className="prose prose-sm max-w-none text-gray-900 dark:text-gray-900"
+                      dangerouslySetInnerHTML={{ 
+                        __html: generatePreviewContent(selectedPartial)
+                      }}
+                    />
+                  )}
                 </div>
               </div>
             </div>

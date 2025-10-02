@@ -70,9 +70,23 @@ export function EmailTemplateEditDrawer({
   const [previewLanguage, setPreviewLanguage] = useState('en')
   const [previewTeam, setPreviewTeam] = useState('TH')
   const [contentMode, setContentMode] = useState<'html' | 'text'>('html')
+  const [processedContent, setProcessedContent] = useState('')
+  
+  // Update processed content when form data, team, or language changes
+  const updateProcessedContent = async () => {
+    if (formData.html_content) {
+      try {
+        const processed = await processContent(formData.html_content)
+        setProcessedContent(processed)
+      } catch (error) {
+        console.error('Error processing content:', error)
+        setProcessedContent(formData.html_content)
+      }
+    }
+  }
   
   // Process content with language and team variables
-  const processContent = (content: string) => {
+  const processContent = async (content: string) => {
     let processed = content
     
     // Process language conditionals - handle various patterns
@@ -202,7 +216,7 @@ export function EmailTemplateEditDrawer({
     const teamKey = previewTeam === 'TH' ? 'thailand' : 'japan'
     
     // Generate complete email template with proper styling
-    const completeEmail = generateEmailTemplate({
+    const completeEmail = await generateEmailTemplate({
       customerName: 'John Doe',
       language: previewLanguage,
       team: teamKey,
@@ -241,6 +255,11 @@ export function EmailTemplateEditDrawer({
       })
     }
   }, [template])
+
+  // Update processed content when form data, team, or language changes
+  useEffect(() => {
+    updateProcessedContent()
+  }, [formData.html_content, previewTeam, previewLanguage])
 
   // Handle escape key to close drawer
   useEffect(() => {
@@ -616,7 +635,7 @@ export function EmailTemplateEditDrawer({
                                       <div 
                                         className="w-full bg-white rounded-lg p-4"
                                         dangerouslySetInnerHTML={{ 
-                                          __html: processContent(formData.html_content)
+                                          __html: processedContent
                                         }}
                                       />
                                     </div>
@@ -644,7 +663,7 @@ export function EmailTemplateEditDrawer({
                                           maxWidth: '100%'
                                         }}
                                         dangerouslySetInnerHTML={{ 
-                                          __html: processContent(formData.html_content)
+                                          __html: processedContent
                                         }}
                                       />
                                     </div>
@@ -672,7 +691,7 @@ export function EmailTemplateEditDrawer({
                                           maxWidth: '100%'
                                         }}
                                         dangerouslySetInnerHTML={{ 
-                                          __html: processContent(formData.html_content)
+                                          __html: processedContent
                                         }}
                                       />
                                     </div>

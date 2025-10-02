@@ -72,6 +72,7 @@ export function RevampedPDFTemplateManagement() {
   const { t } = useI18n()
   const [templates, setTemplates] = useState<RealPDFTemplate[]>([])
   const [loading, setLoading] = useState(true)
+  const [hasLoaded, setHasLoaded] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<RealPDFTemplate | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
@@ -90,6 +91,7 @@ export function RevampedPDFTemplateManagement() {
       if (response.ok) {
         const data = await response.json()
         setTemplates(data.templates || [])
+        setHasLoaded(true)
       } else {
         console.error('Failed to load templates from API')
         setTemplates([])
@@ -103,8 +105,10 @@ export function RevampedPDFTemplateManagement() {
   }
 
   useEffect(() => {
-    loadTemplates()
-  }, [])
+    if (!hasLoaded) {
+      loadTemplates()
+    }
+  }, [hasLoaded])
 
   const handleEdit = (template: RealPDFTemplate) => {
     setSelectedTemplate(template)
@@ -800,8 +804,8 @@ export function RevampedPDFTemplateManagement() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="templates">Templates & Preview</TabsTrigger>
-          <TabsTrigger value="partials">Partials</TabsTrigger>
+          <TabsTrigger value="templates">PDF Templates</TabsTrigger>
+          <TabsTrigger value="partials">PDF Partials</TabsTrigger>
         </TabsList>
 
         <TabsContent value="templates" className="space-y-6">

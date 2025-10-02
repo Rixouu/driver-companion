@@ -3095,6 +3095,32 @@ export const en: TranslationValue = {
     placeholder: "No quotations found",
     list: "All Quotations",
     listDescription: "Manage and track your customer quotations",
+    summaryCards: {
+      totalQuotations: "Total Quotations",
+      totalRevenue: "Total Revenue",
+      pendingQuotations: "Pending Quotations",
+      converted: "Converted"
+    },
+    searchPlaceholder: "Search quotations by number, customer, email...",
+    advancedFilters: "Advanced Filters",
+    filterAndSearch: "Filter and Search",
+    showingQuotations: "Showing {count} quotations",
+    selectAll: "Select All",
+    select: "Select",
+    tableHeaders: {
+      id: "ID",
+      customer: "Customer",
+      date: "Date",
+      amount: "Amount",
+      actions: "Actions"
+    },
+    statusLabels: {
+      sent: "Sent",
+      paid: "Paid",
+      convertedToReservation: "Converted to Reservation"
+    },
+    needsReminder: "Needs Reminder",
+    expires: "Expires",
     filters: {
       all: "All Quotations",
       searchPlaceholder: "Search quotations...",

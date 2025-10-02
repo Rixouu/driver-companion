@@ -3052,6 +3052,32 @@ export const ja: TranslationValue = {
     placeholder: "見積が見つかりません",
     list: "すべての見積",
     listDescription: "顧客の見積を管理・追跡します",
+    summaryCards: {
+      totalQuotations: "総見積数",
+      totalRevenue: "総収益",
+      pendingQuotations: "保留中の見積",
+      converted: "変換済み"
+    },
+    searchPlaceholder: "見積番号、顧客、メールで検索...",
+    advancedFilters: "高度なフィルター",
+    filterAndSearch: "フィルターと検索",
+    showingQuotations: "{count}件の見積を表示中",
+    selectAll: "すべて選択",
+    select: "選択",
+    tableHeaders: {
+      id: "ID",
+      customer: "顧客",
+      date: "日付",
+      amount: "金額",
+      actions: "アクション"
+    },
+    statusLabels: {
+      sent: "送信済み",
+      paid: "支払い済み",
+      convertedToReservation: "予約に変換済み"
+    },
+    needsReminder: "リマインダーが必要",
+    expires: "有効期限",
     filters: {
       all: "すべての見積",
       searchPlaceholder: "見積を検索...",

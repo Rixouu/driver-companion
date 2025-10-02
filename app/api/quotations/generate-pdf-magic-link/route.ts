@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Generate HTML content using the same logic as regular PDF generation
-    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', null, selectedPromotion, true)
+    const htmlContent = await generateQuotationHtml(quotation, language as 'en' | 'ja', null, selectedPromotion, true)
     
     // Convert to PDF using the same generator as regular PDF generation
     const pdfBuffer = await generateOptimizedPdfFromHtml(htmlContent, {

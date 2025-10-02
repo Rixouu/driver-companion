@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateQuotationHtml } from '@/lib/quotation-html-generator'
-import { generateBookingInvoiceHtml } from '@/lib/booking-invoice-generator'
+import { generateInvoiceHtml } from '@/lib/invoice-html-generator'
 import { generateOptimizedPdfFromHtml } from '@/lib/optimized-html-pdf-generator'
 import { createClient } from '@supabase/supabase-js'
 
@@ -193,10 +193,10 @@ export async function GET(
 
     // Generate HTML based on template type
     if (templateType === 'quotation') {
-      htmlContent = generateQuotationHtml(sampleQuotationData, language as 'en' | 'ja', null, null, true)
+      htmlContent = await generateQuotationHtml(sampleQuotationData, language as 'en' | 'ja', null, null, true)
       filename = `quotation-${status}.pdf`
     } else if (templateType === 'invoice') {
-      htmlContent = await generateBookingInvoiceHtml(sampleInvoiceData, language as 'en' | 'ja')
+      htmlContent = await generateInvoiceHtml(sampleInvoiceData, language as 'en' | 'ja')
       filename = `invoice-${status}.pdf`
     } else {
       return NextResponse.json({ error: 'Unsupported template type' }, { status: 400 })

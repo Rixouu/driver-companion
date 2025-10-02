@@ -257,7 +257,7 @@ export async function GET(
 
             // Generate HTML using the template configuration
             if (templateType === 'quotation') {
-              htmlContent = generateQuotationHtml(
+              htmlContent = await generateQuotationHtml(
                 sampleQuotationData, 
                 language as 'en' | 'ja', 
                 null, 
@@ -267,7 +267,7 @@ export async function GET(
               )
     } else if (templateType === 'invoice') {
       // Use the proper invoice HTML generation with statusConfigs support
-      htmlContent = generateInvoiceHtml(
+      htmlContent = await generateInvoiceHtml(
         sampleQuotationData, 
         language as 'en' | 'ja', 
         null, 

@@ -1,5 +1,6 @@
 import { PricingPackage, PricingPromotion } from '@/types/quotations'
 import { getTeamAddressHtml } from '@/lib/team-addresses'
+import { getTeamAddressHtmlFromDB, getTeamFooterHtmlFromDB } from '@/lib/partials-database-fetcher'
 
 // Safe text encoding function
 const safeEncodeText = (text: any) => {
@@ -35,7 +36,7 @@ const formatDate = (dateString: string) => {
   return `${day}/${month}/${year}`;
 };
 
-export function generateInvoiceHtml(
+export async function generateInvoiceHtml(
   quotation: any, 
   language: 'en' | 'ja' = 'en',
   selectedPackage: PricingPackage | null = null,
@@ -43,7 +44,7 @@ export function generateInvoiceHtml(
   statusLabel?: string,
   showTeamInfo: boolean = true,
   statusConfigs: { [status: string]: { showSignature: boolean; showStatusBadge: boolean; statusBadgeColor: string; statusBadgeName: string } } = {}
-): string {
+): Promise<string> {
   const isJapanese = language === 'ja';
   const localeCode = isJapanese ? 'ja-JP' : 'en-US';
   
@@ -124,7 +125,7 @@ export function generateInvoiceHtml(
   const invoiceDate = formatDate(new Date().toISOString());
 
   return `
-    <div style="font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; color: #111827; box-sizing: border-box; width: 100%; margin: 0; padding: 10px 0 0; border-top: 2px solid #FF2600;">
+    <div style="font-family: 'Noto Sans Thai', 'Noto Sans', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #111827; box-sizing: border-box; width: 100%; margin: 0; padding: 10px 0 0; border-top: 2px solid #FF2600;">
       
       <!-- Logo -->
       <div style="text-align: left; margin: 30px 0; margin-bottom: 30px;">
@@ -157,7 +158,7 @@ export function generateInvoiceHtml(
         </div>
         
         <div style="text-align: right;">
-          ${showTeamInfo ? getTeamAddressHtml(quotation?.team || 'both', isJapanese) : ''}
+          ${showTeamInfo ? await getTeamAddressHtmlFromDB(quotation?.team_location || quotation?.team || 'thailand', 'invoice', isJapanese) : ''}
         </div>
       </div>
       
@@ -440,21 +441,8 @@ export function generateInvoiceHtml(
     ` : ''}
     
     <!-- Footer -->
-    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 12px;">
-      <p style="margin: 0 0 10px; color: #333; font-weight: bold;">
-        ${isJapanese ? 'ご利用ありがとうございます！' : 'Thank you for your business!'}
-      </p>
-      <p style="margin: 0 0 10px; color: #666; font-size: 14px;">
-        ${isJapanese 
-          ? 'この請求書についてご質問がございましたら、'
-          : 'If you have any questions about this invoice, please contact us at '
-        }
-        <a href="mailto:booking@japandriver.com" style="color: #1e40af; text-decoration: none;">booking@japandriver.com</a>
-      </p>
-      <p style="margin: 0; color: #666; font-size: 14px;">
-        Driver (Japan) Company Limited • 
-        <a href="https://www.japandriver.com" style="color: #1e40af; text-decoration: none;">www.japandriver.com</a>
-      </p>
+    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
+      ${await getTeamFooterHtmlFromDB(quotation?.team_location || quotation?.team || 'thailand', 'invoice', isJapanese)}
     </div>
   `;
 }

@@ -5,6 +5,7 @@ import { generateFontCSS } from './base64-fonts';
 import { safeEncodeText } from '@/lib/utils/character-encoding';
 import { formatDateDDMMYYYY } from '@/lib/utils/formatting';
 import { getTeamAddressHtml, getTeamFooterHtml } from '@/lib/team-addresses';
+import { getTeamAddressHtmlFromDB, getTeamFooterHtmlFromDB } from '@/lib/partials-database-fetcher';
 
 // Helper function to ensure special characters are properly displayed
 function getStatusSymbol(status: string): string {
@@ -327,14 +328,14 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
  * @param language Language code ('en' or 'ja')
  * @returns HTML content string
  */
-export function generateQuotationHtml(
+export async function generateQuotationHtml(
   quotation: any, 
   language: 'en' | 'ja' = 'en',
   selectedPackage: PricingPackage | null = null,
   selectedPromotion: PricingPromotion | null = null,
   showTeamInfo: boolean = true,
   statusConfigs: { [status: string]: { showSignature: boolean; showStatusBadge: boolean; statusBadgeColor: string; statusBadgeName: string } } = {}
-): string {
+): Promise<string> {
   // Quotation translations for different languages (same as client-side)
   const quotationTranslations = {
     en: {
@@ -624,7 +625,7 @@ export function generateQuotationHtml(
         </div>
         
         <div style="flex: 1; max-width: 40%; text-align: right; padding-top: 5px;">
-          ${getTeamAddressHtml(quotation.team_location || 'thailand', isJapanese)}
+          ${await getTeamAddressHtmlFromDB(quotation.team_location || 'thailand', 'quotation', isJapanese)}
         </div>
       </div>
       
@@ -1071,7 +1072,7 @@ export function generateQuotationHtml(
       
       <!-- Footer -->
       <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center; margin-bottom: 30px;">
-        ${getTeamFooterHtml(quotation.team_location || 'thailand', isJapanese)}
+        ${await getTeamFooterHtmlFromDB(quotation.team_location || 'thailand', 'quotation', isJapanese)}
       </div>
     </div>
   `;

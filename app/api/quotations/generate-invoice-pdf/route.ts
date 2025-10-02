@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate HTML
-    const htmlContent = generateInvoiceHtml(
+    const htmlContent = await generateInvoiceHtml(
       quotation,
       language as 'en' | 'ja',
       selectedPackage,

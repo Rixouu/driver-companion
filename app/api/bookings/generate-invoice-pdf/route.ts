@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service-client";
 import { generateOptimizedPdfFromHtml } from "@/lib/optimized-html-pdf-generator";
 import { getTeamAddressHtml, getTeamFooterHtml } from "@/lib/team-addresses";
+import { getTeamAddressHtmlFromDB, getTeamFooterHtmlFromDB } from '@/lib/partials-database-fetcher';
 import { Resend } from "resend";
 import { OmiseClient } from "@/lib/omise-client";
 import { formatDateDDMMYYYY } from '@/lib/utils/formatting';
@@ -341,7 +342,7 @@ async function generateBookingInvoiceHtml(
   const invoiceDate = formatDateDDMMYYYY(new Date());
 
   return `
-    <div style="font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; color: #111827; box-sizing: border-box; width: 100%; margin: 0; padding: 10px 0 0; border-top: 2px solid #FF2600;">
+    <div style="font-family: 'Noto Sans Thai', 'Noto Sans', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #111827; box-sizing: border-box; width: 100%; margin: 0; padding: 10px 0 0; border-top: 2px solid #FF2600;">
       
       <!-- Logo -->
       <div style="text-align: left; margin: 30px 0; margin-bottom: 30px;">
@@ -374,7 +375,7 @@ async function generateBookingInvoiceHtml(
         </div>
         
         <div style="text-align: right;">
-          ${templateConfig?.showTeamInfo !== false ? getTeamAddressHtml(booking.team_location || 'thailand', isJapanese) : ''}
+          ${templateConfig?.showTeamInfo !== false ? await getTeamAddressHtmlFromDB(booking.team_location || 'thailand', 'invoice', isJapanese) : ''}
         </div>
       </div>
       
@@ -665,8 +666,8 @@ async function generateBookingInvoiceHtml(
     ` : ''}
     
     <!-- Footer -->
-    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 12px;">
-      ${templateConfig?.showTeamInfo !== false ? getTeamFooterHtml(booking.team_location || 'thailand', isJapanese) : ''}
+    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
+      ${templateConfig?.showTeamInfo !== false ? await getTeamFooterHtmlFromDB(booking.team_location || 'thailand', 'invoice', isJapanese) : ''}
     </div>
   `;
 }
@@ -959,7 +960,7 @@ export async function POST(request: NextRequest) {
               body, table, td, a {
                 -webkit-text-size-adjust:100%;
                 -ms-text-size-adjust:100%;
-                font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
+                font-family: 'Noto Sans Thai', 'Noto Sans', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
               }
               table, td { mso-table-lspace:0; mso-table-rspace:0; }
               img {
@@ -1098,7 +1099,7 @@ export async function POST(request: NextRequest) {
                     
                     <!-- Footer -->
                     <tr>
-                      <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; font-size:12px; color:#8898AA;">
+                      <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: 'Noto Sans Thai', 'Noto Sans', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size:12px; color:#8898AA;">
                         <p style="color: #333; font-weight: bold; margin: 0 0 10px;">${isJapanese ? 'ご利用ありがとうございます！' : 'Thank you for your business!'}</p>
                         <p style="color: #666; font-size: 14px; margin: 0 0 10px;">
                           ${isJapanese 

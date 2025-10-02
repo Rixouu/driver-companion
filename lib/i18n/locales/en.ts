@@ -3726,7 +3726,24 @@ export const en: TranslationValue = {
       promotionDiscount: "Promotion Discount",
       regularDiscount: "Regular Discount",
       quotationInfoStatus: "Quotation Info Status",
-      finalPricingBreakdown: "Final pricing breakdown"
+      finalPricingBreakdown: "Final pricing breakdown",
+      // Additional missing translations
+      contactAndBillingDetails: "Contact and billing details",
+      fullName: "Full Name",
+      servicesSelected: "services selected",
+      expand: "Expand",
+      compact: "Compact",
+      totalAmountBeforeDiscountTax: "Total Amount (before discount/tax):",
+      detailedPricingInformation: "Detailed pricing information",
+      loadingRates: "Loading rates...",
+      // Service detail labels
+      dateAndTime: "Date & Time",
+      pickupLocation: "Pickup Location",
+      dropoffLocation: "Dropoff Location",
+      flightNumber: "Flight Number",
+      terminal: "Terminal",
+      passengers: "Passengers",
+      bags: "Bags"
     },
     status: {
       draft: "Draft",

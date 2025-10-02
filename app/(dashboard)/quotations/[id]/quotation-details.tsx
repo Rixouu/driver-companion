@@ -252,16 +252,16 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       {/* Service Details */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                         <div>
-                          <span className="font-medium text-muted-foreground">Service Type:</span>
+                          <span className="font-medium text-muted-foreground">{t('quotations.details.serviceType')}:</span>
                           <p className="font-medium">{item.service_type_name}</p>
                         </div>
                         <div>
-                          <span className="font-medium text-muted-foreground">Vehicle:</span>
+                          <span className="font-medium text-muted-foreground">{t('quotations.details.vehicle')}:</span>
                           <p className="font-medium">{item.vehicle_type}</p>
                         </div>
                         {item.pickup_date && item.pickup_time && (
                           <div>
-                            <span className="font-medium text-muted-foreground">Date & Time:</span>
+                            <span className="font-medium text-muted-foreground">{t('quotations.details.dateAndTime')}:</span>
                             <p className="font-medium">
                               {format(parseISO(item.pickup_date), 'MMM dd, yyyy')} at {item.pickup_time}
                             </p>
@@ -269,43 +269,43 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                         )}
                         {isCharter && item.service_days && item.hours_per_day && (
                           <div>
-                            <span className="font-medium text-muted-foreground">Duration:</span>
+                            <span className="font-medium text-muted-foreground">{t('quotations.details.duration')}:</span>
                             <p className="font-medium">{item.service_days} days × {item.hours_per_day}h/day</p>
                           </div>
                         )}
                         {(item as any).pickup_location && (
                           <div>
-                            <span className="font-medium text-muted-foreground">Pickup Location:</span>
+                            <span className="font-medium text-muted-foreground">{t('quotations.details.pickupLocation')}:</span>
                             <p className="font-medium">{(item as any).pickup_location}</p>
                           </div>
                         )}
                         {(item as any).dropoff_location && (
                           <div>
-                            <span className="font-medium text-muted-foreground">Dropoff Location:</span>
+                            <span className="font-medium text-muted-foreground">{t('quotations.details.dropoffLocation')}:</span>
                             <p className="font-medium">{(item as any).dropoff_location}</p>
                           </div>
                         )}
                         {(item as any).flight_number && (
                           <div>
-                            <span className="font-medium text-muted-foreground">Flight Number:</span>
+                            <span className="font-medium text-muted-foreground">{t('quotations.details.flightNumber')}:</span>
                             <p className="font-medium">{(item as any).flight_number}</p>
                           </div>
                         )}
                         {(item as any).terminal && (
                           <div>
-                            <span className="font-medium text-muted-foreground">Terminal:</span>
+                            <span className="font-medium text-muted-foreground">{t('quotations.details.terminal')}:</span>
                             <p className="font-medium">{(item as any).terminal}</p>
                           </div>
                         )}
                         {(item as any).number_of_passengers && (
                           <div>
-                            <span className="font-medium text-muted-foreground">Passengers:</span>
+                            <span className="font-medium text-muted-foreground">{t('quotations.details.passengers')}:</span>
                             <p className="font-medium">{(item as any).number_of_passengers}</p>
                           </div>
                         )}
                         {(item as any).number_of_bags && (
                           <div>
-                            <span className="font-medium text-muted-foreground">Bags:</span>
+                            <span className="font-medium text-muted-foreground">{t('quotations.details.bags')}:</span>
                             <p className="font-medium">{(item as any).number_of_bags}</p>
                           </div>
                         )}
@@ -315,7 +315,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       <div className="pt-3 border-t border-muted/50 animate-in slide-in-from-bottom-2 fade-in-0 delay-200">
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Unit Price:</span>
+                            <span className="text-muted-foreground">{t('quotations.details.unitPrice')}:</span>
                             <span className="font-medium">{formatCurrency(item.unit_price)}</span>
                           </div>
                           {isCharter && item.service_days && (
@@ -326,14 +326,14 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                           )}
                           {hasTimeAdjustment && (
                             <div className="flex justify-between text-orange-500 dark:text-orange-400">
-                              <span>Time Adjustment ({timeAdjustmentText}):</span>
+                              <span>{t('quotations.details.timeAdjustment')} ({timeAdjustmentText}):</span>
                               <span className="font-medium">
                                 {formatCurrency(Math.abs((item.unit_price || 0) * (item.service_days || 1) * ((item as any).time_based_adjustment / 100)))}
                               </span>
                             </div>
                           )}
                           <div className="flex justify-between font-semibold text-base pt-2 border-t border-muted/50">
-                            <span>Total:</span>
+                            <span>{t('quotations.details.total')}:</span>
                             <span>{formatCurrency(totalPrice)}</span>
                           </div>
                         </div>
@@ -1206,7 +1206,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   <User className="h-6 w-6 mr-3 text-primary" />
                   <div>
                     <h2 className="text-xl font-semibold">{t('quotations.details.customerInfo')}</h2>
-                    <p className="text-sm text-muted-foreground">Contact and billing details</p>
+                    <p className="text-sm text-muted-foreground">{t('quotations.details.contactAndBillingDetails')}</p>
                   </div>
                 </div>
                 
@@ -1229,7 +1229,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                             </div>
                             <div className="flex-1">
                               <div className="text-lg text-foreground">{quotation.customer_name || t('common.notAvailable')}</div>
-                              <span className="text-xs text-muted-foreground font-normal">Full Name</span>
+                              <span className="text-xs text-muted-foreground font-normal">{t('quotations.details.fullName')}</span>
                             </div>
                       </div>
                       
@@ -1371,7 +1371,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                           <Car className="h-6 w-6 mr-3 text-primary" />
                           <div>
                             <h2 className="text-xl font-semibold">{t('quotations.details.selectedServices')}</h2>
-                            <p className="text-sm text-muted-foreground">{quotation.quotation_items.length} services selected</p>
+                            <p className="text-sm text-muted-foreground">{quotation.quotation_items.length} {t('quotations.details.servicesSelected')}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1385,12 +1385,12 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                             {isServicesExpanded ? (
                               <>
                                 <EyeOff className="h-4 w-4 mr-1" />
-                                Compact
+                                {t('quotations.details.compact')}
                               </>
                             ) : (
                               <>
                                 <Eye className="h-4 w-4 mr-1" />
-                                Expand
+                                {t('quotations.details.expand')}
                               </>
                             )}
                           </Button>
@@ -1441,7 +1441,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                           })}
                           
                           <div className="pt-2 pb-4 flex justify-between items-center font-medium text-sm border-t">
-                            <span>Total Amount (before discount/tax):</span>
+                            <span>{t('quotations.details.totalAmountBeforeDiscountTax')}</span>
                             <span>{formatCurrency(quotation.quotation_items.reduce((total, item) => {
                               // For Charter Services, calculate total based on duration (unit_price × service_days)
                               if (item.service_type_name?.toLowerCase().includes('charter')) {
@@ -1471,14 +1471,14 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                         <Calculator className="h-6 w-6 text-primary" />
                         <div>
                           <h2 className="text-xl font-semibold">{t('quotations.details.priceDetails')}</h2>
-                          <p className="text-sm text-muted-foreground">Detailed pricing information</p>
+                          <p className="text-sm text-muted-foreground">{t('quotations.details.detailedPricingInformation')}</p>
                 </div>
                       </div>
                       <div className="flex items-center gap-3">
                         {currencyLoading && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <div className="h-3 w-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                            <span>Loading rates...</span>
+                            <span>{t('quotations.details.loadingRates')}</span>
                           </div>
                         )}
                         <CurrencySelector

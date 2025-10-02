@@ -3671,7 +3671,24 @@ export const ja: TranslationValue = {
       promotionDiscount: "プロモーション割引",
       regularDiscount: "通常割引",
       quotationInfoStatus: "見積情報ステータス",
-      finalPricingBreakdown: "最終価格内訳"
+      finalPricingBreakdown: "最終価格内訳",
+      // Additional missing translations
+      contactAndBillingDetails: "連絡先と請求詳細",
+      fullName: "フルネーム",
+      servicesSelected: "サービスが選択されました",
+      expand: "展開",
+      compact: "コンパクト",
+      totalAmountBeforeDiscountTax: "合計金額（割引・税込前）:",
+      detailedPricingInformation: "詳細な価格情報",
+      loadingRates: "レートを読み込み中...",
+      // Service detail labels
+      dateAndTime: "日時",
+      pickupLocation: "迎車場所",
+      dropoffLocation: "降車場所",
+      flightNumber: "フライト番号",
+      terminal: "ターミナル",
+      passengers: "乗客数",
+      bags: "荷物数"
     },
     status: {
       draft: "下書き",

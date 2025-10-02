@@ -996,13 +996,6 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                       Click for details
                     </p>
                     
-                    {/* Warning */}
-                    {step.warning && (
-                      <Badge variant="outline" className="text-xs text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20 mt-2">
-                        <AlertTriangle className="h-3 w-3 mr-1" />
-                        {step.warning}
-                      </Badge>
-                    )}
                     
                     
                   </div>
@@ -1072,10 +1065,10 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
             </div>
             
             {quotation.created_at && !['approved', 'rejected', 'converted', 'paid'].includes(quotation.status) && !quotation.approved_at && !quotation.rejected_at && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 text-xs">
                 <Clock className="h-3 w-3" />
                 {daysUntilExpiry > 0 ? (
-                  <span>Expires in {daysUntilExpiry} day{daysUntilExpiry !== 1 ? 's' : ''}</span>
+                  <span className="text-red-600 font-medium">Expires in {daysUntilExpiry} day{daysUntilExpiry !== 1 ? 's' : ''}</span>
                 ) : daysUntilExpiry === 0 ? (
                   <span className="text-orange-600 font-medium">Expires today</span>
                 ) : (

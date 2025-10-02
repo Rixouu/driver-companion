@@ -655,33 +655,36 @@ export default function GoogleMaps({
     const booking = assignment.booking;
     if (!booking) return '';
 
+    // Get status color for the card border
+    const statusColor = getDispatchStatusDotColor(assignment.status);
+    
     return `
-      <div class="p-3 min-w-[220px]">
-        <div class="flex items-center justify-between mb-2">
-          <div class="font-semibold text-sm text-gray-900">
+      <div class="p-4 min-w-[240px] bg-background border border-border rounded-lg shadow-xl" style="border-left: 4px solid ${statusColor};">
+        <div class="flex items-center justify-between mb-3">
+          <div class="font-semibold text-sm text-foreground">
             #${booking.wp_id || booking.id?.substring(0, 8)}
           </div>
           <div class="px-2 py-1 rounded-full text-xs font-medium ${getDispatchStatusBadgeClasses(assignment.status)}">
             ${assignment.status.replace('_', ' ')}
           </div>
         </div>
-        <div class="text-sm text-gray-700 mb-1 font-medium">
+        <div class="text-sm text-foreground mb-1 font-medium">
           ${booking.customer_name || 'Unknown Customer'}
         </div>
-        <div class="text-xs text-gray-600 mb-2">
+        <div class="text-xs text-muted-foreground mb-3">
           ${booking.service_name || 'Service'}
         </div>
         ${booking.pickup_location ? `
-          <div class="text-xs text-gray-600 flex items-start gap-2 mb-2">
-            <svg class="w-3 h-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <div class="text-xs text-muted-foreground flex items-start gap-2 mb-3">
+            <svg class="w-3 h-3 mt-0.5 flex-shrink-0 text-primary" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
             </svg>
             <span>${booking.pickup_location}</span>
           </div>
         ` : ''}
-        <div class="flex items-center gap-2 mt-3 pt-2 border-t border-gray-200">
+        <div class="flex items-center gap-2 mt-3 pt-3 border-t border-border">
           ${assignment.driver_id ? `
-            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs bg-blue-50 text-blue-700 border border-blue-200">
+            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs bg-blue-500/10 text-blue-700 border border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/40">
               <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -689,7 +692,7 @@ export default function GoogleMaps({
             </span>
           ` : ''}
           ${assignment.vehicle_id ? `
-            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs bg-green-50 text-green-700 border border-green-200">
+            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs bg-green-500/10 text-green-700 border border-green-500/20 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/40">
               <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
               </svg>

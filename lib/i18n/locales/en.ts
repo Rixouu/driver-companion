@@ -51,6 +51,8 @@ export const en: TranslationValue = {
       tryAgain: "Try Again",
       chat: "Chat"
     },
+    copied: "Copied",
+    copiedToClipboard: "{item} copied to clipboard",
     actionsMenu: {
       default: "Actions",
       goHome: "Go Home",
@@ -5034,7 +5036,13 @@ export const en: TranslationValue = {
       actions: "Actions",
       copyLink: "Copy Link",
       openLink: "Open Link",
-      paymentLink: "Payment Link"
+      paymentLink: "Payment Link",
+      description: "Description",
+      paymentDate: "Payment Date",
+      paymentMethod: "Payment Method",
+      customer: "Customer",
+      chargeId: "Charge ID",
+      generateReceipt: "Generate Receipt"
     },
     createModal: {
       title: "Create Payment Link",

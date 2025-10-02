@@ -51,6 +51,8 @@ export const ja: TranslationValue = {
       tryAgain: "再試行",
       chat: "チャット"
     },
+    copied: "コピーしました",
+    copiedToClipboard: "{item}をクリップボードにコピーしました",
     actionsMenu: {
       default: "アクション",
       goHome: "ホームに戻る",
@@ -4930,7 +4932,13 @@ export const ja: TranslationValue = {
       actions: "アクション",
       copyLink: "リンクをコピー",
       openLink: "リンクを開く",
-      paymentLink: "支払いリンク"
+      paymentLink: "支払いリンク",
+      description: "説明",
+      paymentDate: "支払い日",
+      paymentMethod: "支払い方法",
+      customer: "顧客",
+      chargeId: "チャージID",
+      generateReceipt: "領収書を生成"
     },
     createModal: {
       title: "支払いリンクを作成",

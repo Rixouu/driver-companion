@@ -1,5 +1,6 @@
 'use client'
 
+import { useI18n } from '@/lib/i18n/context'
 import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -71,32 +72,33 @@ export function PaylinkDetailsModal({
   onClose, 
   onGenerateReceipt 
 }: PaylinkDetailsModalProps) {
+  const { t } = useI18n()
   
   const getPaymentStatus = () => {
     if (paylink.deleted) return { 
       status: 'deleted', 
-      label: 'Deleted', 
+      label: t("paymentLinks.statusLabels.deleted"), 
       color: 'destructive', 
       icon: XCircle,
       className: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800'
     }
     if (paylink.state === 'paid' || paylink.used) return { 
       status: 'paid', 
-      label: 'Paid', 
+      label: t("paymentLinks.statusLabels.paid"), 
       color: 'default', 
       icon: CheckCircle,
       className: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800'
     }
     if (paylink.state === 'pending' || paylink.status === 'active') return { 
       status: 'pending', 
-      label: 'Pending', 
+      label: t("paymentLinks.statusLabels.pending"), 
       color: 'secondary', 
       icon: Clock,
       className: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800'
     }
     return { 
       status: 'pending', 
-      label: 'Pending', 
+      label: t("paymentLinks.statusLabels.pending"), 
       color: 'secondary', 
       icon: Clock,
       className: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800'
@@ -116,8 +118,8 @@ export function PaylinkDetailsModal({
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text)
     toast({
-      title: "Copied",
-      description: `${label} copied to clipboard`,
+      title: t("common.copied"),
+      description: t("common.copiedToClipboard", { item: label }),
     })
   }
 
@@ -132,7 +134,7 @@ export function PaylinkDetailsModal({
     <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>
-          Payment Link Details
+          {t("paymentLinks.detailsModal.title")}
         </DialogTitle>
       </DialogHeader>
 
@@ -142,18 +144,18 @@ export function PaylinkDetailsModal({
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <DollarSign className="h-5 w-5" />
-              Payment Information
+              {t("paymentLinks.detailsModal.paymentInformation")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Title</label>
-              <p className="text-sm font-medium">{paylink.title || paylink.name || 'Untitled'}</p>
+              <label className="text-sm font-medium text-muted-foreground">{t("paymentLinks.detailsModal.title")}</label>
+              <p className="text-sm font-medium">{paylink.title || paylink.name || t("paymentLinks.tableContent.untitled")}</p>
             </div>
             
             {paylink.description && (
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Description</label>
+                <label className="text-sm font-medium text-muted-foreground">{t("paymentLinks.detailsModal.description")}</label>
                 <p className="text-sm text-muted-foreground">{paylink.description}</p>
               </div>
             )}
@@ -161,7 +163,7 @@ export function PaylinkDetailsModal({
             {/* 3-column layout for key info */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Amount</label>
+                <label className="text-sm font-medium text-muted-foreground">{t("paymentLinks.detailsModal.amount")}</label>
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-green-600" />
                   <p className="text-lg font-semibold text-green-600">{formatAmount(paylink.amount, paylink.currency)}</p>
@@ -169,7 +171,7 @@ export function PaylinkDetailsModal({
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Status</label>
+                <label className="text-sm font-medium text-muted-foreground">{t("paymentLinks.detailsModal.status")}</label>
                 <div className="flex items-center gap-2">
                   <paymentStatus.icon className="h-4 w-4" />
                   <Badge variant="outline" className={paymentStatus.className}>
@@ -179,10 +181,10 @@ export function PaylinkDetailsModal({
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Multiple Use</label>
+                <label className="text-sm font-medium text-muted-foreground">{t("paymentLinks.detailsModal.multipleUse")}</label>
                 <div className="flex items-center gap-2">
                   <div className={`h-2 w-2 rounded-full ${(paylink.multiple || paylink.multiple_usage) ? 'bg-green-500' : 'bg-gray-400'}`} />
-                  <p className="text-sm">{(paylink.multiple || paylink.multiple_usage) ? 'Yes' : 'No'}</p>
+                  <p className="text-sm">{(paylink.multiple || paylink.multiple_usage) ? t("paymentLinks.detailsModal.yes") : t("paymentLinks.detailsModal.no")}</p>
                 </div>
               </div>
             </div>
@@ -192,13 +194,13 @@ export function PaylinkDetailsModal({
             {/* Link details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Link ID</label>
+                <label className="text-sm font-medium text-muted-foreground">{t("paymentLinks.detailsModal.linkId")}</label>
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-mono bg-muted px-2 py-1 rounded">{paylink.id}</p>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => copyToClipboard(paylink.id, 'Link ID')}
+                    onClick={() => copyToClipboard(paylink.id.toString(), t("paymentLinks.detailsModal.linkId"))}
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
@@ -206,7 +208,7 @@ export function PaylinkDetailsModal({
               </div>
               
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Created</label>
+                <label className="text-sm font-medium text-muted-foreground">{t("paymentLinks.detailsModal.created")}</label>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <p className="text-sm">{formatDateDDMMYYYY(paylink.created_at)}</p>
@@ -222,24 +224,24 @@ export function PaylinkDetailsModal({
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <DollarSign className="h-5 w-5" />
-                Payment Information
+                {t("paymentLinks.detailsModal.paymentInformation")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Payment Date</label>
+                  <label className="text-sm font-medium text-muted-foreground">{t("paymentLinks.detailsModal.paymentDate")}</label>
                   <p className="text-sm">{formatDateDDMMYYYY(successfulCharge.created_at)}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Payment Method</label>
+                  <label className="text-sm font-medium text-muted-foreground">{t("paymentLinks.detailsModal.paymentMethod")}</label>
                   <p className="text-sm">{successfulCharge.source?.type || 'Unknown'}</p>
                 </div>
               </div>
               
               {successfulCharge.customer && (
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Customer</label>
+                  <label className="text-sm font-medium text-muted-foreground">{t("paymentLinks.detailsModal.customer")}</label>
                   <div className="space-y-1">
                     {successfulCharge.customer.name && (
                       <p className="text-sm flex items-center gap-2">
@@ -258,13 +260,13 @@ export function PaylinkDetailsModal({
               )}
               
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Charge ID</label>
+                <label className="text-sm font-medium text-muted-foreground">{t("paymentLinks.detailsModal.chargeId")}</label>
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-mono">{successfulCharge.id}</p>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => copyToClipboard(successfulCharge.id, 'Charge ID')}
+                    onClick={() => copyToClipboard(successfulCharge.id, t("paymentLinks.detailsModal.chargeId"))}
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
@@ -279,18 +281,18 @@ export function PaylinkDetailsModal({
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              Actions
+              {t("paymentLinks.detailsModal.actions")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Button
                 variant="outline"
-                onClick={() => copyToClipboard(paylink.transaction_url || paylink.payment_uri || '', 'Payment link')}
+                onClick={() => copyToClipboard(paylink.transaction_url || paylink.payment_uri || '', t("paymentLinks.detailsModal.paymentLink"))}
                 className="flex items-center gap-2 h-12"
               >
                 <Copy className="h-4 w-4" />
-                Copy Link
+                {t("paymentLinks.detailsModal.copyLink")}
               </Button>
               
               <Button
@@ -299,17 +301,17 @@ export function PaylinkDetailsModal({
                 className="flex items-center gap-2 h-12"
               >
                 <ExternalLink className="h-4 w-4" />
-                Open Link
+                {t("paymentLinks.detailsModal.openLink")}
               </Button>
               
               {paymentStatus.status === 'paid' && (
                 <Button
                   variant="default"
-                  onClick={() => onGenerateReceipt(paylink.id)}
+                  onClick={() => onGenerateReceipt(paylink.id.toString())}
                   className="flex items-center gap-2 h-12 bg-green-600 hover:bg-green-700"
                 >
                   <Receipt className="h-4 w-4" />
-                  Generate Receipt
+                  {t("paymentLinks.detailsModal.generateReceipt")}
                 </Button>
               )}
             </div>
@@ -319,7 +321,7 @@ export function PaylinkDetailsModal({
         {/* Payment Link Preview */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Payment Link</CardTitle>
+            <CardTitle className="text-lg">{t("paymentLinks.detailsModal.paymentLink")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="p-3 bg-muted rounded-lg">

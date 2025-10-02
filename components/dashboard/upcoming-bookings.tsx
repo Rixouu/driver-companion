@@ -59,7 +59,7 @@ function BookingCard({ booking }: { booking: Booking }) {
             <div className="flex-1 min-w-0">
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
                 <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded w-fit">
-                  BOOKING
+                  {t("dashboard.activityFeed.booking")}
                 </span>
                 <h4 className="font-semibold text-sm text-muted-foreground truncate">
                   {booking.customer_name || t("bookings.unnamed", { defaultValue: "Unnamed Customer" })}

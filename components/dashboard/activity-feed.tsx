@@ -186,7 +186,7 @@ function InspectionCard({ inspection }: { inspection: DbInspection }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-medium text-green-600 dark:text-green-400">
-                INSPECTION
+                {t("dashboard.activityFeed.inspection")}
               </span>
               <Badge variant="outline" className={getInspectionStatusBadgeClasses(inspection.status)}>
                 {t(`inspections.status.${inspection.status}`)}
@@ -221,7 +221,7 @@ function BookingCard({ booking }: { booking: Booking }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                BOOKING
+                {t("dashboard.activityFeed.booking")}
               </span>
               {getBookingStatusBadge(booking.status, t)}
             </div>
@@ -250,7 +250,7 @@ function QuotationCard({ quotation }: { quotation: any }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
-                QUOTATION
+                {t("dashboard.activityFeed.quotation")}
               </span>
               {getQuotationStatusBadge(quotation.status, t)}
             </div>

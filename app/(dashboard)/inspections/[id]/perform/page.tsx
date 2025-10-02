@@ -6,6 +6,7 @@ import { StepBasedInspectionForm } from "@/components/inspections/step-based-ins
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { getDictionary } from "@/lib/i18n/server"
 
 interface PerformInspectionPageProps {
   params: {
@@ -24,6 +25,7 @@ export default async function PerformInspectionPage({
   searchParams
 }: PerformInspectionPageProps) {
   const supabase = await getSupabaseServerClient()
+  const { t } = await getDictionary()
   
   // Properly await the parameters
   const resolvedParams = await params;
@@ -51,31 +53,16 @@ export default async function PerformInspectionPage({
     <div className="space-y-6">
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="w-fit -ml-2 text-muted-foreground hover:text-foreground"
-            asChild
-          >
-            <Link
-              href={`/inspections/${id}`}
-              className="flex items-center gap-2" ><span className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Back to inspection details</span>
-              <span className="sm:hidden">Back</span>
-            </span></Link>
-          </Button>
-
           <div className="space-y-1">
             <h1 className="text-2xl font-bold tracking-tight">
-              {isResuming ? 'Edit Inspection' : (inspection.status === 'in_progress' ? 'Continue Inspection' : 'Perform Inspection')}
+              {isResuming ? t('inspections.editInspection') : (inspection.status === 'in_progress' ? t('inspections.continueInspection') : t('inspections.performInspection'))}
             </h1>
             <p className="text-muted-foreground">
               {isResuming 
-                ? `Editing inspection for ${inspection.vehicle.name}`
+                ? t('inspections.editingInspectionFor', { vehicleName: inspection.vehicle.name })
                 : (inspection.status === 'in_progress' 
-                  ? `Continue inspection for ${inspection.vehicle.name}`
-                  : `Perform inspection for ${inspection.vehicle.name}`
+                  ? t('inspections.continueInspectionFor', { vehicleName: inspection.vehicle.name })
+                  : t('inspections.performInspectionFor', { vehicleName: inspection.vehicle.name })
                 )
               }
             </p>

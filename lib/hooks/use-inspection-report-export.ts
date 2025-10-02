@@ -218,7 +218,27 @@ export function useInspectionReportExport({
       reportTitleElement.style.padding = '0';
       reportTitleElement.style.color = '#333';
       const inspectionDate = inspection.date ? new Date(inspection.date) : new Date();
-      const formattedDateForPDF = formatDate(inspectionDate); // formatDate from hook's import
+      
+      // Helper function to translate month names
+      const getTranslatedMonth = (date: Date, t: (key: string) => string, format: 'full' | 'abbr' = 'full') => {
+        const monthIndex = date.getMonth()
+        const monthNames = [
+          'january', 'february', 'march', 'april', 'may', 'june',
+          'july', 'august', 'september', 'october', 'november', 'december'
+        ]
+        const monthAbbrs = [
+          'jan', 'feb', 'mar', 'apr', 'may', 'jun',
+          'jul', 'aug', 'sep', 'oct', 'nov', 'dec'
+        ]
+        
+        if (format === 'full') {
+          return t(`inspections.months.${monthNames[monthIndex]}`)
+        } else {
+          return t(`inspections.monthAbbreviations.${monthAbbrs[monthIndex]}`)
+        }
+      }
+      
+      const formattedDateForPDF = `${getTranslatedMonth(inspectionDate, t, 'full')} ${inspectionDate.getDate()}, ${inspectionDate.getFullYear()}`;
       const formattedTime = inspectionDate.toLocaleTimeString(currentLanguage === 'ja' ? 'ja-JP' : 'en-US', {
         hour: '2-digit',
         minute: '2-digit'
@@ -340,7 +360,7 @@ export function useInspectionReportExport({
       additionalInfoTitleContainer.style.borderBottom = '1px solid #e0e0e0';
       
       const additionalInfoTitle = document.createElement('h2');
-      additionalInfoTitle.textContent = 'Additional Information';
+      additionalInfoTitle.textContent = t('inspections.additionalInformation');
       additionalInfoTitle.style.fontSize = '18px';
       additionalInfoTitle.style.fontWeight = 'bold';
       additionalInfoTitle.style.margin = '0';
@@ -358,8 +378,8 @@ export function useInspectionReportExport({
       additionalInfoGrid.style.gap = '10px 30px';
       
       // Add some useful additional information
-      additionalInfoGrid.appendChild(createDetailItem('Report Generated', new Date().toLocaleString()));
-      additionalInfoGrid.appendChild(createDetailItem('Location', inspection.location || 'Field Inspection'));
+      additionalInfoGrid.appendChild(createDetailItem(t('inspections.reportGenerated'), new Date().toLocaleString()));
+      additionalInfoGrid.appendChild(createDetailItem(t('inspections.location'), (inspection as any).location || t('inspections.fieldInspection')));
       
       additionalInfoDetailsContainer.appendChild(additionalInfoGrid);
       additionalInfoSection.appendChild(additionalInfoDetailsContainer);
@@ -476,8 +496,8 @@ export function useInspectionReportExport({
       })();
       
       inspectorInfo.innerHTML = `
-        <div style="font-weight: bold; margin-bottom: 0px;">Inspector: ${inspectorName}</div>
-        <div>Inspection Date: ${inspectionDateFormatted}</div>
+        <div style="font-weight: bold; margin-bottom: 0px;">${t('inspections.inspector')}: ${inspectorName}</div>
+        <div>${t('inspections.inspectionDate')}: ${inspectionDateFormatted}</div>
       `;
       
       footerSection.appendChild(inspectorInfo);

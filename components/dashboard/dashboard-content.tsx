@@ -670,7 +670,7 @@ export function DashboardContent({
                       <div className="w-full border-t border-border/40"></div>
                     </div>
                     <div className="relative flex justify-center text-xs">
-                      <span className="bg-background px-3 text-muted-foreground">Quotation Status Overview</span>
+                      <span className="bg-background px-3 text-muted-foreground">{t("dashboard.financial.quotationStatusOverview")}</span>
                     </div>
                   </div>
                   
@@ -693,7 +693,7 @@ export function DashboardContent({
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-purple-500 rounded-full flex-shrink-0"></div>
-                      <span className="text-xs sm:text-sm text-muted-foreground">converted:</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">{t("dashboard.financial.converted")}:</span>
                       <span className="text-xs sm:text-sm font-semibold text-purple-600">{financialData.convertedQuotes || 0}</span>
                     </div>
                   </div>
@@ -964,7 +964,7 @@ function InspectionCard({ inspection }: { inspection: DbInspection }) {
             <div className="flex-1 min-w-0">
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
                 <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded w-fit">
-                  INSPECTION
+                  {t("dashboard.activityFeed.inspection")}
                 </span>
                 <h4 className="font-semibold text-sm text-muted-foreground truncate">
                   {getFullTypeName(inspection.type)}
@@ -1008,7 +1008,7 @@ function BookingCard({ booking }: { booking: Booking }) {
             <div className="flex-1 min-w-0">
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
                 <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded w-fit">
-                  BOOKING
+                  {t("dashboard.activityFeed.booking")}
                 </span>
                 <h4 className="font-semibold text-sm text-muted-foreground truncate">
                   {booking.customer_name || t("bookings.unnamed", { defaultValue: "Unnamed Customer" })}
@@ -1052,7 +1052,7 @@ function QuotationCard({ quotation }: { quotation: any }) {
             {/* Top row: Status badge and quotation type */}
             <div className="flex items-start justify-between gap-2 mb-2">
               <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded w-fit">
-                QUOTATION
+                {t("dashboard.activityFeed.quotation")}
               </span>
               <div className="flex-shrink-0">
                 {getQuotationStatusBadge(quotation.status, t)}

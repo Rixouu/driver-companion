@@ -371,11 +371,11 @@ export function DashboardContentOptimized({
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Total Revenue</p>
+                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">{t("dashboard.summaryCards.totalRevenue")}</p>
                   <p className="text-2xl font-bold text-emerald-800 dark:text-emerald-200">
                     ¥{(financialData.totalRevenue / 1000000).toFixed(1)}M
                   </p>
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">+12.5% vs last month</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">{t("dashboard.summaryCards.plus12_5")}</p>
                 </div>
                 <div className="p-2 rounded-md bg-emerald-100 dark:bg-emerald-900/20">
                   <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">¥</span>
@@ -389,11 +389,11 @@ export function DashboardContentOptimized({
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Quotations</p>
+                  <p className="text-sm font-medium text-blue-700 dark:text-blue-300">{t("dashboard.summaryCards.totalQuotations")}</p>
                   <p className="text-2xl font-bold text-blue-800 dark:text-blue-200">
                     {financialData.totalQuotations}
                   </p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">+8.2% vs last month</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">{t("dashboard.summaryCards.plus8_2")}</p>
                 </div>
                 <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/20">
                   <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -407,11 +407,11 @@ export function DashboardContentOptimized({
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-700 dark:text-purple-300">Avg Quote Value</p>
+                  <p className="text-sm font-medium text-purple-700 dark:text-purple-300">{t("dashboard.summaryCards.avgQuoteValue")}</p>
                   <p className="text-2xl font-bold text-purple-800 dark:text-purple-200">
                     ¥{(financialData.avgQuoteValue / 1000).toFixed(0)}k
                   </p>
-                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">+5.1% vs last month</p>
+                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">{t("dashboard.summaryCards.plus5_1")}</p>
                 </div>
                 <div className="p-2 rounded-md bg-purple-100 dark:bg-purple-900/20">
                   <span className="text-sm font-bold text-purple-600 dark:text-purple-400">¥</span>
@@ -425,11 +425,11 @@ export function DashboardContentOptimized({
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-orange-700 dark:text-orange-300">Conversion Rate</p>
+                  <p className="text-sm font-medium text-orange-700 dark:text-orange-300">{t("dashboard.summaryCards.conversionRate")}</p>
                   <p className="text-2xl font-bold text-orange-800 dark:text-orange-200">
                     {financialData.conversionRate.toFixed(1)}%
                   </p>
-                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">+2.3% vs last month</p>
+                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">{t("dashboard.summaryCards.plus2_3")}</p>
                 </div>
                 <div className="p-2 rounded-md bg-orange-100 dark:bg-orange-900/20">
                   <span className="text-sm font-bold text-orange-600 dark:text-orange-400">%</span>
@@ -475,9 +475,9 @@ export function DashboardContentOptimized({
               <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/20">
                 <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
-              Upcoming Bookings & Quotations
+{t("dashboard.upcomingBookingsAndQuotations.title")}
             </CardTitle>
-            <CardDescription className="text-sm">Latest bookings and quotations</CardDescription>
+            <CardDescription className="text-sm">{t("dashboard.upcomingBookingsAndQuotations.description")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -487,7 +487,7 @@ export function DashboardContentOptimized({
                   <div className="p-1 rounded bg-blue-100 dark:bg-blue-900/20">
                     <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <h3 className="font-semibold">Upcoming Bookings</h3>
+                  <h3 className="font-semibold">{t("dashboard.upcomingBookingsAndQuotations.upcomingBookings.title")}</h3>
                 </div>
                 <div className="space-y-0">
                   {isLoadingBookings ? (
@@ -507,7 +507,7 @@ export function DashboardContentOptimized({
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                                BOOKING
+                                {t("dashboard.upcomingBookingsAndQuotations.upcomingBookings.booking")}
                               </span>
                               <span className="text-xs text-muted-foreground">
                                 {booking.date ? new Date(booking.date).toLocaleDateString() : 'No date'}
@@ -524,7 +524,7 @@ export function DashboardContentOptimized({
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground">No upcoming bookings</p>
+                    <p className="text-sm text-muted-foreground">{t("dashboard.upcomingBookingsAndQuotations.upcomingBookings.noBookings")}</p>
                   )}
                 </div>
               </div>
@@ -535,7 +535,7 @@ export function DashboardContentOptimized({
                   <div className="p-1 rounded bg-purple-100 dark:bg-purple-900/20">
                     <FileText className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <h3 className="font-semibold">Recent Quotations</h3>
+                  <h3 className="font-semibold">{t("dashboard.upcomingBookingsAndQuotations.recentQuotations.title")}</h3>
                 </div>
                 <div className="space-y-0">
                   {isLoadingRecentQuotations ? (
@@ -555,7 +555,7 @@ export function DashboardContentOptimized({
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
-                                QUOTATION
+                                {t("dashboard.upcomingBookingsAndQuotations.recentQuotations.quotation")}
                               </span>
                               <span className="text-xs text-muted-foreground">
                                 {quotation.created_at ? new Date(quotation.created_at).toLocaleDateString() : 'No date'}
@@ -572,7 +572,7 @@ export function DashboardContentOptimized({
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground">No recent quotations</p>
+                    <p className="text-sm text-muted-foreground">{t("dashboard.upcomingBookingsAndQuotations.recentQuotations.noQuotations")}</p>
                   )}
                 </div>
               </div>

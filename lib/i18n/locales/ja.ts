@@ -19,6 +19,15 @@ export const ja: TranslationValue = {
       fail: "不合格",
       pending: "保留中"
     },
+    days: {
+      monday: "月曜日",
+      tuesday: "火曜日",
+      wednesday: "水曜日",
+      thursday: "木曜日",
+      friday: "金曜日",
+      saturday: "土曜日",
+      sunday: "日曜日"
+    },
     loading: "読み込み中...",
     error: "エラー",
     success: "成功",
@@ -818,6 +827,63 @@ export const ja: TranslationValue = {
     defaultType: "定期",
     typeLabel: "タイプ",
     statusLabel: "ステータス",
+    filtersAndSearch: "フィルターと検索",
+    showingResults: "{total}件中{filtered}件の点検を表示中",
+    summaryCards: {
+      todayInspections: "本日の点検",
+      pendingInspections: "保留中の点検",
+      completedThisWeek: "今週完了した点検",
+      failedInspections: "不合格の点検",
+      viewTodayInspections: "本日の点検を表示",
+      reviewPendingInspections: "保留中の点検を確認",
+      viewCompletedThisWeek: "今週完了した点検を表示",
+      reviewFailedInspections: "不合格の点検を確認"
+    },
+    viewToggle: {
+      grid: "グリッド",
+      list: "リスト"
+    },
+    months: {
+      january: "1月",
+      february: "2月", 
+      march: "3月",
+      april: "4月",
+      may: "5月",
+      june: "6月",
+      july: "7月",
+      august: "8月",
+      september: "9月",
+      october: "10月",
+      november: "11月",
+      december: "12月"
+    },
+    monthAbbreviations: {
+      jan: "1月",
+      feb: "2月",
+      mar: "3月", 
+      apr: "4月",
+      may: "5月",
+      jun: "6月",
+      jul: "7月",
+      aug: "8月",
+      sep: "9月",
+      oct: "10月",
+      nov: "11月",
+      dec: "12月"
+    },
+    dailyChecklist: "日常点検",
+    viewVehicleDetails: "車両詳細を表示",
+    additionalInformation: "追加情報",
+    reportGenerated: "レポート生成日時",
+    location: "場所",
+    fieldInspection: "現場点検",
+    inspector: "点検員",
+    inspectionDate: "点検日",
+    editInspection: "点検を編集",
+    continueInspection: "点検を続行",
+    editingInspectionFor: "{vehicleName}の点検を編集",
+    continueInspectionFor: "{vehicleName}の点検を続行",
+    performInspectionFor: "{vehicleName}の点検を実行",
     inspectorLabel: "点検員",
     inspectorEmailLabel: "点検員のメールアドレス",
     groupByOptions: {
@@ -870,6 +936,7 @@ export const ja: TranslationValue = {
       title: "点検カレンダー",
       viewMode: "表示モード",
       month: "月",
+      inspectionsOnDate: "{date}に{count}件の点検",
       week: "週",
       day: "日",
       today: "今日",
@@ -880,7 +947,6 @@ export const ja: TranslationValue = {
       previousDay: "前日",
       nextDay: "翌日",
       noInspectionsOnDate: "この日にスケジュールされた点検はありません",
-      inspectionsOnDate: "{date}に{count}件の点検",
       scheduleInspection: "点検をスケジュール",
       viewInspection: "点検を表示"
     },
@@ -1526,7 +1592,10 @@ export const ja: TranslationValue = {
       description: "最近および今後のアクティビティ",
       noUpcoming: "今後のアクティビティはありません",
       noRecent: "最近のアクティビティはありません",
-      viewAll: "すべてのアクティビティを表示"
+      viewAll: "すべてのアクティビティを表示",
+      quotation: "見積",
+      inspection: "点検",
+      booking: "予約"
     },
     dailyChecklist: {
       title: "日常チェックリスト",
@@ -1578,7 +1647,25 @@ export const ja: TranslationValue = {
       quoteDistribution: "見積分布",
       statusBreakdown: "ステータス内訳",
       noData: "データがありません",
-      viewSalesCalendar: "販売カレンダーを表示"
+      viewSalesCalendar: "販売カレンダーを表示",
+      quotationStatusOverview: "見積ステータス概要",
+      converted: "変換済み",
+      viewFullReport: "完全レポートを表示",
+      revenueTrendDescription: "時系列での日次収益パフォーマンス",
+      quoteStatusDistribution: "見積ステータス分布",
+      quoteStatusDistributionDescription: "見積ステータスの内訳",
+      quotationStatusOverviewDescription: "すべての見積の現在のステータス分布"
+    },
+    summaryCards: {
+      totalRevenue: "総収益",
+      totalQuotations: "総見積数",
+      avgQuoteValue: "平均見積価値",
+      conversionRate: "変換率",
+      vsLastMonth: "先月比",
+      plus12_5: "+12.5% 先月比",
+      plus8_2: "+8.2% 先月比",
+      plus5_1: "+5.1% 先月比", 
+      plus2_3: "+2.3% 先月比"
     },
     upcomingBookings: {
       title: "今後の予約",
@@ -1587,6 +1674,20 @@ export const ja: TranslationValue = {
       loadError: "今後の予約の読み込みに失敗しました",
       empty: {
         message: "今後の予約はありません"
+      }
+    },
+    upcomingBookingsAndQuotations: {
+      title: "今後の予約と見積",
+      description: "最新の予約と見積",
+      upcomingBookings: {
+        title: "今後の予約",
+        booking: "予約",
+        noBookings: "今後の予約はありません"
+      },
+      recentQuotations: {
+        title: "最近の見積",
+        quotation: "見積",
+        noQuotations: "最近の見積はありません"
       }
     },
     maintenance: {
@@ -1984,7 +2085,7 @@ export const ja: TranslationValue = {
       advancedFilters: "詳細フィルター",
       clearFilters: "フィルターをクリア"
     },
-    upcomingBookings: {
+    upcomingBookingsSection: {
       title: "今後の予約",
       description: "レビューと割り当て待ちの予約",
       empty: {
@@ -4166,7 +4267,7 @@ export const ja: TranslationValue = {
     category: "カテゴリ",
     categoryPlaceholder: "カテゴリを入力...",
     team: "チーム",
-    description: "説明",
+    templateDescription: "説明",
     descriptionPlaceholder: "説明を入力...",
     isActive: "アクティブ",
     isDefault: "デフォルトテンプレート",

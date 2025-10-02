@@ -33,6 +33,33 @@ import { useSupabase } from "@/components/providers/supabase-provider"
 import { InspectionFilter, InspectionFilterOptions } from "./inspection-filter"
 import { useAutoScroll } from "@/lib/hooks/use-auto-scroll"
 
+// Helper function to translate month names
+const getTranslatedMonth = (date: Date, t: (key: string) => string, format: 'full' | 'abbr' = 'full') => {
+  const monthIndex = date.getMonth()
+  const monthNames = [
+    'january', 'february', 'march', 'april', 'may', 'june',
+    'july', 'august', 'september', 'october', 'november', 'december'
+  ]
+  const monthAbbrs = [
+    'jan', 'feb', 'mar', 'apr', 'may', 'jun',
+    'jul', 'aug', 'sep', 'oct', 'nov', 'dec'
+  ]
+  
+  if (format === 'full') {
+    return t(`inspections.months.${monthNames[monthIndex]}`)
+  } else {
+    return t(`inspections.monthAbbreviations.${monthAbbrs[monthIndex]}`)
+  }
+}
+
+// Helper function to translate Daily Checklist
+const translateDailyChecklist = (type: string, t: (key: string) => string) => {
+  if (type && type.includes('Daily Checklist')) {
+    return type.replace('Daily Checklist', t('inspections.dailyChecklist'))
+  }
+  return type
+}
+
 // Extended inspection type for this component
 interface ExtendedInspection extends Omit<OptimizedInspection, 'type'> {
   vehicle?: {
@@ -510,7 +537,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
         color: "text-blue-600 dark:text-blue-400",
         bgColor: "bg-blue-50 dark:bg-blue-900/20",
         action: "viewToday",
-        description: "View today's inspections"
+        description: t("inspections.summaryCards.viewTodayInspections")
       },
       {
         title: t("inspections.quickStats.pendingInspections"),
@@ -519,7 +546,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
         color: "text-yellow-600 dark:text-yellow-400",
         bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
         action: "viewPending",
-        description: "Review pending inspections"
+        description: t("inspections.summaryCards.reviewPendingInspections")
       },
       {
         title: t("inspections.quickStats.weeklyCompleted"),
@@ -528,7 +555,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
         color: "text-green-600 dark:text-green-400",
         bgColor: "bg-green-50 dark:bg-green-900/20",
         action: "viewWeeklyCompleted",
-        description: "View completed this week"
+        description: t("inspections.summaryCards.viewCompletedThisWeek")
       },
       {
         title: t("inspections.quickStats.failedInspections"),
@@ -537,7 +564,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
         color: "text-red-600 dark:text-red-400",
         bgColor: "bg-red-50 dark:bg-red-900/20",
         action: "viewFailed",
-        description: "Review failed inspections"
+        description: t("inspections.summaryCards.reviewFailedInspections")
       }
     ]
   }, [filteredInspections, t])
@@ -708,11 +735,11 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
   const getCalendarTitle = () => {
     switch (calendarView) {
       case "month":
-        return format(currentDate, "MMMM yyyy")
+        return `${getTranslatedMonth(currentDate, t, 'full')} ${currentDate.getFullYear()}`
       case "week":
         const weekStart = startOfWeek(currentDate)
         const weekEnd = endOfWeek(currentDate)
-        return `${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`
+        return `${getTranslatedMonth(weekStart, t, 'abbr')} ${weekStart.getDate()} - ${getTranslatedMonth(weekEnd, t, 'abbr')} ${weekEnd.getDate()}, ${weekEnd.getFullYear()}`
       default:
         return ""
     }
@@ -851,8 +878,8 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
                 </div>
 
                 <div className="flex flex-wrap justify-between text-sm mt-3 gap-2">
-                  <span>{inspection.type || t("inspections.type.unspecified")}</span>
-                  <span>{format(parseISO(inspection.date), "MMM d, yyyy")}</span>
+                  <span>{inspection.type ? translateDailyChecklist(inspection.type, t) : t("inspections.type.unspecified")}</span>
+                  <span>{getTranslatedMonth(parseISO(inspection.date), t, 'abbr')} {parseISO(inspection.date).getDate()}, {parseISO(inspection.date).getFullYear()}</span>
                 </div>
 
                 <div className="flex justify-between items-center mt-3">
@@ -908,10 +935,10 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
                       </div>
                     </TableCell>
                     <TableCell>
-                      {inspection.type || t("inspections.type.unspecified")}
+                      {inspection.type ? translateDailyChecklist(inspection.type, t) : t("inspections.type.unspecified")}
                     </TableCell>
                     <TableCell>
-                      {format(parseISO(inspection.date), "MMM d, yyyy")}
+                      {getTranslatedMonth(parseISO(inspection.date), t, 'abbr')} {parseISO(inspection.date).getDate()}, {parseISO(inspection.date).getFullYear()}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn("text-xs", getInspectionStatusBadgeClasses(inspection.status))}>
@@ -1032,7 +1059,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
       
       // If we have a direct type, use it
       if (inspection.type && inspection.type.includes('Daily Checklist')) {
-        return inspection.type;
+        return translateDailyChecklist(inspection.type, t);
       }
       
       return null;
@@ -1068,7 +1095,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
           >
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4" />
-              <span className="text-sm sm:text-base font-medium">Filters & Search</span>
+              <span className="text-sm sm:text-base font-medium">{t("inspections.filtersAndSearch")}</span>
             </div>
             <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
           </Button>
@@ -1089,7 +1116,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
         {/* View Mode Toggle and Results Summary - Better Spacing */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 mt-6 sm:mt-8">
           <div className="text-sm text-muted-foreground text-center sm:text-left">
-            Showing {filteredInspections.length} of {inspectionsWithVehicles.length} total inspections
+{t("inspections.showingResults", { filtered: filteredInspections.length, total: inspectionsWithVehicles.length })}
             {weeklyCompletedFilter && (
               <span className="ml-2 text-green-600 dark:text-green-400">
                 (Completed this week)
@@ -1121,7 +1148,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
                 className="rounded-r-none px-3"
               >
                 <Grid3X3 className="h-4 w-4 mr-2" />
-                Grid
+                {t("inspections.viewToggle.grid")}
               </Button>
               <Button
                 variant={viewMode === "list" ? "default" : "ghost"}
@@ -1130,7 +1157,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
                 className="rounded-l-none px-3"
               >
                 <List className="h-4 w-4 mr-2" />
-                List
+                {t("inspections.viewToggle.list")}
               </Button>
             </div>
           </div>
@@ -1241,12 +1268,12 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
               <Card className="sticky top-6">
                 <CardHeader>
                   <CardTitle className="text-base">
-                    {format(selectedDate, "EEEE, MMMM d, yyyy")}
+                    {t(`common.days.${format(selectedDate, 'EEEE').toLowerCase()}`)}, {getTranslatedMonth(selectedDate, t, 'full')} {selectedDate.getDate()}, {selectedDate.getFullYear()}
                   </CardTitle>
                   <div className="text-sm text-muted-foreground">
                     {t("inspections.calendar.inspectionsOnDate", { 
                       count: getInspectionCountForDate(selectedDate),
-                      date: format(selectedDate, "MMMM d")
+                      date: `${getTranslatedMonth(selectedDate, t, 'full')} ${selectedDate.getDate()}`
                     })}
                   </div>
                 </CardHeader>

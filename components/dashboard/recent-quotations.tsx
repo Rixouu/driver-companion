@@ -91,7 +91,7 @@ function QuotationCard({ quotation }: { quotation: any }) {
             {/* Top row: Status badge and quotation type */}
             <div className="flex items-start justify-between gap-2 mb-2">
               <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded w-fit">
-                QUOTATION
+                {t("dashboard.activityFeed.quotation")}
               </span>
               <div className="flex-shrink-0">
                 {getQuotationStatusBadge(quotation.status, t)}

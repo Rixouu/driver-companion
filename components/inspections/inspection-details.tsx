@@ -29,6 +29,33 @@ import { useInspectionReportExport } from '@/lib/hooks/use-inspection-report-exp
 import { InspectionItemsDisplayList } from '@/components/inspections/inspection-items-display-list';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+// Helper function to translate Daily Checklist
+const translateDailyChecklist = (type: string, t: (key: string) => string) => {
+  if (type && type.includes('Daily Checklist')) {
+    return type.replace('Daily Checklist', t('inspections.dailyChecklist'))
+  }
+  return type
+}
+
+// Helper function to translate month names
+const getTranslatedMonth = (date: Date, t: (key: string) => string, format: 'full' | 'abbr' = 'full') => {
+  const monthIndex = date.getMonth()
+  const monthNames = [
+    'january', 'february', 'march', 'april', 'may', 'june',
+    'july', 'august', 'september', 'october', 'november', 'december'
+  ]
+  const monthAbbrs = [
+    'jan', 'feb', 'mar', 'apr', 'may', 'jun',
+    'jul', 'aug', 'sep', 'oct', 'nov', 'dec'
+  ]
+  
+  if (format === 'full') {
+    return t(`inspections.months.${monthNames[monthIndex]}`)
+  } else {
+    return t(`inspections.monthAbbreviations.${monthAbbrs[monthIndex]}`)
+  }
+}
+
 // Add extended inspection type with inspection_items
 export interface ExtendedInspection extends DbInspection {
   name?: string;
@@ -432,7 +459,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                     </div>
                     <Link href={`/vehicles/${inspection.vehicle_id}`} className="block mt-3">
                       <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                        View Vehicle Details
+{t("inspections.viewVehicleDetails")}
                       </Button>
                     </Link>
                   </div>
@@ -570,15 +597,18 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                   <Label>{t("inspections.fields.type")}</Label>
                   <TextValue>
                     {inspection.templateDisplayName 
-                      ? inspection.templateDisplayName 
+                      ? translateDailyChecklist(inspection.templateDisplayName, t)
                       : (inspection.type 
-                          ? t(`inspections.typeValues.${inspection.type.replace(/ /g, '_').toLowerCase()}`, { defaultValue: inspection.type }) 
+                          ? translateDailyChecklist(inspection.type, t)
                           : t("common.notAvailable"))}
                   </TextValue>
                 </div>
                 <div>
                   <Label>{t("inspections.fields.date")}</Label>
-                  <TextValue>{inspection.date ? formatDate(inspection.date) : t("common.notAvailable")}</TextValue>
+                  <TextValue>{inspection.date ? (() => {
+                    const date = new Date(inspection.date)
+                    return `${getTranslatedMonth(date, t, 'full')} ${date.getDate()}, ${date.getFullYear()}`
+                  })() : t("common.notAvailable")}</TextValue>
                 </div>
                 <div>
                   <Label>{t("inspections.fields.inspector")}</Label>

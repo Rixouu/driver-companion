@@ -19,6 +19,15 @@ export const en: TranslationValue = {
       fail: "Fail",
       pending: "Pending"
     },
+    days: {
+      monday: "Monday",
+      tuesday: "Tuesday",
+      wednesday: "Wednesday",
+      thursday: "Thursday",
+      friday: "Friday",
+      saturday: "Saturday",
+      sunday: "Sunday"
+    },
     loading: "Loading...",
     error: "Error",
     success: "Success",
@@ -832,6 +841,63 @@ export const en: TranslationValue = {
     defaultType: "Routine",
     typeLabel: "Type",
     statusLabel: "Status",
+    filtersAndSearch: "Filters & Search",
+    showingResults: "Showing {filtered} of {total} total inspections",
+    summaryCards: {
+      todayInspections: "Today's Inspections",
+      pendingInspections: "Pending Inspections",
+      completedThisWeek: "Inspections Completed This Week",
+      failedInspections: "Failed Inspections",
+      viewTodayInspections: "View today's inspections",
+      reviewPendingInspections: "Review pending inspections",
+      viewCompletedThisWeek: "View completed this week",
+      reviewFailedInspections: "Review failed inspections"
+    },
+    viewToggle: {
+      grid: "Grid",
+      list: "List"
+    },
+    months: {
+      january: "January",
+      february: "February", 
+      march: "March",
+      april: "April",
+      may: "May",
+      june: "June",
+      july: "July",
+      august: "August",
+      september: "September",
+      october: "October",
+      november: "November",
+      december: "December"
+    },
+    monthAbbreviations: {
+      jan: "Jan",
+      feb: "Feb",
+      mar: "Mar", 
+      apr: "Apr",
+      may: "May",
+      jun: "Jun",
+      jul: "Jul",
+      aug: "Aug",
+      sep: "Sep",
+      oct: "Oct",
+      nov: "Nov",
+      dec: "Dec"
+    },
+    dailyChecklist: "Daily Checklist",
+    viewVehicleDetails: "View Vehicle Details",
+    additionalInformation: "Additional Information",
+    reportGenerated: "Report Generated",
+    location: "Location",
+    fieldInspection: "Field Inspection",
+    inspector: "Inspector",
+    inspectionDate: "Inspection Date",
+    editInspection: "Edit Inspection",
+    continueInspection: "Continue Inspection",
+    editingInspectionFor: "Editing inspection for {vehicleName}",
+    continueInspectionFor: "Continue inspection for {vehicleName}",
+    performInspectionFor: "Perform inspection for {vehicleName}",
     inspectorLabel: "Inspector",
     inspectorEmailLabel: "Inspector Email",
     groupByOptions: {
@@ -884,6 +950,7 @@ export const en: TranslationValue = {
       title: "Inspection Calendar",
       viewMode: "View Mode",
       month: "Month",
+      inspectionsOnDate: "{count} inspections on {date}",
       week: "Week",
       day: "Day",
       today: "Today",
@@ -894,7 +961,6 @@ export const en: TranslationValue = {
       previousDay: "Previous Day",
       nextDay: "Next Day",
       noInspectionsOnDate: "No inspections scheduled for this date",
-      inspectionsOnDate: "{count} inspection(s) on {date}",
       scheduleInspection: "Schedule Inspection",
       viewInspection: "View Inspection"
     },
@@ -1553,7 +1619,10 @@ export const en: TranslationValue = {
       description: "Recent and upcoming activities",
       noUpcoming: "No upcoming activities",
       noRecent: "No recent activities",
-      viewAll: "View All Activities"
+      viewAll: "View All Activities",
+      quotation: "QUOTATION",
+      inspection: "INSPECTION",
+      booking: "BOOKING"
     },
     dailyChecklist: {
       title: "Daily Checklist",
@@ -1605,7 +1674,25 @@ export const en: TranslationValue = {
       quoteDistribution: "Quote Distribution",
       statusBreakdown: "Status Breakdown",
       noData: "No data available",
-      viewSalesCalendar: "View Sales Calendar"
+      viewSalesCalendar: "View Sales Calendar",
+      quotationStatusOverview: "Quotation Status Overview",
+      converted: "converted",
+      viewFullReport: "View Full Report",
+      revenueTrendDescription: "Daily revenue performance over time",
+      quoteStatusDistribution: "Quote Status Distribution",
+      quoteStatusDistributionDescription: "Breakdown of quotation statuses",
+      quotationStatusOverviewDescription: "Current status distribution of all quotations"
+    },
+    summaryCards: {
+      totalRevenue: "Total Revenue",
+      totalQuotations: "Total Quotations",
+      avgQuoteValue: "Avg Quote Value",
+      conversionRate: "Conversion Rate",
+      vsLastMonth: "vs last month",
+      plus12_5: "+12.5% vs last month",
+      plus8_2: "+8.2% vs last month", 
+      plus5_1: "+5.1% vs last month",
+      plus2_3: "+2.3% vs last month"
     },
     upcomingBookings: {
       title: "Upcoming Bookings",
@@ -1614,6 +1701,20 @@ export const en: TranslationValue = {
       loadError: "Failed to load upcoming bookings",
       empty: {
         message: "No upcoming bookings"
+      }
+    },
+    upcomingBookingsAndQuotations: {
+      title: "Upcoming Bookings & Quotations",
+      description: "Latest bookings and quotations",
+      upcomingBookings: {
+        title: "Upcoming Bookings",
+        booking: "BOOKING",
+        noBookings: "No upcoming bookings"
+      },
+      recentQuotations: {
+        title: "Recent Quotations",
+        quotation: "QUOTATION",
+        noQuotations: "No recent quotations"
       }
     },
     maintenance: {
@@ -2020,7 +2121,7 @@ export const en: TranslationValue = {
       advancedFilters: "Advanced Filters",
       clearFilters: "Clear Filters"
     },
-    upcomingBookings: {
+    upcomingBookingsSection: {
       title: "Upcoming Bookings",
       description: "Bookings pending review and assignments",
       empty: {
@@ -4225,7 +4326,7 @@ export const en: TranslationValue = {
     category: "Category",
     categoryPlaceholder: "Enter category...",
     team: "Team",
-    description: "Description",
+    templateDescription: "Description",
     descriptionPlaceholder: "Enter description...",
     isActive: "Active",
     isDefault: "Default Template",

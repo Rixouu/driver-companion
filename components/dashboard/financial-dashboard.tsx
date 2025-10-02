@@ -106,7 +106,7 @@ export function FinancialDashboard({
           </div>
           <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
             <Link href="/reporting">
-              View Full Report
+{t("dashboard.financial.viewFullReport")}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
@@ -124,9 +124,9 @@ export function FinancialDashboard({
                   <div className="p-2 rounded-md bg-emerald-100 dark:bg-emerald-900/20">
                     <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  Revenue Trend
+{t("dashboard.financial.revenueTrend")}
                 </CardTitle>
-                <CardDescription className="text-sm">Daily revenue performance over time</CardDescription>
+                <CardDescription className="text-sm">{t("dashboard.financial.revenueTrendDescription")}</CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="h-80">
@@ -183,9 +183,9 @@ export function FinancialDashboard({
                   <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/20">
                     <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   </div>
-                  Quote Status Distribution
+{t("dashboard.financial.quoteStatusDistribution")}
                 </CardTitle>
-                <CardDescription className="text-sm">Breakdown of quotation statuses</CardDescription>
+                <CardDescription className="text-sm">{t("dashboard.financial.quoteStatusDistributionDescription")}</CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="h-80">
@@ -240,37 +240,37 @@ export function FinancialDashboard({
                 <div className="p-2 rounded-md bg-slate-100 dark:bg-slate-900/20">
                   <BarChart3 className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                 </div>
-                Quotation Status Overview
+{t("dashboard.financial.quotationStatusOverview")}
               </CardTitle>
-              <CardDescription className="text-sm">Current status distribution of all quotations</CardDescription>
+              <CardDescription className="text-sm">{t("dashboard.financial.quotationStatusOverviewDescription")}</CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/20">
                   <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
                   <div>
-                    <p className="text-sm font-medium text-green-700 dark:text-green-300">Approved</p>
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300">{t("dashboard.financial.approved")}</p>
                     <p className="text-lg font-bold text-green-800 dark:text-green-200">{financialData.approvedQuotes}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
                   <div className="w-3 h-3 bg-yellow-500 rounded-full flex-shrink-0"></div>
                   <div>
-                    <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300">Pending</p>
+                    <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300">{t("dashboard.financial.pending")}</p>
                     <p className="text-lg font-bold text-yellow-800 dark:text-yellow-200">{financialData.pendingQuotes}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20">
                   <div className="w-3 h-3 bg-red-500 rounded-full flex-shrink-0"></div>
                   <div>
-                    <p className="text-sm font-medium text-red-700 dark:text-red-300">Rejected</p>
+                    <p className="text-sm font-medium text-red-700 dark:text-red-300">{t("dashboard.financial.rejected")}</p>
                     <p className="text-lg font-bold text-red-800 dark:text-red-200">{financialData.rejectedQuotes}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
                   <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0"></div>
                   <div>
-                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Converted</p>
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">{t("dashboard.financial.converted")}</p>
                     <p className="text-lg font-bold text-blue-800 dark:text-blue-200">{financialData.convertedQuotes || 0}</p>
                   </div>
                 </div>

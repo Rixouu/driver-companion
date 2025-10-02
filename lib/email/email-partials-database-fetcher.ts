@@ -27,14 +27,42 @@ export async function getEmailHeaderFromDB(
   fallbackTemplate?: string
 ): Promise<string> {
   try {
-    const response = await fetch(`/api/email-partials?type=header&team=${team}&documentType=email`)
+    const { getSupabaseServerClient } = await import('@/lib/supabase/server')
+    const supabase = await getSupabaseServerClient()
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    // Try to get team-specific template first
+    let { data: partial, error } = await supabase
+      .from('partial_templates' as any)
+      .select('content')
+      .eq('type', 'header')
+      .eq('document_type', 'email')
+      .eq('team', team)
+      .eq('is_active', true)
+      .single()
+
+    // If no team-specific template and team is not 'both', try 'both' template
+    if (error && team !== 'both') {
+      const { data: bothPartial, error: bothError } = await supabase
+        .from('partial_templates' as any)
+        .select('content')
+        .eq('type', 'header')
+        .eq('document_type', 'email')
+        .eq('team', 'both')
+        .eq('is_active', true)
+        .single()
+      
+      if (!bothError && bothPartial) {
+        partial = bothPartial
+        error = null
+      }
     }
-    
-    const data = await response.json()
-    return data.content
+
+    if (error || !partial) {
+      console.warn(`No email header template found for team ${team}`)
+      return fallbackTemplate || getDefaultEmailHeader()
+    }
+
+    return ((partial as any)?.content) || fallbackTemplate || getDefaultEmailHeader()
   } catch (error) {
     console.error('Error fetching email header from database:', error)
     return fallbackTemplate || getDefaultEmailHeader()
@@ -49,14 +77,42 @@ export async function getEmailFooterFromDB(
   fallbackTemplate?: string
 ): Promise<string> {
   try {
-    const response = await fetch(`/api/email-partials?type=footer&team=${team}&documentType=email`)
+    const { getSupabaseServerClient } = await import('@/lib/supabase/server')
+    const supabase = await getSupabaseServerClient()
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    // Try to get team-specific template first
+    let { data: partial, error } = await supabase
+      .from('partial_templates' as any)
+      .select('content')
+      .eq('type', 'footer')
+      .eq('document_type', 'email')
+      .eq('team', team)
+      .eq('is_active', true)
+      .single()
+
+    // If no team-specific template and team is not 'both', try 'both' template
+    if (error && team !== 'both') {
+      const { data: bothPartial, error: bothError } = await supabase
+        .from('partial_templates' as any)
+        .select('content')
+        .eq('type', 'footer')
+        .eq('document_type', 'email')
+        .eq('team', 'both')
+        .eq('is_active', true)
+        .single()
+      
+      if (!bothError && bothPartial) {
+        partial = bothPartial
+        error = null
+      }
     }
-    
-    const data = await response.json()
-    return data.content
+
+    if (error || !partial) {
+      console.warn(`No email footer template found for team ${team}`)
+      return fallbackTemplate || getDefaultEmailFooter()
+    }
+
+    return ((partial as any)?.content) || fallbackTemplate || getDefaultEmailHeader()
   } catch (error) {
     console.error('Error fetching email footer from database:', error)
     return fallbackTemplate || getDefaultEmailFooter()
@@ -71,14 +127,42 @@ export async function getEmailCSSFromDB(
   fallbackTemplate?: string
 ): Promise<string> {
   try {
-    const response = await fetch(`/api/email-partials?type=css&team=${team}&documentType=email`)
+    const { getSupabaseServerClient } = await import('@/lib/supabase/server')
+    const supabase = await getSupabaseServerClient()
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    // Try to get team-specific template first
+    let { data: partial, error } = await supabase
+      .from('partial_templates' as any)
+      .select('content')
+      .eq('type', 'css')
+      .eq('document_type', 'email')
+      .eq('team', team)
+      .eq('is_active', true)
+      .single()
+
+    // If no team-specific template and team is not 'both', try 'both' template
+    if (error && team !== 'both') {
+      const { data: bothPartial, error: bothError } = await supabase
+        .from('partial_templates' as any)
+        .select('content')
+        .eq('type', 'css')
+        .eq('document_type', 'email')
+        .eq('team', 'both')
+        .eq('is_active', true)
+        .single()
+      
+      if (!bothError && bothPartial) {
+        partial = bothPartial
+        error = null
+      }
     }
-    
-    const data = await response.json()
-    return data.content
+
+    if (error || !partial) {
+      console.warn(`No email CSS template found for team ${team}`)
+      return fallbackTemplate || getDefaultEmailCSS()
+    }
+
+    return ((partial as any)?.content) || fallbackTemplate || getDefaultEmailHeader()
   } catch (error) {
     console.error('Error fetching email CSS from database:', error)
     return fallbackTemplate || getDefaultEmailCSS()

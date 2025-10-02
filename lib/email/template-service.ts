@@ -357,7 +357,7 @@ export class EmailTemplateService {
               let itemContent = blockContent
               
               // First, handle nested {{#if}} blocks within the each block
-              itemContent = itemContent.replace(/\{\{#if\s+([^}]+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (ifMatch, condition, ifBlockContent) => {
+              itemContent = itemContent.replace(/\{\{#if\s+([^}]+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (ifMatch: string, condition: string, ifBlockContent: string) => {
                 try {
                   const conditionResult = evalCondition(condition.trim(), { ...vars, ...item })
                   return conditionResult ? ifBlockContent : ''
@@ -445,7 +445,7 @@ export class EmailTemplateService {
       processedText = replaceVariables(processedText)
 
       // Generate full HTML with header/footer using the new function
-      const fullHtml = generateEmailTemplate({
+      const fullHtml = await generateEmailTemplate({
         customerName: (allVariables as any).customer_name || '{{customer_name}}',
         language: language as 'en' | 'ja',
         team: team as 'japan' | 'thailand',

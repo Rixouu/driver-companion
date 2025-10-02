@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +20,7 @@ interface CreatePaylinkModalProps {
 }
 
 export function CreatePaylinkModal({ onClose, onSuccess }: CreatePaylinkModalProps) {
+  const { t } = useI18n()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
@@ -43,7 +45,7 @@ export function CreatePaylinkModal({ onClose, onSuccess }: CreatePaylinkModalPro
     if (!formData.title || !formData.amount) {
       toast({
         title: "Error",
-        description: "Title and amount are required",
+        description: t("paymentLinks.errors.amountRequired"),
         variant: "destructive",
       })
       return
@@ -78,13 +80,13 @@ export function CreatePaylinkModal({ onClose, onSuccess }: CreatePaylinkModalPro
       if (data.success) {
         toast({
           title: "Success",
-          description: "Payment link created successfully",
+          description: t("paymentLinks.createModal.success"),
         })
         onSuccess()
       } else {
         toast({
           title: "Error",
-          description: data.error || "Failed to create payment link",
+          description: data.error || t("paymentLinks.errors.createFailed"),
           variant: "destructive",
         })
       }
@@ -92,7 +94,7 @@ export function CreatePaylinkModal({ onClose, onSuccess }: CreatePaylinkModalPro
       console.error('Error creating paylink:', error)
       toast({
         title: "Error",
-        description: "Failed to create payment link",
+        description: t("paymentLinks.errors.createFailed"),
         variant: "destructive",
       })
     } finally {
@@ -105,10 +107,10 @@ export function CreatePaylinkModal({ onClose, onSuccess }: CreatePaylinkModalPro
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           <CreditCard className="h-5 w-5" />
-          Create Payment Link
+          {t("paymentLinks.createModal.title")}
         </DialogTitle>
         <DialogDescription>
-          Create a secure payment link using Omise Payment Links+ API. Configure all settings for your payment link.
+          {t("paymentLinks.createModal.description")}
         </DialogDescription>
       </DialogHeader>
       
@@ -118,39 +120,39 @@ export function CreatePaylinkModal({ onClose, onSuccess }: CreatePaylinkModalPro
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <DollarSign className="h-5 w-5" />
-              Payment Information
+              {t("paymentLinks.createModal.paymentInformation")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Payment Title *</Label>
+              <Label htmlFor="title">{t("paymentLinks.createModal.paymentTitle")} *</Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
-                placeholder="e.g., Tokyo Limo Service - Booking #12345"
+                placeholder={t("paymentLinks.createModal.paymentTitlePlaceholder")}
                 required
                 className="font-medium"
               />
               <p className="text-xs text-muted-foreground">
-                This will be displayed to customers on the payment page
+                {t("paymentLinks.createModal.paymentTitleHelp")}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">{t("paymentLinks.createModal.descriptionLabel")}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Optional description for the payment (e.g., service details, booking information)"
+                placeholder={t("paymentLinks.createModal.descriptionPlaceholder")}
                 rows={3}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount *</Label>
+                <Label htmlFor="amount">{t("paymentLinks.createModal.amount")} *</Label>
                 <div className="relative">
                   <Input
                     id="amount"
@@ -170,7 +172,7 @@ export function CreatePaylinkModal({ onClose, onSuccess }: CreatePaylinkModalPro
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="currency">Currency</Label>
+                <Label htmlFor="currency">{t("paymentLinks.createModal.currency")}</Label>
                 <Select
                   value={formData.currency}
                   onValueChange={(value) => handleInputChange('currency', value)}
@@ -179,7 +181,7 @@ export function CreatePaylinkModal({ onClose, onSuccess }: CreatePaylinkModalPro
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="JPY">JPY (Japanese Yen)</SelectItem>
+                    <SelectItem value="JPY">{t("paymentLinks.createModal.japaneseYen")}</SelectItem>
                     <SelectItem value="THB">THB (Thai Baht)</SelectItem>
                     <SelectItem value="USD">USD (US Dollar)</SelectItem>
                     <SelectItem value="SGD">SGD (Singapore Dollar)</SelectItem>
@@ -198,15 +200,15 @@ export function CreatePaylinkModal({ onClose, onSuccess }: CreatePaylinkModalPro
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Settings className="h-5 w-5" />
-              Payment Settings
+              {t("paymentLinks.createModal.paymentSettings")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div className="space-y-1">
-                <Label htmlFor="multiple" className="text-base font-medium">Allow Multiple Payments</Label>
+                <Label htmlFor="multiple" className="text-base font-medium">{t("paymentLinks.createModal.allowMultiplePayments")}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Enable customers to use this link multiple times
+                  {t("paymentLinks.createModal.allowMultiplePaymentsDescription")}
                 </p>
               </div>
               <Switch
@@ -217,7 +219,7 @@ export function CreatePaylinkModal({ onClose, onSuccess }: CreatePaylinkModalPro
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="returnUrl">Return URL</Label>
+              <Label htmlFor="returnUrl">{t("paymentLinks.createModal.returnUrl")}</Label>
               <Input
                 id="returnUrl"
                 value={formData.returnUrl}
@@ -226,7 +228,7 @@ export function CreatePaylinkModal({ onClose, onSuccess }: CreatePaylinkModalPro
                 readOnly
               />
               <p className="text-xs text-muted-foreground">
-                Customers will be redirected to Driver Japan website after payment
+                {t("paymentLinks.createModal.returnUrlDescription")}
               </p>
             </div>
           </CardContent>
@@ -237,11 +239,11 @@ export function CreatePaylinkModal({ onClose, onSuccess }: CreatePaylinkModalPro
 
         <div className="flex justify-end space-x-3 pt-4">
           <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
+            {t("paymentLinks.createModal.cancel")}
           </Button>
           <Button type="submit" disabled={loading} className="min-w-[140px]">
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create Payment Link
+            {t("paymentLinks.createModal.create")}
           </Button>
         </div>
       </form>

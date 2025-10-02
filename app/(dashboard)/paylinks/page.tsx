@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -90,6 +91,7 @@ interface Paylink {
 }
 
 export default function PaylinksPage() {
+  const { t } = useI18n()
   const [paylinks, setPaylinks] = useState<Paylink[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -137,7 +139,7 @@ export default function PaylinksPage() {
       } else {
         toast({
           title: "Error",
-          description: data.error || "Failed to fetch payment links",
+          description: data.error || t("paymentLinks.errors.fetchFailed"),
           variant: "destructive",
         })
       }
@@ -145,7 +147,7 @@ export default function PaylinksPage() {
       console.error('Error fetching paylinks:', error)
       toast({
         title: "Error",
-        description: "Failed to fetch payment links",
+        description: t("paymentLinks.errors.fetchFailed"),
         variant: "destructive",
       })
     } finally {
@@ -218,7 +220,7 @@ export default function PaylinksPage() {
       } else {
         toast({
           title: "Error",
-          description: data.error || "Failed to generate receipt",
+          description: data.error || t("paymentLinks.errors.receiptFailed"),
           variant: "destructive",
         })
       }
@@ -226,7 +228,7 @@ export default function PaylinksPage() {
       console.error('Error generating receipt:', error)
       toast({
         title: "Error",
-        description: "Failed to generate receipt",
+        description: t("paymentLinks.errors.receiptFailed"),
         variant: "destructive",
       })
     }
@@ -236,25 +238,25 @@ export default function PaylinksPage() {
   const getPaymentStatus = (link: Paylink) => {
     if (link.deleted) return { 
       status: 'deleted', 
-      label: 'Deleted', 
+      label: t("paymentLinks.statusLabels.deleted"), 
       color: 'destructive',
       className: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800'
     }
     if (link.state === 'paid' || link.used) return { 
       status: 'paid', 
-      label: 'Paid', 
+      label: t("paymentLinks.statusLabels.paid"), 
       color: 'default',
       className: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800'
     }
     if (link.state === 'pending' || link.status === 'active') return { 
       status: 'pending', 
-      label: 'Pending', 
+      label: t("paymentLinks.statusLabels.pending"), 
       color: 'secondary',
       className: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800'
     }
     return { 
       status: 'pending', 
-      label: 'Pending', 
+      label: t("paymentLinks.statusLabels.pending"), 
       color: 'secondary',
       className: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800'
     }
@@ -285,8 +287,8 @@ export default function PaylinksPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Payment Links"
-        description="Manage Omise payment links, view payment status, and generate receipts"
+        title={t("paymentLinks.title")}
+        description={t("paymentLinks.description")}
       />
 
       {/* Actions Bar */}
@@ -296,7 +298,7 @@ export default function PaylinksPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="Search payment links..."
+              placeholder={t("paymentLinks.searchPlaceholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -307,7 +309,7 @@ export default function PaylinksPage() {
             <DialogTrigger asChild>
               <Button className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
-                Create Payment Link
+                {t("paymentLinks.createPaymentLink")}
               </Button>
             </DialogTrigger>
             <CreatePaylinkModal
@@ -334,7 +336,7 @@ export default function PaylinksPage() {
                   : 'hover:bg-muted hover:text-muted-foreground'
               }`}
             >
-              All Status
+              {t("paymentLinks.allStatus")}
             </Button>
             <Button
               variant="outline"
@@ -346,7 +348,7 @@ export default function PaylinksPage() {
                   : ''
               }`}
             >
-              Pending
+              {t("paymentLinks.pending")}
             </Button>
             <Button
               variant="outline"
@@ -358,7 +360,7 @@ export default function PaylinksPage() {
                   : ''
               }`}
             >
-              Paid
+              {t("paymentLinks.paid")}
             </Button>
             <Button
               variant="outline"
@@ -370,13 +372,13 @@ export default function PaylinksPage() {
                   : ''
               }`}
             >
-              Deleted
+              {t("paymentLinks.deleted")}
             </Button>
           </div>
 
           {/* Page Size Selector - Top Right */}
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <span className="text-sm text-muted-foreground">Show:</span>
+            <span className="text-sm text-muted-foreground">{t("paymentLinks.show")}</span>
             <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
               <SelectTrigger className="w-20 h-8">
                 <SelectValue />
@@ -396,16 +398,16 @@ export default function PaylinksPage() {
       {/* Paylinks Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Payment Links ({pagination.total})</CardTitle>
+          <CardTitle>{t("paymentLinks.title")} ({pagination.total})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="text-muted-foreground">Loading payment links...</div>
+              <div className="text-muted-foreground">{t("paymentLinks.tableContent.loading")}</div>
             </div>
           ) : filteredPaylinks.length === 0 ? (
             <div className="flex items-center justify-center py-8">
-              <div className="text-muted-foreground">No payment links found</div>
+              <div className="text-muted-foreground">{t("paymentLinks.tableContent.noPaymentLinks")}</div>
             </div>
           ) : (
             <>
@@ -414,11 +416,11 @@ export default function PaylinksPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="min-w-[200px]">Title</TableHead>
-                      <TableHead className="min-w-[120px]">Amount</TableHead>
-                      <TableHead className="min-w-[100px]">Status</TableHead>
-                      <TableHead className="min-w-[100px]">Created</TableHead>
-                      <TableHead className="min-w-[120px]">Actions</TableHead>
+                      <TableHead className="min-w-[200px]">{t("paymentLinks.tableHeaders.title")}</TableHead>
+                      <TableHead className="min-w-[120px]">{t("paymentLinks.tableHeaders.amount")}</TableHead>
+                      <TableHead className="min-w-[100px]">{t("paymentLinks.tableHeaders.status")}</TableHead>
+                      <TableHead className="min-w-[100px]">{t("paymentLinks.tableHeaders.created")}</TableHead>
+                      <TableHead className="min-w-[120px]">{t("paymentLinks.tableHeaders.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -428,9 +430,9 @@ export default function PaylinksPage() {
                         <TableRow key={link.id}>
                           <TableCell>
                             <div>
-                              <div className="font-medium">{link.title || link.name || 'Untitled'}</div>
+                              <div className="font-medium">{link.title || link.name || t("paymentLinks.tableContent.untitled")}</div>
                               <div className="text-sm text-muted-foreground">
-                                {link.description || 'No description'}
+                                {link.description || t("paymentLinks.tableContent.noDescription")}
                               </div>
                               <div className="text-xs text-muted-foreground font-mono">
                                 {link.id}
@@ -443,7 +445,7 @@ export default function PaylinksPage() {
                             </div>
                             {(link.multiple || link.multiple_usage) && (
                               <Badge variant="outline" className="text-xs">
-                                Multiple Use
+                                {t("paymentLinks.tableContent.multipleUse")}
                               </Badge>
                             )}
                           </TableCell>
@@ -498,18 +500,18 @@ export default function PaylinksPage() {
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle>Delete Payment Link</AlertDialogTitle>
+                                      <AlertDialogTitle>{t("paymentLinks.deleteDialog.title")}</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        Are you sure you want to delete this payment link? This action cannot be undone.
+                                        {t("paymentLinks.deleteDialog.description")}
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogCancel>{t("paymentLinks.deleteDialog.cancel")}</AlertDialogCancel>
                                       <AlertDialogAction
                                         onClick={() => deletePaylink(link.id.toString())}
                                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                       >
-                                        Delete
+                                        {t("paymentLinks.deleteDialog.delete")}
                                       </AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
@@ -544,10 +546,10 @@ export default function PaylinksPage() {
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
                             <h3 className="font-medium text-sm truncate">
-                              {link.title || link.name || 'Untitled'}
+                              {link.title || link.name || t("paymentLinks.tableContent.untitled")}
                             </h3>
                             <p className="text-xs text-muted-foreground mt-1 truncate">
-                              {link.description || 'No description'}
+                              {link.description || t("paymentLinks.tableContent.noDescription")}
                             </p>
                             <p className="text-xs text-muted-foreground font-mono mt-1">
                               ID: {link.id}
@@ -573,7 +575,7 @@ export default function PaylinksPage() {
                           </div>
                           {(link.multiple || link.multiple_usage) && (
                             <Badge variant="outline" className="text-xs">
-                              Multiple Use
+                              {t("paymentLinks.tableContent.multipleUse")}
                             </Badge>
                           )}
                         </div>
@@ -590,7 +592,7 @@ export default function PaylinksPage() {
                             className="h-8 px-2"
                           >
                             <Eye className="h-4 w-4 mr-1" />
-                            <span className="text-xs">View</span>
+                            <span className="text-xs">{t("paymentLinks.actions.view")}</span>
                           </Button>
                           
                           <Button
@@ -600,7 +602,7 @@ export default function PaylinksPage() {
                             className="h-8 px-2"
                           >
                             <ExternalLink className="h-4 w-4 mr-1" />
-                            <span className="text-xs">Open</span>
+                            <span className="text-xs">{t("paymentLinks.actions.open")}</span>
                           </Button>
                           
                           {paymentStatus.status === 'paid' && (
@@ -611,7 +613,7 @@ export default function PaylinksPage() {
                               className="h-8 px-2 col-span-2"
                             >
                               <Receipt className="h-4 w-4 mr-1" />
-                              <span className="text-xs">Generate Receipt</span>
+                              <span className="text-xs">{t("paymentLinks.actions.generateReceipt")}</span>
                             </Button>
                           )}
                         </div>
@@ -629,7 +631,7 @@ export default function PaylinksPage() {
       {!loading && filteredPaylinks.length > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t bg-card rounded-lg">
           <div className="text-sm text-muted-foreground">
-            Showing {filteredPaylinks.length} of {pagination.total} payment links
+            {t("paymentLinks.pagination.showing", { showing: filteredPaylinks.length, total: pagination.total })}
           </div>
           
           <div className="flex items-center space-x-2">
@@ -641,7 +643,7 @@ export default function PaylinksPage() {
               className="hidden sm:flex"
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              First
+              {t("paymentLinks.pagination.first")}
             </Button>
             
             <Button
@@ -651,13 +653,14 @@ export default function PaylinksPage() {
               disabled={pagination.offset === 0}
             >
               <ChevronLeft className="h-4 w-4 mr-1 sm:mr-0" />
-              <span className="hidden sm:inline">Previous</span>
+              <span className="hidden sm:inline">{t("paymentLinks.pagination.previous")}</span>
             </Button>
             
             <span className="text-sm text-muted-foreground px-2 text-center">
-              <span className="hidden sm:inline">Page </span>
-              {Math.floor(pagination.offset / pagination.limit) + 1}
-              <span className="hidden sm:inline"> of {Math.ceil(pagination.total / pagination.limit)}</span>
+              {t("paymentLinks.pagination.page", { 
+                current: Math.floor(pagination.offset / pagination.limit) + 1, 
+                total: Math.ceil(pagination.total / pagination.limit) 
+              })}
             </span>
             
             <Button
@@ -666,7 +669,7 @@ export default function PaylinksPage() {
               onClick={() => fetchPaylinks(pagination.offset + pagination.limit, pagination.limit, true)}
               disabled={!pagination.hasMore}
             >
-              <span className="hidden sm:inline">Next</span>
+              <span className="hidden sm:inline">{t("paymentLinks.pagination.next")}</span>
               <ChevronRight className="h-4 w-4 sm:ml-1" />
             </Button>
             
@@ -680,7 +683,7 @@ export default function PaylinksPage() {
               disabled={!pagination.hasMore}
               className="hidden sm:flex"
             >
-              Last
+              {t("paymentLinks.pagination.last")}
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>

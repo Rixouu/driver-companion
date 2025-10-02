@@ -4969,6 +4969,116 @@ export const en: TranslationValue = {
       due: "Inspection due",
       completed: "Inspection completed"
     }
+  },
+  paymentLinks: {
+    title: "Payment Links",
+    description: "Manage Omise payment links, view payment status, and generate receipts",
+    searchPlaceholder: "Search payment links...",
+    createPaymentLink: "Create Payment Link",
+    show: "Show:",
+    allStatus: "All Status",
+    pending: "Pending",
+    paid: "Paid",
+    deleted: "Deleted",
+    tableHeaders: {
+      title: "Title",
+      amount: "Amount",
+      status: "Status",
+      created: "Created",
+      actions: "Actions"
+    },
+    tableContent: {
+      noDescription: "No description",
+      untitled: "Untitled",
+      multipleUse: "Multiple Use",
+      loading: "Loading payment links...",
+      noPaymentLinks: "No payment links found"
+    },
+    statusLabels: {
+      pending: "Pending",
+      paid: "Paid",
+      deleted: "Deleted"
+    },
+    actions: {
+      view: "View",
+      open: "Open",
+      generateReceipt: "Generate Receipt",
+      delete: "Delete",
+      copy: "Copy",
+      edit: "Edit"
+    },
+    pagination: {
+      showing: "Showing {showing} of {total} payment links",
+      first: "First",
+      previous: "Previous",
+      next: "Next",
+      last: "Last",
+      page: "Page {current} of {total}"
+    },
+    deleteDialog: {
+      title: "Delete Payment Link",
+      description: "Are you sure you want to delete this payment link? This action cannot be undone.",
+      cancel: "Cancel",
+      delete: "Delete"
+    },
+    detailsModal: {
+      title: "Payment Link Details",
+      paymentInformation: "Payment Information",
+      amount: "Amount",
+      status: "Status",
+      multipleUse: "Multiple Use",
+      no: "No",
+      yes: "Yes",
+      linkId: "Link ID",
+      created: "Created",
+      actions: "Actions",
+      copyLink: "Copy Link",
+      openLink: "Open Link",
+      paymentLink: "Payment Link"
+    },
+    createModal: {
+      title: "Create Payment Link",
+      description: "Create a secure payment link using Omise Payment Links+ API. Configure all settings for your payment link.",
+      paymentInformation: "Payment Information",
+      paymentTitle: "Payment Title",
+      paymentTitlePlaceholder: "e.g., Tokyo Limo Service - Booking #12345",
+      paymentTitleHelp: "This will be displayed to customers on the payment page",
+      descriptionLabel: "Description",
+      descriptionPlaceholder: "Optional description for the payment (e.g., service details, booking information)",
+      amount: "Amount",
+      currency: "Currency",
+      japaneseYen: "JPY (Japanese Yen)",
+      paymentSettings: "Payment Settings",
+      allowMultiplePayments: "Allow Multiple Payments",
+      allowMultiplePaymentsDescription: "Enable customers to use this link multiple times",
+      returnUrl: "Return URL",
+      returnUrlDescription: "Customers will be redirected to Driver Japan website after payment",
+      cancel: "Cancel",
+      create: "Create Payment Link",
+      success: "Payment link created successfully"
+    },
+    receiptModal: {
+      title: "Payment Receipt",
+      paymentCompleted: "Payment Completed",
+      paymentCompletedJa: "お支払いが完了しました",
+      amountPaid: "AMOUNT PAID",
+      service: "Service",
+      paymentId: "Payment ID",
+      paymentDate: "Payment Date",
+      status: "Status",
+      transactionUrl: "Transaction URL",
+      downloadPdf: "Download PDF",
+      downloadPng: "Download PNG",
+      openInNewTab: "Open in New Tab",
+      processedBy: "Payment processed by OMISE"
+    },
+    errors: {
+      fetchFailed: "Failed to fetch payment links",
+      createFailed: "Failed to create payment link",
+      deleteFailed: "Failed to delete payment link",
+      receiptFailed: "Failed to generate receipt",
+      amountRequired: "Amount and title are required"
+    }
   }
 }
 

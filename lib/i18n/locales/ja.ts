@@ -4865,6 +4865,116 @@ export const ja: TranslationValue = {
       due: "点検期限です",
       completed: "点検が完了しました"
     }
+  },
+  paymentLinks: {
+    title: "支払いリンク",
+    description: "Omise支払いリンクを管理し、支払い状況を確認し、領収書を生成します",
+    searchPlaceholder: "支払いリンクを検索...",
+    createPaymentLink: "支払いリンクを作成",
+    show: "表示:",
+    allStatus: "すべてのステータス",
+    pending: "保留中",
+    paid: "支払い済み",
+    deleted: "削除済み",
+    tableHeaders: {
+      title: "タイトル",
+      amount: "金額",
+      status: "ステータス",
+      created: "作成日",
+      actions: "アクション"
+    },
+    tableContent: {
+      noDescription: "説明なし",
+      untitled: "無題",
+      multipleUse: "複数回使用",
+      loading: "支払いリンクを読み込み中...",
+      noPaymentLinks: "支払いリンクが見つかりません"
+    },
+    statusLabels: {
+      pending: "保留中",
+      paid: "支払い済み",
+      deleted: "削除済み"
+    },
+    actions: {
+      view: "表示",
+      open: "開く",
+      generateReceipt: "領収書を生成",
+      delete: "削除",
+      copy: "コピー",
+      edit: "編集"
+    },
+    pagination: {
+      showing: "{total}件中{showing}件の支払いリンクを表示中",
+      first: "最初",
+      previous: "前へ",
+      next: "次へ",
+      last: "最後",
+      page: "{total}ページ中{current}ページ"
+    },
+    deleteDialog: {
+      title: "支払いリンクを削除",
+      description: "この支払いリンクを削除してもよろしいですか？この操作は元に戻せません。",
+      cancel: "キャンセル",
+      delete: "削除"
+    },
+    detailsModal: {
+      title: "支払いリンク詳細",
+      paymentInformation: "支払い情報",
+      amount: "金額",
+      status: "ステータス",
+      multipleUse: "複数回使用",
+      no: "いいえ",
+      yes: "はい",
+      linkId: "リンクID",
+      created: "作成日",
+      actions: "アクション",
+      copyLink: "リンクをコピー",
+      openLink: "リンクを開く",
+      paymentLink: "支払いリンク"
+    },
+    createModal: {
+      title: "支払いリンクを作成",
+      description: "Omise Payment Links+ APIを使用して安全な支払いリンクを作成します。支払いリンクのすべての設定を構成します。",
+      paymentInformation: "支払い情報",
+      paymentTitle: "支払いタイトル",
+      paymentTitlePlaceholder: "例：東京リモサービス - 予約 #12345",
+      paymentTitleHelp: "これは顧客の支払いページに表示されます",
+      descriptionLabel: "説明",
+      descriptionPlaceholder: "支払いのオプション説明（例：サービス詳細、予約情報）",
+      amount: "金額",
+      currency: "通貨",
+      japaneseYen: "JPY（日本円）",
+      paymentSettings: "支払い設定",
+      allowMultiplePayments: "複数回支払いを許可",
+      allowMultiplePaymentsDescription: "顧客がこのリンクを複数回使用できるようにします",
+      returnUrl: "リターンURL",
+      returnUrlDescription: "支払い後、顧客はDriver Japanウェブサイトにリダイレクトされます",
+      cancel: "キャンセル",
+      create: "支払いリンクを作成",
+      success: "支払いリンクが正常に作成されました"
+    },
+    receiptModal: {
+      title: "支払い領収書",
+      paymentCompleted: "支払い完了",
+      paymentCompletedJa: "お支払いが完了しました",
+      amountPaid: "支払い金額",
+      service: "サービス",
+      paymentId: "支払いID",
+      paymentDate: "支払い日",
+      status: "ステータス",
+      transactionUrl: "取引URL",
+      downloadPdf: "PDFをダウンロード",
+      downloadPng: "PNGをダウンロード",
+      openInNewTab: "新しいタブで開く",
+      processedBy: "OMISEによって処理された支払い"
+    },
+    errors: {
+      fetchFailed: "支払いリンクの取得に失敗しました",
+      createFailed: "支払いリンクの作成に失敗しました",
+      deleteFailed: "支払いリンクの削除に失敗しました",
+      receiptFailed: "領収書の生成に失敗しました",
+      amountRequired: "金額とタイトルが必要です"
+    }
   }
 }
 

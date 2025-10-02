@@ -3820,7 +3820,7 @@ export const en: TranslationValue = {
         description: "Quotation has been sent to customer for review"
       },
       reminder: {
-        title: "Reminder Sent",
+        title: "Reminder",
         description: "Follow-up reminder sent to customer before expiry"
       },
       approve: {

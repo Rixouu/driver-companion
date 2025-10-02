@@ -3765,7 +3765,7 @@ export const ja: TranslationValue = {
         description: "見積が顧客に送信され、確認待ちです"
       },
       reminder: {
-        title: "リマインダー送信完了",
+        title: "リマインダー",
         description: "期限前に顧客へフォローアップのリマインダーを送信しました"
       },
       approve: {

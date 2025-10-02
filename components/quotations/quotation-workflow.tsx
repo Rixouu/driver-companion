@@ -1068,11 +1068,16 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
               <div className="flex items-center gap-2 text-xs">
                 <Clock className="h-3 w-3" />
                 {daysUntilExpiry > 0 ? (
-                  <span className="text-red-600 font-medium">Expires in {daysUntilExpiry} day{daysUntilExpiry !== 1 ? 's' : ''}</span>
+                  <span className="text-red-600 font-medium">
+                    {daysUntilExpiry === 1 
+                      ? "⚠️ Expires tomorrow - Send reminder now" 
+                      : `⚠️ Expires in ${daysUntilExpiry} days - Consider sending reminder`
+                    }
+                  </span>
                 ) : daysUntilExpiry === 0 ? (
-                  <span className="text-orange-600 font-medium">Expires today</span>
+                  <span className="text-orange-600 font-medium">⚠️ Expires today - Send reminder immediately</span>
                 ) : (
-                  <span className="text-red-600 font-medium">Expired {Math.abs(daysUntilExpiry)} day{Math.abs(daysUntilExpiry) === 1 ? '' : 's'} ago</span>
+                  <span className="text-red-600 font-medium">❌ Expired {Math.abs(daysUntilExpiry)} day{Math.abs(daysUntilExpiry) === 1 ? '' : 's'} ago</span>
                 )}
               </div>
             )}

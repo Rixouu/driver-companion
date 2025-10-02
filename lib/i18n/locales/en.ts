@@ -895,7 +895,6 @@ export const en: TranslationValue = {
     location: "Location",
     fieldInspection: "Field Inspection",
     inspector: "Inspector",
-    inspectionDate: "Inspection Date",
     editInspection: "Edit Inspection",
     continueInspection: "Continue Inspection",
     editingInspectionFor: "Editing inspection for {vehicleName}",
@@ -1065,8 +1064,14 @@ export const en: TranslationValue = {
       model: "Model",
       photoNumber: "Photo {{number}}",
       currentSection: "Current Section",
-      showingVehicles: "Showing {start}-{end} of {total} vehicles"
+      showingVehicles: "Showing {start}-{end} of {total} vehicles",
+      inspectionDate: "Inspection Date",
+      inspectionDateDescription: "Select the date when the inspection was actually performed",
+      selectDate: "Select a date",
+      backdatingWarning: "⚠️ Backdating inspection to {date} ({daysAgo} days ago)",
+      currentDateInspection: "Inspection will be dated: {date}"
     },
+    inspectionDate: "Inspection Date",
     actions: {
       pass: "Pass",
       fail: "Fail",
@@ -1087,6 +1092,8 @@ export const en: TranslationValue = {
       scheduleRepairDescription: "Create a maintenance task for the failed items",
       start: "Start Inspection",
       continueEditing: "Continue Editing",
+      backdateInspection: "Backdate Inspection",
+      useCurrentDate: "Use Current Date",
       markAsCompleted: "Mark as Completed",
       printReport: "Print Report",
       exportHtml: "Export HTML",
@@ -4842,7 +4849,9 @@ export const en: TranslationValue = {
         printReport: "Print Report",
         exportHtml: "Export CSV",
         exportPdf: "Export PDF",
-        viewDetails: "View Details"
+        viewDetails: "View Details",
+        backdateInspection: "Backdate Inspection",
+        useCurrentDate: "Use Current Date"
       },
 
       notes: {
@@ -4917,7 +4926,14 @@ export const en: TranslationValue = {
       labels: {
         model: "Model",
         currentSection: "Current Section",
-        estimatedTime: "Estimated Time"
+        estimatedTime: "Estimated Time",
+        inspectionDate: "Inspection Date",
+        inspectionDateDescription: "Select the date when the inspection was actually performed",
+        selectDate: "Select a date",
+        backdatingWarning: "⚠️ Backdating inspection to {date} ({daysAgo} days ago)",
+        currentDateInspection: "Inspection will be dated: {date}",
+        photoNumber: "Photo {number}",
+        showingVehicles: "Showing {start}-{end} of {total} vehicles"
       }
     }
   },

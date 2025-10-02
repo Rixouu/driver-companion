@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { useToast } from "@/components/ui/use-toast"
-import { Check, X, Camera, ArrowRight, ArrowLeft, ChevronDown, Search, Filter, XCircle } from "lucide-react"
+import { Check, X, Camera, ArrowRight, ArrowLeft, ChevronDown, Search, Filter, XCircle, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Card, CardContent } from "@/components/ui/card"
@@ -26,6 +26,9 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Database } from "@/types/supabase"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { format } from "date-fns"
 
 // Type to capture translation field structure from inspection service
 type TranslationObject = { [key: string]: string };
@@ -78,6 +81,7 @@ interface Vehicle {
 const inspectionSchema = z.object({
   vehicle_id: z.string().min(1, "Required"),
   type: z.string().min(1).default("routine"),
+  inspection_date: z.date().optional(),
 });
 
 type InspectionFormData = z.infer<typeof inspectionSchema>;
@@ -100,6 +104,8 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [selectedType, setSelectedType] = useState<InspectionType>('routine');
   const [sections, setSections] = useState<InspectionSection[]>([]);
+  const [inspectionDate, setInspectionDate] = useState<Date | undefined>(new Date());
+  const [isBackdatingEnabled, setIsBackdatingEnabled] = useState(false);
   
   // Step handling
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
@@ -241,6 +247,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     defaultValues: {
       vehicle_id: vehicleId || '',
       type: 'routine',
+      inspection_date: new Date(),
     },
   });
   
@@ -601,7 +608,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
             status: "in_progress",
             created_by: user.id,
             inspector_id: driverData.id, // Use auto-found driver ID
-            date: new Date().toISOString(),
+            date: (inspectionDate || new Date()).toISOString(),
           })
           .select("id")
           .single()
@@ -993,7 +1000,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
             booking_id: bookingId || null,
             type: selectedType,
             status: 'completed',
-            date: new Date().toISOString(),
+            date: (inspectionDate || new Date()).toISOString(),
             notes: notes,
             created_by: user.id,
             inspector_id: user.id,
@@ -1363,12 +1370,74 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         </div>
       )}
       
+      {/* Date Selection Section - Better positioned */}
+      {selectedVehicle && (
+        <div className="bg-muted/30 p-6 rounded-lg space-y-4 mt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-medium">{t("inspections.labels.inspectionDate")}</h3>
+              <p className="text-sm text-muted-foreground">{t("inspections.labels.inspectionDateDescription")}</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsBackdatingEnabled(!isBackdatingEnabled)}
+            >
+              <Calendar className="mr-2 h-4 w-4" />
+              {isBackdatingEnabled ? t("inspections.actions.useCurrentDate") : t("inspections.actions.backdateInspection")}
+            </Button>
+          </div>
+
+          {isBackdatingEnabled && (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {inspectionDate ? format(inspectionDate, "PPP") : t("inspections.labels.selectDate")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={inspectionDate}
+                      onSelect={(date) => {
+                        setInspectionDate(date);
+                        methods.setValue('inspection_date', date);
+                      }}
+                      disabled={(date) => date > new Date() || date < new Date(1900, 0, 1)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              {inspectionDate && inspectionDate < new Date() && (
+                <div className="flex items-center space-x-2 text-sm text-amber-600 dark:text-amber-400">
+                  <Calendar className="h-4 w-4" />
+                  <span>{t("inspections.labels.backdatingWarning", { 
+                    date: format(inspectionDate, "PPP"),
+                    daysAgo: Math.ceil((new Date().getTime() - inspectionDate.getTime()) / (1000 * 60 * 60 * 24))
+                  })}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!isBackdatingEnabled && (
+            <div className="text-sm text-muted-foreground">
+              {t("inspections.labels.currentDateInspection", { date: format(new Date(), "PPP") })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Navigation buttons */}
-      <div className="flex justify-between mt-6">
-        <Button variant="outline" onClick={() => router.push('/inspections')}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> {t('inspections.title')}
-        </Button>
-      
+      <div className="flex justify-end mt-6">
       {selectedVehicle && (
           <Button 
             onClick={() => {
@@ -1388,8 +1457,6 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     <div className="space-y-8">
       <h2 className="text-xl font-semibold">{t("inspections.steps.selectType")}</h2>
 
-
-
       <FormProvider {...methods}>
         <InspectionTypeSelector
           control={methods.control}
@@ -1399,6 +1466,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           showAllTypes={false}
         />
       </FormProvider>
+
 
       <div className="flex justify-between mt-8">
         <Button
@@ -1610,6 +1678,12 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
               <p className="text-muted-foreground mt-1">
                 {selectedVehicle.plate_number}
               </p>
+              {isBackdatingEnabled && inspectionDate && (
+                <div className="flex items-center gap-2 mt-2 text-sm text-amber-600 dark:text-amber-400">
+                  <Calendar className="h-4 w-4" />
+                  <span>{t('inspections.labels.inspectionDate')}: {format(inspectionDate, "PPP")}</span>
+                </div>
+              )}
             </div>
           </div>
               

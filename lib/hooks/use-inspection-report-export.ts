@@ -487,7 +487,7 @@ export function useInspectionReportExport({
       
       // Get inspector name - same logic as inspection details page
       const inspectorName = inspection.inspector?.name || 'N/A';
-      const inspectionDateForDisplay = new Date(inspection.created_at || inspection.updated_at || new Date());
+      const inspectionDateForDisplay = new Date(inspection.date || inspection.created_at || inspection.updated_at || new Date());
       const inspectionDateFormatted = (() => {
         const day = inspectionDateForDisplay.getDate().toString().padStart(2, '0')
         const month = (inspectionDateForDisplay.getMonth() + 1).toString().padStart(2, '0')

@@ -881,7 +881,6 @@ export const ja: TranslationValue = {
     location: "場所",
     fieldInspection: "現場点検",
     inspector: "点検員",
-    inspectionDate: "点検日",
     editInspection: "点検を編集",
     continueInspection: "点検を続行",
     editingInspectionFor: "{vehicleName}の点検を編集",
@@ -1051,8 +1050,14 @@ export const ja: TranslationValue = {
       model: "モデル",
       photoNumber: "写真 {{number}}",
       currentSection: "現在のセクション",
-      showingVehicles: "{total}台の車両のうち{start}-{end}台を表示中"
+      showingVehicles: "{total}台の車両のうち{start}-{end}台を表示中",
+      inspectionDate: "点検日",
+      inspectionDateDescription: "点検が実際に実施された日付を選択してください",
+      selectDate: "日付を選択",
+      backdatingWarning: "⚠️ 点検を{date}に遡って記録（{daysAgo}日前）",
+      currentDateInspection: "点検日: {date}"
     },
+    inspectionDate: "点検日",
     actions: {
       pass: "合格",
       fail: "不合格",
@@ -1073,6 +1078,8 @@ export const ja: TranslationValue = {
       scheduleRepairDescription: "不合格項目に対してメンテナンスタスクを作成します",
       start: "開始",
       continueEditing: "編集を続ける",
+      backdateInspection: "点検を遡って記録",
+      useCurrentDate: "現在の日付を使用",
       markAsCompleted: "完了としてマーク",
       printReport: "レポートを印刷",
       exportHtml: "HTMLをエクスポート",
@@ -4745,7 +4752,9 @@ export const ja: TranslationValue = {
         printReport: "レポートを印刷",
         exportHtml: "CSVをエクスポート",
         exportPdf: "PDFをエクスポート",
-        viewDetails: "詳細を表示"
+        viewDetails: "詳細を表示",
+        backdateInspection: "点検を遡って記録",
+        useCurrentDate: "現在の日付を使用"
       },
       notes: {
         title: "点検員のメモ",
@@ -4812,7 +4821,14 @@ export const ja: TranslationValue = {
       labels: {
         model: "モデル",
         currentSection: "現在のセクション",
-        estimatedTime: "推定時間"
+        estimatedTime: "推定時間",
+        inspectionDate: "点検日",
+        inspectionDateDescription: "点検が実際に実施された日付を選択してください",
+        selectDate: "日付を選択",
+        backdatingWarning: "⚠️ 点検を{date}に遡って記録（{daysAgo}日前）",
+        currentDateInspection: "点検日: {date}",
+        photoNumber: "写真{number}",
+        showingVehicles: "{total}台の車両の{start}-{end}を表示中"
       }
     }
   },

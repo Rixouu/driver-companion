@@ -737,7 +737,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       {t('quotations.details.quotationNumber', { defaultValue: 'Quotation Number #{id}' }).replace('{id}', formattedQuoteNumber)}
                       {quotation.creator && (
                         <span className="ml-2">
-                          • Created by: {quotation.creator.full_name || 'Unknown User'}
+                          • {t('quotations.details.createdBy')} {quotation.creator.full_name || t('common.unknownUser', { defaultValue: 'Unknown User' })}
                         </span>
                       )}
                     </p>
@@ -938,7 +938,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white"
             >
                       <Mail className="h-4 w-4" />
-                      Send Quotation
+                      {t('quotations.actions.send')}
             </Button>
                   )}
                 </>

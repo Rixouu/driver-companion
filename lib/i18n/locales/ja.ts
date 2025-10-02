@@ -89,6 +89,7 @@ export const ja: TranslationValue = {
     notAssigned: "未割り当て",
     notSet: "未設定",
     noImage: "画像なし",
+    unknownUser: "不明なユーザー",
     minutes: "分",
     call: "電話",
     text: "テキスト",

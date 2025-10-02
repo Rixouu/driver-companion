@@ -89,6 +89,7 @@ export const en: TranslationValue = {
     notAssigned: "Not Assigned",
     notSet: "Not Set",
     noImage: "No image",
+    unknownUser: "Unknown User",
     minutes: "Minutes",
     call: "Call",
     text: "TEXT",

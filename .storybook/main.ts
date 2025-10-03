@@ -28,6 +28,16 @@ const config: StorybookConfig = {
       __dirname: '""',
       __filename: '""',
     };
+
+    // Ensure React is available globally
+    config.resolve = {
+      ...config.resolve,
+      alias: {
+        ...config.resolve?.alias,
+        'react': 'react',
+        'react-dom': 'react-dom',
+      },
+    };
     
     return config;
   }

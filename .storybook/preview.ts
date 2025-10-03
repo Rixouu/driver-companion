@@ -1,5 +1,6 @@
 import type { Preview } from '@storybook/nextjs-vite'
 import '../app/globals.css'
+import { withProviders } from './decorators'
 
 const preview: Preview = {
   parameters: {
@@ -70,7 +71,7 @@ const preview: Preview = {
 
     layout: 'centered',
   },
-
+  decorators: [withProviders],
 };
 
 export default preview;

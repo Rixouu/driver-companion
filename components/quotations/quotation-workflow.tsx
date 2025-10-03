@@ -16,6 +16,7 @@ import LoadingModal from '@/components/ui/loading-modal';
 import { useProgressSteps } from '@/lib/hooks/use-progress-steps'
 import { QuotationStatusSummary } from './quotation-status-summary'
 import { QuotationWorkflowSteps } from './quotation-workflow-steps'
+import { PaymentLinkDialog } from './payment-link-dialog'
 // Removed countdown toast imports - using simple toast instead
 import { progressConfigs } from '@/lib/config/progressConfigs';
 import { useI18n } from '@/lib/i18n/context';

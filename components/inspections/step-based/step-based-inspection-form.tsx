@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { useToast } from "@/components/ui/use-toast"
-import { Check, X, Camera, ArrowRight, ArrowLeft, ChevronDown, Search, Filter, XCircle, Calendar, ChevronUp } from "lucide-react"
+import { Check, X, Camera, ArrowRight, ArrowLeft, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Card, CardContent } from "@/components/ui/card"
@@ -24,6 +24,8 @@ import { useInspectionCreation } from "./hooks/use-inspection-creation"
 import { useInspectionItems } from "./hooks/use-inspection-items"
 import { useVehicleSelection } from "./hooks/use-vehicle-selection"
 import { useInspectionTemplates } from "./hooks/use-inspection-templates"
+import { VehicleSearchFilters } from "./vehicle-search-filters"
+import { VehicleList } from "./vehicle-list"
 import { FormField, FormItem, FormControl } from "@/components/ui/form"
 import { withErrorHandling } from "@/lib/utils/error-handler"
 import { cn } from "@/lib/utils"
@@ -32,9 +34,6 @@ import { useIsMobile } from "@/lib/hooks/use-mobile"
 import type { InspectionType } from "@/types/inspections"
 import { fetchInspectionTemplatesAction } from "@/app/(dashboard)/inspections/actions"
 import Image from "next/image"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Database } from "@/types/supabase"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
@@ -712,266 +711,38 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       <h2 className="text-xl font-semibold">{t('inspections.steps.selectVehicle')}</h2>
       
        {/* Search and filters */}
-       <div className="bg-muted/30 rounded-lg">
-         {/* Collapsible header - only show on mobile/tablet */}
-         <div className={cn(
-           "flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors",
-           "sm:hidden" // Only show on mobile/tablet
-         )} onClick={() => setIsSearchFiltersExpanded(!isSearchFiltersExpanded)}>
-           <div className="flex items-center gap-2">
-             <Search className="h-4 w-4 text-foreground/70" />
-             <span className="font-medium text-foreground">Search & Filters</span>
-             {(searchQuery || brandFilter !== "all" || modelFilter !== "all" || groupFilter !== "all") && (
-               <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
-                 Active
-               </span>
-             )}
-           </div>
-           <Button
-             variant="ghost"
-             size="sm"
-             className="h-8 w-8 p-0 hover:bg-muted"
-             onClick={(e) => {
-               e.stopPropagation();
-               setIsSearchFiltersExpanded(!isSearchFiltersExpanded);
-             }}
-           >
-             {isSearchFiltersExpanded ? (
-               <ChevronUp className="h-4 w-4 text-foreground/70" />
-             ) : (
-               <ChevronDown className="h-4 w-4 text-foreground/70" />
-             )}
-           </Button>
-         </div>
-
-         {/* Desktop header - only show on desktop */}
-         <div className="hidden sm:block px-4 pt-4">
-           <div className="flex items-center gap-2 mb-4">
-             <Search className="h-4 w-4 text-foreground/70" />
-             <span className="font-medium text-foreground">Search & Filters</span>
-             {(searchQuery || brandFilter !== "all" || modelFilter !== "all" || groupFilter !== "all") && (
-               <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
-                 Active
-               </span>
-             )}
-           </div>
-         </div>
-
-         {/* Collapsible content */}
-         <div className={cn(
-           "space-y-4 transition-all duration-300 ease-in-out overflow-hidden",
-           isMobile ? (isSearchFiltersExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0") : "max-h-none opacity-100"
-         )}>
-           <div className="px-4 pb-4">
-             <div className="flex flex-col sm:flex-row gap-4">
-               {/* Search input */}
-               <div className="flex-1 relative">
-                 <Input
-                   value={searchQuery}
-                   onChange={(e) => setSearchQuery(e.target.value)}
-                   placeholder={t('vehicles.filters.searchPlaceholder')}
-                   className="pl-9 w-full"
-                 />
-                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                 {searchQuery && (
-                   <Button 
-                     variant="ghost" 
-                     size="sm" 
-                     className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0" 
-                     onClick={() => setSearchQuery("")}
-                   >
-                     <XCircle className="h-4 w-4" />
-                     <span className="sr-only">Clear search</span>
-                   </Button>
-                 )}
-               </div>
-               
-               {/* Brand filter */}
-               <div className="w-full sm:w-48">
-                 <Select value={brandFilter} onValueChange={setBrandFilter}>
-                   <SelectTrigger className="w-full">
-                     <SelectValue placeholder={t('drivers.filters.brand')} />
-                   </SelectTrigger>
-                   <SelectContent>
-                     <SelectItem value="all">{t('drivers.filters.allBrands')}</SelectItem>
-                     {brandOptions.map(opt => (
-                       <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                     ))}
-                   </SelectContent>
-                 </Select>
-               </div>
-               
-               {/* Model filter - only show if brand is selected */}
-               {brandFilter !== "all" && (
-                 <div className="w-full sm:w-48">
-                   <Select value={modelFilter} onValueChange={setModelFilter}>
-                     <SelectTrigger className="w-full">
-                       <SelectValue placeholder={t('drivers.filters.model')} />
-                     </SelectTrigger>
-                     <SelectContent>
-                       <SelectItem value="all">{t('drivers.filters.allModels')}</SelectItem>
-                       {modelOptions.map(option => (
-                         <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                       ))}
-                     </SelectContent>
-                   </Select>
-                 </div>
-               )}
-
-               {/* Vehicle Group filter */}
-               <div className="w-full sm:w-48">
-                 <Select value={groupFilter} onValueChange={setGroupFilter}>
-                   <SelectTrigger className="w-full">
-                     <SelectValue placeholder={t('vehicleGroups.filter')} />
-                   </SelectTrigger>
-                   <SelectContent>
-                     <SelectItem value="all">{t('vehicleGroups.allGroups')}</SelectItem>
-                     {vehicleGroups.map(group => (
-                       <SelectItem key={group.id} value={group.id}>
-                         <div className="flex items-center gap-2">
-                           <div 
-                             className="w-3 h-3 rounded-full" 
-                             style={{ backgroundColor: group.color }}
-                           />
-                           {group.name}
-                         </div>
-                       </SelectItem>
-                     ))}
-                   </SelectContent>
-                 </Select>
-               </div>
-               
-               {/* Clear filters button - only show if any filter is applied */}
-               {(searchQuery || brandFilter !== "all" || modelFilter !== "all" || groupFilter !== "all") && (
-                 <Button 
-                   variant="outline" 
-                   size="sm" 
-                   className="sm:self-end" 
-                   onClick={resetFilters}
-                 >
-                   {t('drivers.filters.clearFilters')}
-                 </Button>
-               )}
-             </div>
-             
-             {/* Showing results info */}
-             <div className="text-sm text-muted-foreground mt-4">
-               {t('inspections.labels.showingVehicles', {
-                 start: String(Math.min((currentPage - 1) * vehiclesPerPage + 1, filteredVehicles.length)),
-                 end: String(Math.min(currentPage * vehiclesPerPage, filteredVehicles.length)),
-                 total: String(filteredVehicles.length)
-               })}
-             </div>
-           </div>
-         </div>
-       </div>
+       <VehicleSearchFilters
+         searchQuery={searchQuery}
+         setSearchQuery={setSearchQuery}
+         brandFilter={brandFilter}
+         setBrandFilter={setBrandFilter}
+         modelFilter={modelFilter}
+         setModelFilter={setModelFilter}
+         groupFilter={groupFilter}
+         setGroupFilter={setGroupFilter}
+         isSearchFiltersExpanded={isSearchFiltersExpanded}
+         setIsSearchFiltersExpanded={setIsSearchFiltersExpanded}
+         brandOptions={brandOptions}
+         modelOptions={modelOptions}
+         groupOptions={groupOptions}
+         vehicleGroups={vehicleGroups}
+         filteredVehicles={filteredVehicles}
+         currentPage={currentPage}
+         vehiclesPerPage={vehiclesPerPage}
+         resetFilters={resetFilters}
+       />
       
       {/* Vehicle list */}
-      {filteredVehicles.length === 0 ? (
-        <div className="text-center py-8 border rounded-lg mt-4">
-          <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-1">
-            {t('drivers.filters.noResults')}
-          </h3>
-          <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">
-            {t('vehicles.noVehicles')}
-          </p>
-          <Button variant="outline" onClick={resetFilters}>
-            {t('drivers.filters.clearFilters')}
-          </Button>
-        </div>
-      ) : (
-        <div className="relative">
-          <ScrollArea className="h-[60vh] pr-4 overflow-y-auto">
-            <div className="grid grid-cols-1 gap-4 pb-2">
-              {paginatedVehicles.map((vehicle) => (
-                <Card 
-                  key={vehicle.id} 
-                  className={`cursor-pointer transition-colors ${selectedVehicle?.id === vehicle.id ? 'border-primary border-2' : ''}`}
-                  onClick={() => handleVehicleSelect(vehicle)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex flex-row gap-4 items-center">
-                      {/* Vehicle thumbnail with 16:9 aspect ratio */}
-                      <div className="w-24 sm:w-48 shrink-0 flex items-center">
-                        <div className="relative w-full aspect-[16/9] rounded-md overflow-hidden">
-                          {vehicle.image_url ? (
-                            <Image 
-                              src={vehicle.image_url} 
-                              alt={vehicle.name}
-                              fill
-                              sizes="(max-width: 768px) 96px, 192px"
-                              className="object-cover"
-                              priority={currentPage === 1}
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-muted flex items-center justify-center">
-                              <span className="text-muted-foreground">{t('common.noImage')}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Vehicle details */}
-                      <div className="flex-1 flex flex-col justify-center">
-                        <h3 className="font-medium text-lg">{vehicle.name}</h3>
-                        <p className="text-sm text-muted-foreground">{vehicle.plate_number}</p>
-                        {vehicle.brand && vehicle.model && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {vehicle.year && <span>{vehicle.year} </span>}
-                            <span>{vehicle.brand} </span>
-                            <span>{vehicle.model}</span>
-                          </p>
-                        )}
-                        {vehicle.vehicle_group && (
-                          <div className="flex items-center gap-2 mt-1">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: vehicle.vehicle_group.color }}
-                            />
-                            <span className="text-xs text-muted-foreground">
-                              {vehicle.vehicle_group.name}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </ScrollArea>
-        </div>
-      )}
-      
-      {/* Pagination controls */}
-      {filteredVehicles.length > vehiclesPerPage && (
-        <div className="flex justify-between items-center mt-4">
-          <div className="text-sm text-muted-foreground">
-            {t('drivers.pagination.page', { page: String(currentPage) })} {t('drivers.pagination.of', { total: String(Math.ceil(filteredVehicles.length / vehiclesPerPage)) })}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="sr-only">Previous page</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(filteredVehicles.length / vehiclesPerPage)))}
-              disabled={currentPage >= Math.ceil(filteredVehicles.length / vehiclesPerPage)}
-            >
-              <ArrowRight className="h-4 w-4" />
-              <span className="sr-only">Next page</span>
-            </Button>
-          </div>
-        </div>
-      )}
+      <VehicleList
+        vehicles={paginatedVehicles}
+        selectedVehicle={selectedVehicle}
+        onVehicleSelect={handleVehicleSelect}
+        filteredVehicles={filteredVehicles}
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        vehiclesPerPage={vehiclesPerPage}
+        resetFilters={resetFilters}
+      />
       
       {/* Date Selection Section - Better positioned */}
       {selectedVehicle && (

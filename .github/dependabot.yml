@@ -9,44 +9,35 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 10
     reviewers:
-      - "cto"
+      - "@cto"
     assignees:
-      - "cto"
+      - "@cto"
     commit-message:
       prefix: "chore"
       include: "scope"
     labels:
       - "dependencies"
-      - "security"
-    groups:
-      security-updates:
-        patterns:
-          - "*"
-        update-types:
-          - "security"
-      radix-ui:
-        patterns:
-          - "@radix-ui/*"
-      testing:
-        patterns:
-          - "@testing-library/*"
-          - "@playwright/*"
-          - "vitest"
-          - "jsdom"
-      build-tools:
-        patterns:
-          - "eslint*"
-          - "typescript"
-          - "tailwindcss"
-          - "postcss"
-          - "autoprefixer"
+      - "automated"
     ignore:
-      # Ignore major version updates for critical dependencies
-      - dependency-name: "react"
+      # Ignore major version updates for these packages
+      - dependency-name: "*"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "react-dom"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "next"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "typescript"
-        update-types: ["version-update:semver-major"]
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "@cto"
+    assignees:
+      - "@cto"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "github-actions"
+      - "automated"

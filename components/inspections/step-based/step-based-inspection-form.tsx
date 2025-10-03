@@ -253,7 +253,6 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     setSelectedType,
     setSections,
     currentStepIndex,
-    setCurrentStepIndex,
     inspectionId,
     methods,
     autoTemplateToastShownRef,
@@ -271,24 +270,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     isResuming
   });
   
-  // Automatically start the inspection when exactly ONE template is available
-  // for the selected vehicle. This matches the expected UX: select vehicle →
-  // Next → form loads immediately without asking the type.
-  useEffect(() => {
-    if (
-      currentStepIndex === 0 && // On the type-selection step
-      !inspectionId &&          // Creating a new inspection
-      selectedVehicle &&
-      availableTemplateTypes.length === 1 &&
-      !isSubmitting &&
-      !isAutoStartingRef.current
-    ) {
-      // Start automatically – no further input required
-      isAutoStartingRef.current = true;
-      handleStartInspection();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStepIndex, selectedVehicle, availableTemplateTypes, isSubmitting]);
+  // Auto-start logic removed - let user control the flow by clicking Next
   
   // Handle changes to vehicle
   const handleVehicleSelect = (vehicle: Vehicle) => {

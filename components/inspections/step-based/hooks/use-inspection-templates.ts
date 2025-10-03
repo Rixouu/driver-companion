@@ -58,7 +58,6 @@ interface UseInspectionTemplatesProps {
   setSelectedType: (type: InspectionType) => void;
   setSections: (sections: InspectionSection[]) => void;
   currentStepIndex: number;
-  setCurrentStepIndex: (index: number) => void;
   inspectionId?: string;
   methods: any; // Form methods
   autoTemplateToastShownRef: React.MutableRefObject<boolean>;
@@ -71,7 +70,6 @@ export function useInspectionTemplates({
   setSelectedType,
   setSections,
   currentStepIndex,
-  setCurrentStepIndex,
   inspectionId,
   methods,
   autoTemplateToastShownRef,
@@ -202,14 +200,8 @@ export function useInspectionTemplates({
                 console.error(`[VEHICLE_TEMPLATE_ASSIGNMENT] Error pre-loading template: ${autoType}`, err);
               });
 
-            // Skip type selection step and go directly to inspection
-            if (currentStepIndex === -1) {
-              // If we're on vehicle selection step, move to type selection first
-              setCurrentStepIndex(0);
-            } else if (currentStepIndex === 0) {
-              // If we're on type selection step, move to inspection
-              setCurrentStepIndex(1);
-            }
+            // Don't automatically navigate steps - let user control the flow
+            // The auto-selection just pre-selects the type and loads the template
             
             if (!alreadyNotified) {
               toast({

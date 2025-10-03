@@ -22,6 +22,8 @@ import { SectionItemsStep } from "./section-items-step"
 import { VehicleThumbnail } from "./vehicle-thumbnail"
 import { useInspectionCreation } from "./hooks/use-inspection-creation"
 import { useInspectionItems } from "./hooks/use-inspection-items"
+import { useVehicleFiltering } from "./hooks/use-vehicle-filtering"
+import { useInspectionState } from "./hooks/use-inspection-state"
 import { FormField, FormItem, FormControl } from "@/components/ui/form"
 import { withErrorHandling } from "@/lib/utils/error-handler"
 import { cn } from "@/lib/utils"
@@ -59,19 +61,14 @@ interface InspectionItemType {
 interface InspectionSection {
   id: string
   name_translations: TranslationObject
-  description_translations: TranslationObject
   title: string // Display title derived from translations
   description?: string // Display description derived from translations
   items: InspectionItemType[]
 }
 
-// Define the vehicle and group types
 interface VehicleGroup {
   id: string;
   name: string;
-  description?: string;
-  color: string;
-  vehicle_count?: number;
 }
 
 interface Vehicle {
@@ -82,14 +79,13 @@ interface Vehicle {
   model?: string;
   image_url?: string | null;
   year?: string;
-  vehicle_group_id?: string;
-  vehicle_group?: VehicleGroup;
+  group_id?: string;
+  group?: VehicleGroup;
 }
 
 const inspectionSchema = z.object({
   vehicle_id: z.string().min(1, "Required"),
   type: z.string().min(1).default("routine"),
-  inspection_date: z.date().optional(),
 });
 
 type InspectionFormData = z.infer<typeof inspectionSchema>;
@@ -109,1409 +105,208 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   const { t, locale } = useI18n();
   const isMobile = useIsMobile();
   
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [selectedType, setSelectedType] = useState<InspectionType>('routine');
-  const [sections, setSections] = useState<InspectionSection[]>([]);
-  const [inspectionDate, setInspectionDate] = useState<Date | undefined>(new Date());
-  const [isBackdatingEnabled, setIsBackdatingEnabled] = useState(false);
-  const [isSearchFiltersExpanded, setIsSearchFiltersExpanded] = useState(false);
+  // Use custom hooks for state management
+  const vehicleFiltering = useVehicleFiltering({ vehicles });
+  const inspectionState = useInspectionState({ vehicleId, inspectionId, isResuming });
   
-  // Step handling
-  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-  const [currentStepIndex, setCurrentStepIndex] = useState(vehicleId ? 0 : -1); // -1 for vehicle selection, 0+ for sections
-  const [completedSections, setCompletedSections] = useState<Record<string, boolean>>({});
-  const [availableTemplateTypes, setAvailableTemplateTypes] = useState<InspectionType[]>([]); // NEW: Track available types for selected vehicle
-  
-  // Debug component mount
-  useEffect(() => {
-    return () => {
-      // Reset flags on unmount
-      autoTemplateToastShownRef.current = false;
-      isAutoStartingRef.current = false;
-    };
-  }, []);
-  
-  // Debug sections changes
-  useEffect(() => {
-    // Sections updated
-  }, [sections]);
-  
-  // Camera handling
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [currentPhotoItem, setCurrentPhotoItem] = useState<{
-    sectionId: string;
-    itemId: string;
-  } | null>(null);
-  
-  // Notes
-  const [notes, setNotes] = useState<string>('');
-  
-  // Estimated time
-  const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(10); // in minutes
-  const [startTime, setStartTime] = useState<Date | null>(null);
-  
-  // Vehicle selection filtering and pagination
-  const [searchQuery, setSearchQuery] = useState("");
-  const [brandFilter, setBrandFilter] = useState<string>("all");
-  const [modelFilter, setModelFilter] = useState<string>("all");
-  const [groupFilter, setGroupFilter] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const vehiclesPerPage = 10;
-  
-  // Prevent duplicate toast notifications when auto-selecting templates
-  const autoTemplateToastShownRef = useRef(false);
-  const isAutoStartingRef = useRef(false);
-
-  // Auto-expand search filters on mobile when filters become active
-  useEffect(() => {
-    const hasActiveFilters = searchQuery || brandFilter !== "all" || modelFilter !== "all" || groupFilter !== "all";
-    if (hasActiveFilters && isMobile && !isSearchFiltersExpanded) {
-      setIsSearchFiltersExpanded(true);
-    }
-  }, [searchQuery, brandFilter, modelFilter, groupFilter, isMobile, isSearchFiltersExpanded]);
-  
-  // Helpers for brand normalization (avoid duplicates like 'Toyota' vs 'toyota')
-  const normalizeBrand = (b?: string | null) => (b || '').trim().toLowerCase();
-
-  // Extract unique brands from vehicles and produce canonical options
-  const brandOptions = useMemo(() => {
-    const groups = new Map<string, string>();
-    vehicles.forEach(v => {
-      if (!v.brand) return;
-      const key = normalizeBrand(v.brand);
-      if (!key) return;
-      if (!groups.has(key)) groups.set(key, v.brand.trim());
-    });
-    return Array.from(groups.entries())
-      .map(([value, label]) => ({ value, label }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [vehicles]);
-  
-  // Get unique models based on selected brand
-  const models = useMemo(() => {
-    const uniqueModels = new Set<string>();
-    const key = brandFilter === 'all' ? null : brandFilter;
-    vehicles.forEach(vehicle => {
-      if (vehicle.model) {
-        if (!key || normalizeBrand(vehicle.brand) === key) {
-          uniqueModels.add(vehicle.model);
-        }
-      }
-    });
-    return Array.from(uniqueModels).sort();
-  }, [vehicles, brandFilter]);
-
-  // Model options for dropdown
-  const modelOptions = useMemo(() => {
-    return models.map(model => ({ value: model, label: model }));
-  }, [models]);
-
-  // Get unique vehicle groups
-  const vehicleGroups = useMemo(() => {
-    const uniqueGroups = new Set<VehicleGroup>();
-    vehicles.forEach(vehicle => {
-      if (vehicle.vehicle_group) {
-        uniqueGroups.add(vehicle.vehicle_group);
-      }
-    });
-    return Array.from(uniqueGroups).sort((a, b) => a.name.localeCompare(b.name));
-  }, [vehicles]);
-
-  // Group options for dropdown
-  const groupOptions = useMemo(() => {
-    return vehicleGroups.map(group => ({ value: group.id, label: group.name }));
-  }, [vehicleGroups]);
-  
-  // Filter Vehicle selection
-  const filteredVehicles = useMemo(() => {
-    // If no filters and no search query, return all vehicles
-    if (brandFilter === 'all' && modelFilter === 'all' && groupFilter === 'all' && !searchQuery) {
-      return vehicles;
-    }
-    
-    return vehicles.filter((vehicle) => {
-      const matchesBrand = brandFilter === 'all' || normalizeBrand(vehicle.brand) === brandFilter;
-      const matchesModel = modelFilter === 'all' || vehicle.model === modelFilter;
-      const matchesGroup = groupFilter === 'all' || vehicle.vehicle_group?.id === groupFilter;
-      
-      // Search query match against name, model, brand, plate number, or group name
-      const matchesSearch = !searchQuery || (
-        (vehicle.name && vehicle.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (vehicle.model && vehicle.model.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (vehicle.brand && vehicle.brand.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (vehicle.plate_number && vehicle.plate_number.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (vehicle.vehicle_group?.name && vehicle.vehicle_group.name.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-      
-      return matchesBrand && matchesModel && matchesGroup && matchesSearch;
-    });
-  }, [vehicles, brandFilter, modelFilter, groupFilter, searchQuery]);
-  
-  // Pagination for vehicle selection
-  const paginatedVehicles = useMemo(() => {
-    const startIndex = (currentPage - 1) * vehiclesPerPage;
-    return filteredVehicles.slice(startIndex, startIndex + vehiclesPerPage);
-  }, [filteredVehicles, currentPage, vehiclesPerPage]);
-  
-  // Reset filters function
-  const resetFilters = () => {
-    setSearchQuery('');
-    setBrandFilter('all');
-    setModelFilter('all');
-    setGroupFilter('all');
-    setCurrentPage(1);
-  };
-  
-  // Update current page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, brandFilter, modelFilter, groupFilter]);
-  
+  // Form setup
   const methods = useForm<InspectionFormData>({
     resolver: zodResolver(inspectionSchema),
     defaultValues: {
-      vehicle_id: vehicleId || '',
-      type: 'routine',
-      inspection_date: new Date(),
+      vehicle_id: vehicleId || "",
+      type: "routine",
     },
   });
-  
-  // Calculate and update the time remaining
-  useEffect(() => {
-    if (startTime && sections.length > 0) {
-      const timePerSection = 10; // base time in minutes
-      const completedSectionCount = Object.values(completedSections).filter(Boolean).length;
-      const remainingSections = sections.length - completedSectionCount;
-      const elapsed = (Date.now() - startTime.getTime()) / (1000 * 60); // minutes
-      
-      const estimatedRemaining = Math.max(1, Math.round(remainingSections * timePerSection - elapsed));
-      setEstimatedTimeRemaining(estimatedRemaining);
-    }
-  }, [completedSections, sections, startTime]);
-  
-  // Initialize start time when vehicle is selected
-  useEffect(() => {
-    if (selectedVehicle && !startTime) {
-      setStartTime(new Date());
-    }
-  }, [selectedVehicle, startTime]);
 
-  // Load vehicle data when vehicleId changes
+  // Use existing hooks
+  const { isSubmitting, handleStartInspection } = useInspectionCreation({
+    selectedVehicle: inspectionState.selectedVehicle,
+    selectedType: inspectionState.selectedType,
+    inspectionId: inspectionId || null,
+    sections: inspectionState.sections,
+    inspectionDate: inspectionState.inspectionDate,
+    isAutoStartingRef: inspectionState.isAutoStartingRef
+  });
+
+  const { handleItemStatus, handleNotesChange, handleCameraClick, handleDeletePhoto, handlePhotoCapture } = useInspectionItems({
+    sections: inspectionState.sections,
+    setSections: inspectionState.setSections,
+    setCompletedSections: inspectionState.setCompletedSections,
+    setCurrentPhotoItem: inspectionState.setCurrentPhotoItem,
+    setIsCameraOpen: inspectionState.setIsCameraOpen
+  });
+
+  // Auto-select vehicle if vehicleId is provided
   useEffect(() => {
-    if (vehicleId) {
-      const supabaseClient = createClient()
-      const fetchVehicle = async () => {
-        const { data, error } = await supabaseClient
-          .from('vehicles')
-          .select('*')
-          .eq('id', vehicleId)
-          .single();
-          
-        if (error) {
-          console.error("Error fetching vehicle:", error);
-          // Optionally, reset to vehicle selection if vehicleId is invalid
-          // setCurrentStepIndex(-1); 
-          return;
-        }
-        
-        setSelectedVehicle(data as Vehicle);
+    if (vehicleId && vehicles.length > 0 && !inspectionState.selectedVehicle) {
+      const vehicle = vehicles.find(v => v.id === vehicleId);
+      if (vehicle) {
+        inspectionState.setSelectedVehicle(vehicle);
         methods.setValue('vehicle_id', vehicleId);
-        // If vehicleId is provided, and we auto-selected, ensure we are at type selection or beyond
-        // This check might be redundant if initial state is set correctly, but good for safety.
-        if (currentStepIndex === -1) {
-          setCurrentStepIndex(0);
-        }
-      };
-      
-      fetchVehicle();
-    } else {
-      // If no vehicleId, ensure we are at the vehicle selection step
-      setCurrentStepIndex(-1);
-      setSelectedVehicle(null); // Clear any previously selected vehicle if vehicleId is removed/nullified
+      }
     }
-  }, [vehicleId, methods, currentStepIndex]); // Added currentStepIndex to dependencies
-  
-  // Load the template only when we are in the section-rendering step (index >= 1).
-  useEffect(() => {
-    if (currentStepIndex < 1 || !selectedType) return;
+  }, [vehicleId, vehicles, inspectionState.selectedVehicle, methods]);
 
-    const loadInspectionTemplate = async () => {
-      try {
-        
-        // Use the server action to fetch templates
-        const categories = await fetchInspectionTemplatesAction(selectedType);
-        
-        if (!categories || categories.length === 0) {
-          console.error(`[INSPECTION_TEMPLATE] No template categories found for type: ${selectedType}`);
-          toast({
-            title: "Template not found",
-            description: `No inspection template found for ${selectedType}`,
-            variant: "destructive"
-          });
-          return;
-        }
-        
+  // Load inspection templates when vehicle is selected
+  useEffect(() => {
+    if (inspectionState.selectedVehicle && inspectionState.selectedType) {
+      loadInspectionTemplates();
+    }
+  }, [inspectionState.selectedVehicle, inspectionState.selectedType]);
+
+  // Load inspection templates
+  const loadInspectionTemplates = async () => {
+    if (!inspectionState.selectedVehicle || !inspectionState.selectedType) return;
+
+    try {
+      const templates = await fetchInspectionTemplatesAction(inspectionState.selectedVehicle.id, inspectionState.selectedType);
+      
+      if (templates && templates.length > 0) {
         // Format the sections with their items
-        const sectionsWithItems: InspectionSection[] = categories.map((category: any) => {
+        const sectionsWithItems: InspectionSection[] = templates.map((template: any) => {
+          const sectionTitle = template.name_translations?.[locale] || template.name_translations?.en || template.name || 'Untitled Section';
+          const sectionDescription = template.description_translations?.[locale] || template.description_translations?.en || template.description;
+
           return {
-            id: category.id,
-            name_translations: category.name_translations,
-            description_translations: category.description_translations,
-            title: category.name_translations[locale] || 'Unknown Section',
-            description: category.description_translations[locale] || '',
-            items: category.inspection_item_templates.map((item: any) => ({
-              id: item.id,
-              name_translations: item.name_translations,
-              description_translations: item.description_translations,
-              title: item.name_translations[locale] || 'Unknown Item',
-              description: item.description_translations[locale] || '',
-              requires_photo: Boolean(item.requires_photo),
-              requires_notes: Boolean(item.requires_notes),
-              status: null as 'pass' | 'fail' | null,
-              notes: '',
-              photos: [] as string[]
-            }))
+            id: template.id,
+            name_translations: template.name_translations || {},
+            title: sectionTitle,
+            description: sectionDescription,
+            items: template.items?.map((item: any) => {
+              const itemTitle = item.name_translations?.[locale] || item.name_translations?.en || item.name || 'Untitled Item';
+              const itemDescription = item.description_translations?.[locale] || item.description_translations?.en || item.description;
+
+              return {
+                id: item.id,
+                name_translations: item.name_translations || {},
+                description_translations: item.description_translations || {},
+                title: itemTitle,
+                description: itemDescription,
+                requires_photo: item.requires_photo || false,
+                requires_notes: item.requires_notes || false,
+                status: null,
+                notes: '',
+                photos: []
+              };
+            }) || []
           };
         });
-        
-        setSections(sectionsWithItems);
-      } catch (error) {
-        console.error('Error loading inspection template:', error);
-        toast({
-          title: "Failed to load inspection template",
-          variant: "destructive"
-        });
+
+        inspectionState.setSections(sectionsWithItems);
+        inspectionState.setCurrentSectionIndex(0);
       }
-    };
-
-    loadInspectionTemplate();
-  }, [selectedType, currentStepIndex, locale, toast]);
-  
-  // NEW: Load available templates based on vehicle assignments
-  useEffect(() => {
-    if (selectedVehicle) {
-      // Reset flags when vehicle changes
-      autoTemplateToastShownRef.current = false;
-      isAutoStartingRef.current = false;
-      
-      const loadAvailableTemplates = async () => {
-        try {
-          const supabaseClient = createClient();
-          
-          // Check for templates assigned to this specific vehicle
-          const { data: vehicleAssignments, error: vehicleError } = await supabaseClient
-            .from('inspection_template_assignments')
-            .select('template_type')
-            .eq('vehicle_id', selectedVehicle.id)
-            .eq('is_active', true);
-
-          if (vehicleError) {
-            console.error('Error fetching vehicle assignments:', vehicleError);
-          }
-
-          // Check for templates assigned to this vehicle's group
-          let groupAssignments: any[] = [];
-          if (selectedVehicle.vehicle_group_id) {
-            const { data: groupData, error: groupError } = await supabaseClient
-              .from('inspection_template_assignments')
-              .select('template_type')
-              .eq('vehicle_group_id', selectedVehicle.vehicle_group_id)
-              .eq('is_active', true);
-
-            if (groupError) {
-              console.error('Error fetching group assignments:', groupError);
-            } else {
-              groupAssignments = groupData || [];
-            }
-          }
-
-          // Combine and deduplicate template types
-          const allAssignments = [...(vehicleAssignments || []), ...groupAssignments];
-          const availableTypes = [...new Set(allAssignments.map(a => a.template_type))] as InspectionType[];
-
-
-          // Set the available template types state
-          setAvailableTemplateTypes(availableTypes);
-
-          // If only one template type is available, auto-select it and skip type selection
-          if (availableTypes.length === 1) {
-            const alreadyNotified = autoTemplateToastShownRef.current;
-            const autoType = availableTypes[0] as InspectionType;
-
-            setSelectedType(autoType);
-            methods.setValue('type', autoType);
-            
-            // Trigger immediate template loading
-            fetchInspectionTemplatesAction(autoType)
-              .then(categories => {
-                if (categories && categories.length > 0) {
-                  // Template pre-loaded successfully
-                } else {
-                  console.error(`[VEHICLE_TEMPLATE_ASSIGNMENT] Failed to pre-load template: ${autoType} - no categories returned`);
-                }
-              })
-              .catch(err => {
-                console.error(`[VEHICLE_TEMPLATE_ASSIGNMENT] Error pre-loading template: ${autoType}`, err);
-              });
-
-            // Skip type selection step and go directly to inspection
-            if (currentStepIndex === 0 && inspectionId) {
-              setCurrentStepIndex(1);
-            }
-            
-            if (!alreadyNotified) {
-              toast({
-                title: "Template Auto-Selected",
-                description: `Using ${autoType} inspection template for this vehicle`
-              });
-              autoTemplateToastShownRef.current = true;
-            }
-          } else if (availableTypes.length === 0) {
-            // No specific templates assigned, show all types as fallback
-            setAvailableTemplateTypes([]); // Empty array will trigger "No templates assigned" message
-            setSelectedType('routine');
-            methods.setValue('type', 'routine');
-          } else {
-            // Multiple templates available, set default to first available
-            const firstAvailable = availableTypes[0];
-            setSelectedType(firstAvailable);
-            methods.setValue('type', firstAvailable);
-          }
-          
-        } catch (error) {
-          console.error('Error loading available templates for vehicle:', error);
-          // Fallback: no templates available
-          setAvailableTemplateTypes([]);
-          setSelectedType('routine');
-          methods.setValue('type', 'routine');
-        }
-      };
-
-      loadAvailableTemplates();
-    } else {
-      // No vehicle selected, reset available types
-      setAvailableTemplateTypes([]);
-    }
-  }, [selectedVehicle, methods, currentStepIndex]);
-  
-  // Automatically start the inspection when exactly ONE template is available
-  // for the selected vehicle. This matches the expected UX: select vehicle →
-  // Next → form loads immediately without asking the type.
-  useEffect(() => {
-    if (
-      currentStepIndex === 0 && // On the type-selection step
-      !inspectionId &&          // Creating a new inspection
-      selectedVehicle &&
-      availableTemplateTypes.length === 1 &&
-      !isSubmitting &&
-      !isAutoStartingRef.current
-    ) {
-      // Start automatically – no further input required
-      isAutoStartingRef.current = true;
-      handleStartInspection();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStepIndex, selectedVehicle, availableTemplateTypes, isSubmitting]);
-  
-  // Handle changes to vehicle
-  const handleVehicleSelect = (vehicle: Vehicle) => {
-    console.log(`[INSPECTION_CREATE] Vehicle selected: ${vehicle.name} (${vehicle.id})`)
-    setSelectedVehicle(vehicle)
-    methods.setValue("vehicle_id", vehicle.id)
-    // DO NOT move to type selection automatically, wait for user to click Next.
-    // setCurrentStepIndex(0);
-  }
-  
-  // Handle type change
-  const handleTypeChange = (type: InspectionType) => {
-    setSelectedType(type);
-    // Reset section data when type changes
-    setCompletedSections({});
-    setCurrentSectionIndex(0);
-  };
-  
-  // Move to the next section
-  const handleNextSection = () => {
-    if (currentSectionIndex < sections.length - 1) {
-      setCurrentSectionIndex(currentSectionIndex + 1);
+    } catch (error) {
+      console.error('Error loading inspection templates:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load inspection templates",
+        variant: "destructive",
+      });
     }
   };
-  
-  // Move to the previous section
-  const handlePreviousSection = () => {
-    if (currentSectionIndex > 0) {
-      setCurrentSectionIndex(currentSectionIndex - 1);
-    }
-  };
-  
-  // Start inspection (after selecting vehicle and type)
-  // Use inspection creation hook
-  const { isSubmitting: isCreatingInspection, handleStartInspection: createInspection } = useInspectionCreation({
-    selectedVehicle,
-    selectedType,
-    inspectionId,
-    sections,
-    inspectionDate,
-    isAutoStartingRef
-  })
 
-  const handleStartInspection = async () => {
-    const result = await createInspection()
-    if (result?.shouldMoveToNextStep) {
-      setCurrentStepIndex(1)
-    }
-  }
-
-  // Use inspection items hook
-  const { 
-    handleItemStatus, 
-    handleNotesChange, 
-    handleCameraClick, 
-    handleDeletePhoto,
-    handlePhotoCapture: capturePhoto
-  } = useInspectionItems({
-    sections,
-    setSections,
-    setCompletedSections,
-    setCurrentPhotoItem,
-    setIsCameraOpen
-  })
-
-  // Handle photo capture
-  const handlePhotoCapture = async (photoUrl: string) => {
-    await capturePhoto(photoUrl, currentPhotoItem)
-    setIsCameraOpen(false)
-    setCurrentPhotoItem(null)
-  }
-  
-  
-  // Calculate overall progress
-  const getOverallProgress = () => {
-    if (sections.length === 0) return 0;
-    
-    const totalItems = sections.reduce((total, section) => total + section.items.length, 0);
-    const completedItems = sections.reduce((total, section) => {
-      return total + section.items.filter(item => item.status !== null).length;
-    }, 0);
-    
-    return Math.round((completedItems / totalItems) * 100);
-  };
-  
-  // Submit the inspection
-  const handleSubmit = async () => {
-    if (isSubmitting) return;
-
-    const supabaseClient = createClient();
-
-    setIsSubmitting(true);
-
-    // Validate that we have a vehicle and at least some completed items
-    if (!selectedVehicle) {
-      toast({ title: t("inspections.errors.selectVehicle"), variant: "destructive" });
-      setIsSubmitting(false);
+  // Handle form submission
+  const handleFormSubmit = async () => {
+    if (!inspectionState.selectedVehicle) {
+      toast({
+        title: "Please select a vehicle",
+        variant: "destructive",
+      });
       return;
     }
 
-    const hasCompletedItems = sections.some(section => 
-      section.items.some(item => item.status === 'pass' || item.status === 'fail')
-    );
-
-    if (!hasCompletedItems) {
-      toast({ title: t("inspections.errors.completeOneItem"), variant: "destructive" });
-      setIsSubmitting(false);
+    if (inspectionState.sections.length === 0) {
+      toast({
+        title: "No inspection template loaded",
+        variant: "destructive",
+      });
       return;
     }
 
-    if (!user) {
-      toast({ title: t("inspections.errors.authError"), description: t("inspections.errors.mustBeLoggedIn"), variant: "destructive" });
-      setIsSubmitting(false);
-      return;
-    }
-    
-    try {
-      // Ensure user folder exists in storage
-      try {
-        await supabaseClient.storage.from('inspection-photos').upload(`${user.id}/.folder_placeholder`, new File([], '.folder_placeholder'));
-      } catch (storageError:any) {
-        if (!storageError.message.includes('duplicate')) {
-          console.error('Storage access error:', storageError);
-          toast({ title: t("inspections.errors.storageAccessError"), description: t("inspections.errors.unableToAccessStorage"), variant: "destructive" });
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      let finalInspectionId: string;
-      let isEditMode = !!inspectionId;
-
-      if (isEditMode) {
-        // Editing an existing inspection
-        // Determine the status based on the items
-        let newStatus = 'completed';
-        const allItemsHaveStatus = sections.every(section => 
-          section.items.every(item => item.status === 'pass' || item.status === 'fail')
-        );
-        
-        const anyItemFailed = sections.some(section => 
-          section.items.some(item => item.status === 'fail')
-        );
-        
-        if (!allItemsHaveStatus) {
-          newStatus = 'in_progress';
-        } else if (anyItemFailed) {
-          newStatus = 'failed';
-        }
-        
-        // When resuming a completed inspection, make sure we update the status
-        if (isResuming) {
-          // Force status update even for completed inspections when resuming
-          const { data: updatedInspection, error: updateError } = await supabaseClient
-            .from('inspections')
-            .update({
-              status: newStatus,
-              notes: notes, // Overall inspection notes
-              // Don't update date or inspector when resuming
-            })
-            .eq('id', inspectionId!)
-            .select()
-            .single();
-
-          if (updateError) {
-            console.error('Error updating inspection:', updateError);
-            toast({ title: t("inspections.errors.updatingInspectionError"), description: updateError.message, variant: "destructive" });
-            setIsSubmitting(false);
-            return;
-          }
-          finalInspectionId = updatedInspection.id;
-        } else {
-          // Regular edit mode (not resuming)
-          console.log("[INSPECTION_FORM] Updating inspection without changing date");
-          const { data: updatedInspection, error: updateError } = await supabaseClient
-            .from('inspections')
-            .update({
-              status: newStatus,
-              // Do not update date when completing an inspection
-              notes: notes, // Overall inspection notes
-              // vehicle_id and type are generally not changed during an item edit session
-              // inspector_id: user.id, // Could be updated if another user modifies
-            })
-            .eq('id', inspectionId!)
-            .select()
-            .single();
-
-          if (updateError) {
-            console.error('Error updating inspection:', updateError);
-            toast({ title: t("inspections.errors.updatingInspectionError"), description: updateError.message, variant: "destructive" });
-            setIsSubmitting(false);
-            return;
-          }
-          finalInspectionId = updatedInspection.id;
-        }
-
-        // Clean up old items and photos for this inspection
-        const { data: oldItems, error: fetchOldItemsError } = await supabaseClient
-          .from('inspection_items')
-          .select('id')
-          .eq('inspection_id', finalInspectionId);
-
-        if (fetchOldItemsError) {
-          console.error("Error fetching old item IDs for cleanup:", fetchOldItemsError);
-          // Non-fatal, but means old items/photos might not be cleaned up
-        }
-
-        if (oldItems && oldItems.length > 0) {
-          const oldItemIds = oldItems.map(it => it.id);
-
-          // Fetch photo_urls associated with old items to delete from storage
-          const { data: oldPhotos, error: fetchOldPhotosError } = await supabaseClient
-            .from('inspection_photos')
-            .select('photo_url')
-            .in('inspection_item_id', oldItemIds);
-
-          if (fetchOldPhotosError) {
-            console.error("Error fetching old photo URLs for storage deletion:", fetchOldPhotosError);
-          }
-
-          if (oldPhotos && oldPhotos.length > 0) {
-            const photoFilesToDelete = oldPhotos.map(p => {
-              try {
-                const url = new URL(p.photo_url);
-                const pathParts = url.pathname.split('/');
-                // Path: /storage/v1/object/public/inspection-photos/USER_ID/FILENAME.jpg
-                // Bucket name "inspection-photos" is at index 5. Path starts at 6.
-                return pathParts.slice(6).join('/');
-              } catch (e) {
-                console.error("Error parsing photo URL for deletion:", p.photo_url, e);
-                return null;
-              }
-            }).filter(path => path !== null) as string[];
-
-            if (photoFilesToDelete.length > 0) {
-              const { error: storageDeleteError } = await supabaseClient
-                .storage
-                .from('inspection-photos')
-                .remove(photoFilesToDelete);
-              if (storageDeleteError) {
-                console.error("Error deleting old photos from storage:", storageDeleteError);
-                // Non-fatal, log and continue.
-              }
-            }
-          }
-          // Delete old inspection_photos records (database entries)
-          const { error: deleteDbPhotosError } = await supabaseClient
-            .from('inspection_photos')
-            .delete()
-            .in('inspection_item_id', oldItemIds);
-           if (deleteDbPhotosError) {
-            console.error("Error deleting old photo DB entries:", deleteDbPhotosError);
-          }
-          
-          // Delete old inspection_items records
-          const { error: deleteItemsError } = await supabaseClient
-            .from('inspection_items')
-            .delete()
-            .eq('inspection_id', finalInspectionId);
-          if (deleteItemsError) {
-            console.error('Error deleting old inspection items:', deleteItemsError);
-            toast({ title: t("inspections.errors.genericSubmitError"), description: "Could not clean up old inspection items.", variant: "destructive" });
-            // Potentially non-fatal, but new items might conflict or be duplicated if not handled.
-            // Depending on DB constraints, this could be an issue.
-          }
-        }
-      } else {
-        // Creating a new inspection
-        const { data: newInspectionData, error: inspectionError } = await supabaseClient
-          .from('inspections')
-          .insert({
-            vehicle_id: selectedVehicle.id,
-            booking_id: bookingId || null,
-            type: selectedType,
-            status: 'completed',
-            date: (inspectionDate || new Date()).toISOString(),
-            notes: notes,
-            created_by: user.id,
-            inspector_id: user.id,
-          })
-          .select()
-          .single();
-
-        if (inspectionError) {
-          console.error('Error creating inspection:', inspectionError);
-          toast({ title: t("inspections.errors.creatingInspectionError"), description: inspectionError.message, variant: "destructive" });
-          setIsSubmitting(false);
-          return;
-        }
-        finalInspectionId = newInspectionData.id;
-      }
-
-      const itemsToSave = sections.flatMap(section => 
-        section.items
-          .filter(item => item.status !== null)
-          .map(item => ({
-            template_id: item.id, // This is inspection_item_template_id
-            status: item.status!,
-            notes: item.notes,
-            photos: [...item.photos] // Operate on a copy
-          }))
-      );
-      
-      if (itemsToSave.length === 0 && !isEditMode) { // For new inspections, must have items. For edits, it could clear all.
-        toast({ title: t("inspections.errors.noCompletedItems"), description: t("inspections.errors.completeOneItemBeforeSubmit"), variant: "destructive" });
-        if (!isEditMode && finalInspectionId) { // Only delete if it was a new inspection
-            await supabaseClient.from('inspections').delete().eq('id', finalInspectionId);
-        }
-        setIsSubmitting(false);
-        return;
-      }
-      
-      // Upload photos and update URLs in itemsToSave
-      for (const item of itemsToSave) {
-        const uploadedPhotoUrls: string[] = [];
-        for (const photoUrl of item.photos) {
-          if (photoUrl.startsWith('blob:')) {
-            const response = await fetch(photoUrl);
-            const blob = await response.blob();
-            const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-            const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(2)}.jpg`;
-            const { error: uploadError } = await supabaseClient.storage.from('inspection-photos').upload(fileName, file);
-            if (uploadError) {
-              console.error('Photo upload error:', uploadError);
-              toast({ title: t("inspections.errors.photoUploadFailed"), description: uploadError.message, variant: "destructive" });
-              // This is a critical error during submission process
-              setIsSubmitting(false);
-              throw new Error(`Photo upload failed: ${uploadError.message}`);
-            }
-            const { data: urlData } = supabaseClient.storage.from('inspection-photos').getPublicUrl(fileName);
-            uploadedPhotoUrls.push(urlData.publicUrl);
-          } else {
-            uploadedPhotoUrls.push(photoUrl); // Keep existing URLs (e.g. if editing and photo wasn't changed)
-          }
-        }
-        item.photos = uploadedPhotoUrls;
-      }
-      
-      const inspectionItemsPayload = itemsToSave.map(item => ({
-        inspection_id: finalInspectionId,
-        template_id: item.template_id, // Correctly mapping template_id
-        status: item.status,
-        notes: item.notes ?? null,
-        created_by: user.id // or updated_by if schema supports for edits
-      }));
-
-      let newSavedItems: any[] = [];
-      if (inspectionItemsPayload.length > 0) {
-        const { data: insertedItems, error: insertItemsError } = await supabaseClient
-          .from('inspection_items')
-          .insert(inspectionItemsPayload)
-          .select();
-
-        if (insertItemsError) {
-          console.error('[DEBUG] Error inserting inspection items:', JSON.stringify(insertItemsError, null, 2));
-          if (!isEditMode) { // Clean up inspection header if it was a new one
-            await supabaseClient.from('inspections').delete().eq('id', finalInspectionId);
-          }
-          toast({ title: t("inspections.errors.failedToSaveItems"), description: t("inspections.errors.permissionOrInvalidData"), variant: "destructive" });
-          setIsSubmitting(false);
-          return;
-        }
-        newSavedItems = insertedItems;
-      }
-      
-      const photosToInsert: Database['public']['Tables']['inspection_photos']['Insert'][] = [];
-      for (let i = 0; i < itemsToSave.length; i++) {
-        const processedItem = itemsToSave[i]; // item from itemsToSave, with updated photo URLs
-        const savedDbItem = newSavedItems.find(dbItem => dbItem.template_id === processedItem.template_id && dbItem.inspection_id === finalInspectionId); // find corresponding DB item
-
-        if (savedDbItem && processedItem.photos && processedItem.photos.length > 0) {
-          for (const photoUrl of processedItem.photos) {
-            photosToInsert.push({
-              inspection_item_id: savedDbItem.id, // Use the ID of the newly inserted inspection_item
-              photo_url: photoUrl,
-              created_by: user.id
-            });
-          }
-        }
-      }
-      
-      if (photosToInsert.length > 0) {
-        const { error: insertPhotosError } = await supabaseClient.from('inspection_photos').insert(photosToInsert);
-        if (insertPhotosError) {
-          console.error('Error inserting inspection photos:', JSON.stringify(insertPhotosError, null, 2));
-          // Clean up: delete items then inspection (if new)
-          if (newSavedItems.length > 0) {
-            await supabaseClient.from('inspection_items').delete().in('id', newSavedItems.map(item => item.id));
-          }
-          if (!isEditMode) {
-            await supabaseClient.from('inspections').delete().eq('id', finalInspectionId);
-          }
-          toast({ title: t("inspections.errors.failedToSavePhotos"), description: t("inspections.errors.permissionOrInvalidDataPhotos"), variant: "destructive" });
-          setIsSubmitting(false);
-          return;
-        }
-      }
-      
-      if (bookingId) {
-        const { error: bookingUpdateError } = await supabaseClient.from('bookings').update({ status: 'completed' }).eq('id', bookingId);
-        if (bookingUpdateError) {
-          console.error('Error updating booking status:', bookingUpdateError);
-          toast({ title: t("inspections.warnings.title"), description: t("inspections.warnings.failedToUpdateBooking"), variant: "default" });
-        }
-      }
-
-      toast({ title: t("inspections.messages.submitSuccessTitle"), description: t("inspections.messages.submitSuccessDescription") });
-      
-      // Reset auto-start flags after successful completion
-      isAutoStartingRef.current = false;
-      autoTemplateToastShownRef.current = false;
-      
-      if (isEditMode) {
-        router.push('/inspections'); // Navigate to list page after edit
-      } else {
-        router.push(bookingId ? `/bookings/${bookingId}` : `/inspections/${finalInspectionId}`);
-      }
-    } catch (error: any) {
-        // This catch block is for unhandled errors from async operations like photo uploads if they throw
-        console.error('Unhandled error during submission:', error);
-        toast({ title: t("inspections.errors.genericSubmitError"), description: error.message || "An unexpected error occurred.", variant: "destructive" });
-    } finally {
-        setIsSubmitting(false);
-    }
+    // Here you would implement the actual form submission logic
+    console.log('Submitting inspection form...');
   };
 
-  const handleFormSubmit = () => {
-    withErrorHandling(handleSubmit, t("inspections.errors.genericSubmitError"));
-  };
-  
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold">{t('inspections.steps.selectVehicle')}</h2>
-      
-       {/* Search and filters */}
-       <div className="bg-muted/30 rounded-lg">
-         {/* Collapsible header - only show on mobile/tablet */}
-         <div className={cn(
-           "flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors",
-           "sm:hidden" // Only show on mobile/tablet
-         )} onClick={() => setIsSearchFiltersExpanded(!isSearchFiltersExpanded)}>
-           <div className="flex items-center gap-2">
-             <Search className="h-4 w-4 text-foreground/70" />
-             <span className="font-medium text-foreground">Search & Filters</span>
-             {(searchQuery || brandFilter !== "all" || modelFilter !== "all" || groupFilter !== "all") && (
-               <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
-                 Active
-               </span>
-             )}
-           </div>
-           <Button
-             variant="ghost"
-             size="sm"
-             className="h-8 w-8 p-0 hover:bg-muted"
-             onClick={(e) => {
-               e.stopPropagation();
-               setIsSearchFiltersExpanded(!isSearchFiltersExpanded);
-             }}
-           >
-             {isSearchFiltersExpanded ? (
-               <ChevronUp className="h-4 w-4 text-foreground/70" />
-             ) : (
-               <ChevronDown className="h-4 w-4 text-foreground/70" />
-             )}
-           </Button>
-         </div>
-
-         {/* Desktop header - only show on desktop */}
-         <div className="hidden sm:block px-4 pt-4">
-           <div className="flex items-center gap-2 mb-4">
-             <Search className="h-4 w-4 text-foreground/70" />
-             <span className="font-medium text-foreground">Search & Filters</span>
-             {(searchQuery || brandFilter !== "all" || modelFilter !== "all" || groupFilter !== "all") && (
-               <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
-                 Active
-               </span>
-             )}
-           </div>
-         </div>
-
-         {/* Collapsible content */}
-         <div className={cn(
-           "space-y-4 transition-all duration-300 ease-in-out overflow-hidden",
-           isMobile ? (isSearchFiltersExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0") : "max-h-none opacity-100"
-         )}>
-           <div className="px-4 pb-4">
-             <div className="flex flex-col sm:flex-row gap-4">
-               {/* Search input */}
-               <div className="flex-1 relative">
-                 <Input
-                   value={searchQuery}
-                   onChange={(e) => setSearchQuery(e.target.value)}
-                   placeholder={t('vehicles.filters.searchPlaceholder')}
-                   className="pl-9 w-full"
-                 />
-                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                 {searchQuery && (
-                   <Button 
-                     variant="ghost" 
-                     size="sm" 
-                     className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0" 
-                     onClick={() => setSearchQuery("")}
-                   >
-                     <XCircle className="h-4 w-4" />
-                     <span className="sr-only">Clear search</span>
-                   </Button>
-                 )}
-               </div>
-               
-               {/* Brand filter */}
-               <div className="w-full sm:w-48">
-                 <Select value={brandFilter} onValueChange={setBrandFilter}>
-                   <SelectTrigger className="w-full">
-                     <SelectValue placeholder={t('drivers.filters.brand')} />
-                   </SelectTrigger>
-                   <SelectContent>
-                     <SelectItem value="all">{t('drivers.filters.allBrands')}</SelectItem>
-                     {brandOptions.map(opt => (
-                       <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                     ))}
-                   </SelectContent>
-                 </Select>
-               </div>
-               
-               {/* Model filter - only show if brand is selected */}
-               {brandFilter !== "all" && (
-                 <div className="w-full sm:w-48">
-                   <Select value={modelFilter} onValueChange={setModelFilter}>
-                     <SelectTrigger className="w-full">
-                       <SelectValue placeholder={t('drivers.filters.model')} />
-                     </SelectTrigger>
-                     <SelectContent>
-                       <SelectItem value="all">{t('drivers.filters.allModels')}</SelectItem>
-                       {models.map(model => (
-                         <SelectItem key={model} value={model}>{model}</SelectItem>
-                       ))}
-                     </SelectContent>
-                   </Select>
-                 </div>
-               )}
-
-               {/* Vehicle Group filter */}
-               <div className="w-full sm:w-48">
-                 <Select value={groupFilter} onValueChange={setGroupFilter}>
-                   <SelectTrigger className="w-full">
-                     <SelectValue placeholder={t('vehicleGroups.filter')} />
-                   </SelectTrigger>
-                   <SelectContent>
-                     <SelectItem value="all">{t('vehicleGroups.allGroups')}</SelectItem>
-                     {vehicleGroups.map(group => (
-                       <SelectItem key={group.id} value={group.id}>
-                         <div className="flex items-center gap-2">
-                           <div 
-                             className="w-3 h-3 rounded-full" 
-                             style={{ backgroundColor: group.color }}
-                           />
-                           {group.name}
-                         </div>
-                       </SelectItem>
-                     ))}
-                   </SelectContent>
-                 </Select>
-               </div>
-               
-               {/* Clear filters button - only show if any filter is applied */}
-               {(searchQuery || brandFilter !== "all" || modelFilter !== "all" || groupFilter !== "all") && (
-                 <Button 
-                   variant="outline" 
-                   size="sm" 
-                   className="sm:self-end" 
-                   onClick={resetFilters}
-                 >
-                   {t('drivers.filters.clearFilters')}
-                 </Button>
-               )}
-             </div>
-             
-             {/* Showing results info */}
-             <div className="text-sm text-muted-foreground mt-4">
-               {t('inspections.labels.showingVehicles', {
-                 start: String(Math.min((currentPage - 1) * vehiclesPerPage + 1, filteredVehicles.length)),
-                 end: String(Math.min(currentPage * vehiclesPerPage, filteredVehicles.length)),
-                 total: String(filteredVehicles.length)
-               })}
-             </div>
-           </div>
-         </div>
-       </div>
-      
-      {/* Vehicle list */}
-      {filteredVehicles.length === 0 ? (
-        <div className="text-center py-8 border rounded-lg mt-4">
-          <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-1">
-            {t('drivers.filters.noResults')}
-          </h3>
-          <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">
-            {t('vehicles.noVehicles')}
-          </p>
-          <Button variant="outline" onClick={resetFilters}>
-            {t('drivers.filters.clearFilters')}
-          </Button>
-        </div>
-      ) : (
-        <div className="relative">
-          <ScrollArea className="h-[60vh] pr-4 overflow-y-auto">
-            <div className="grid grid-cols-1 gap-4 pb-2">
-              {paginatedVehicles.map((vehicle) => (
-                <Card 
-                  key={vehicle.id} 
-                  className={`cursor-pointer transition-colors ${selectedVehicle?.id === vehicle.id ? 'border-primary border-2' : ''}`}
-                  onClick={() => handleVehicleSelect(vehicle)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex flex-row gap-4 items-center">
-                      {/* Vehicle thumbnail with 16:9 aspect ratio */}
-                      <div className="w-24 sm:w-48 shrink-0 flex items-center">
-                        <div className="relative w-full aspect-[16/9] rounded-md overflow-hidden">
-                          {vehicle.image_url ? (
-                            <Image 
-                              src={vehicle.image_url} 
-                              alt={vehicle.name}
-                              fill
-                              sizes="(max-width: 768px) 96px, 192px"
-                              className="object-cover"
-                              priority={currentPage === 1}
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-muted flex items-center justify-center">
-                              <span className="text-muted-foreground">{t('common.noImage')}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Vehicle details */}
-                      <div className="flex-1 flex flex-col justify-center">
-                        <h3 className="font-medium text-lg">{vehicle.name}</h3>
-                        <p className="text-sm text-muted-foreground">{vehicle.plate_number}</p>
-                        {vehicle.brand && vehicle.model && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {vehicle.year && <span>{vehicle.year} </span>}
-                            <span>{vehicle.brand} </span>
-                            <span>{vehicle.model}</span>
-                          </p>
-                        )}
-                        {vehicle.vehicle_group && (
-                          <div className="flex items-center gap-2 mt-1">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: vehicle.vehicle_group.color }}
-                            />
-                            <span className="text-xs text-muted-foreground">
-                              {vehicle.vehicle_group.name}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </ScrollArea>
-        </div>
-      )}
-      
-      {/* Pagination controls */}
-      {filteredVehicles.length > vehiclesPerPage && (
-        <div className="flex justify-between items-center mt-4">
-          <div className="text-sm text-muted-foreground">
-            {t('drivers.pagination.page', { page: String(currentPage) })} {t('drivers.pagination.of', { total: String(Math.ceil(filteredVehicles.length / vehiclesPerPage)) })}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="sr-only">Previous page</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(filteredVehicles.length / vehiclesPerPage)))}
-              disabled={currentPage >= Math.ceil(filteredVehicles.length / vehiclesPerPage)}
-            >
-              <ArrowRight className="h-4 w-4" />
-              <span className="sr-only">Next page</span>
-            </Button>
-          </div>
-        </div>
-      )}
-      
-      {/* Date Selection Section - Better positioned */}
-      {selectedVehicle && (
-        <div className="bg-muted/30 p-4 sm:p-6 rounded-lg space-y-4 sm:space-y-6 mt-4 sm:mt-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="space-y-1">
-              <h3 className="text-base sm:text-lg font-medium">{t("inspections.labels.inspectionDate")}</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground">{t("inspections.labels.inspectionDateDescription")}</p>
-            </div>
-            <Button
-              variant="outline"
-              size={isMobile ? "default" : "sm"}
-              className={cn(
-                "w-full sm:w-auto min-h-[44px] sm:min-h-0",
-                isMobile && "text-sm"
-              )}
-              onClick={() => setIsBackdatingEnabled(!isBackdatingEnabled)}
-            >
-              <Calendar className="mr-2 h-4 w-4" />
-              <span className="truncate">
-                {isBackdatingEnabled ? t("inspections.actions.useCurrentDate") : t("inspections.actions.backdateInspection")}
-              </span>
-            </Button>
-          </div>
-
-          {isBackdatingEnabled && (
-            <div className="space-y-4">
-              <div className="w-full">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal min-h-[44px]",
-                        isMobile && "text-sm"
-                      )}
-                    >
-                      <Calendar className="mr-2 h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">
-                        {inspectionDate ? format(inspectionDate, "PPP") : t("inspections.labels.selectDate")}
-                      </span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent 
-                    className={cn(
-                      "w-auto p-0",
-                      isMobile && "w-[calc(100vw-2rem)] max-w-sm mx-auto"
-                    )} 
-                    align={isMobile ? "center" : "start"}
-                    side={isMobile ? "bottom" : "bottom"}
-                  >
-                    <CalendarComponent
-                      mode="single"
-                      selected={inspectionDate}
-                      onSelect={(date) => {
-                        setInspectionDate(date);
-                        methods.setValue('inspection_date', date);
-                      }}
-                      disabled={(date) => date > new Date() || date < new Date(1900, 0, 1)}
-                      initialFocus
-                      className={cn(
-                        isMobile && "w-full [&_table]:w-full [&_td]:w-[14.28%] [&_td]:p-0 [&_td_button]:w-full [&_td_button]:h-10 [&_td_button]:rounded-none [&_td_button]:text-center [&_td_button]:text-sm"
-                      )}
-                      classNames={isMobile ? {
-                        day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                        day_today: "bg-accent text-accent-foreground",
-                        day_outside: "text-muted-foreground opacity-50",
-                        day_disabled: "text-muted-foreground opacity-50",
-                        day_hidden: "invisible",
-                        caption: "flex justify-center pt-1 relative items-center",
-                        caption_label: "text-sm font-medium",
-                        nav: "space-x-1 flex items-center",
-                        nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
-                        table: "w-full border-collapse space-y-1",
-                        head_row: "flex w-full justify-between",
-                        head_cell: "text-muted-foreground text-center font-normal text-xs w-[14.28%] px-0",
-                        row: "flex w-full mt-2",
-                        cell: "text-center text-sm p-0 relative w-[14.28%] [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                      } : undefined}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              
-              {inspectionDate && inspectionDate < new Date() && (
-                <div className="flex items-start space-x-2 text-xs sm:text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-md">
-                  <Calendar className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                  <span className="leading-relaxed">
-                    {t("inspections.labels.backdatingWarning", { 
-                      date: format(inspectionDate, "PPP"),
-                      daysAgo: Math.ceil((new Date().getTime() - inspectionDate.getTime()) / (1000 * 60 * 60 * 24))
-                    })}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {!isBackdatingEnabled && (
-            <div className="text-xs sm:text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
-              {t("inspections.labels.currentDateInspection", { date: format(new Date(), "PPP") })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Navigation buttons */}
-      <div className="flex justify-end mt-4 sm:mt-6">
-      {selectedVehicle && (
-          <Button 
-            className={cn(
-              "w-full sm:w-auto min-h-[44px] sm:min-h-0",
-              isMobile && "text-sm"
-            )}
-            onClick={() => {
-              console.log(`[INSPECTION_FLOW] Moving to type selection with vehicle: ${selectedVehicle.name}`);
-              setCurrentStepIndex(0);
-            }}
-          >
-            {t('common.next')} <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-      )}
-      </div>
-    </div>
-  
-  
-  
-  
-  const [existingInspection, setExistingInspection] = useState<any>(null);
-  const hasLoadedExistingData = useRef(false);
-
-  // NEW: Load inspection header to get type and existing items when editing/continuing
-  useEffect(() => {
-    if (!inspectionId) return;
-    
-    // Reset the flag when inspection ID changes
-    hasLoadedExistingData.current = false;
-
-    const loadInspectionHeader = async () => {
-      try {
-        const supabaseClient = createClient();
-        const { data, error } = await supabaseClient
-          .from('inspections')
-          .select('id, type, status')
-          .eq('id', inspectionId)
-          .maybeSingle();
-        if (error) {
-          console.error('[StepBasedInspectionForm] Failed to fetch inspection header:', error);
-          return;
-        }
-        if (data) {
-          setExistingInspection(data);
-          if (data.type) {
-            setSelectedType(data.type as InspectionType);
-            methods.setValue('type', data.type as InspectionType);
-            // Ensure we move to template step if vehicle is pre-selected
-            setCurrentStepIndex(1);
-          }
-        }
-      } catch (err) {
-        console.error('[StepBasedInspectionForm] Unexpected error loading inspection header:', err);
-      }
-    };
-
-    loadInspectionHeader();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inspectionId]);
-
-  // NEW: After sections are loaded, merge existing item statuses/notes/photos
-  useEffect(() => {
-    if (!inspectionId || sections.length === 0 || hasLoadedExistingData.current) return;
-
-    const loadExistingResults = async () => {
-      try {
-        const supabaseClient = createClient();
-        const { data: itemsRaw, error } = await supabaseClient
-          .from('inspection_items')
-          .select('template_id, status, notes, inspection_photos (photo_url)')
-          .eq('inspection_id', inspectionId);
-        if (error) {
-          console.error('[StepBasedInspectionForm] Failed to load existing inspection items:', error);
-          return;
-        }
-        if (!itemsRaw || itemsRaw.length === 0) return;
-
-        // Map template_id to existing item result
-        const iterableItems = Array.isArray(itemsRaw) ? itemsRaw : [];
-        const resultMap: Record<string, any> = {};
-        iterableItems.forEach((i: any) => {
-          if (i.template_id) {
-            resultMap[i.template_id] = i;
-          }
-        });
-
-        console.log(`[INSPECTION_FORM] Loading existing results for ${iterableItems.length} items`);
-        console.log(`[INSPECTION_FORM] Result map:`, resultMap);
-        console.log(`[INSPECTION_FORM] Current sections before merge:`, sections);
-
-        const merged = sections.map((section) => ({
-          ...section,
-          items: section.items.map((item) => {
-            const existing = resultMap[item.id as string];
-            if (!existing) {
-              console.log(`[INSPECTION_FORM] No existing data for item ${item.id}`);
-              return item;
-            }
-            console.log(`[INSPECTION_FORM] Merging existing data for item ${item.id}:`, existing);
-            return {
-              ...item,
-              status: existing.status as 'pass' | 'fail' | null,
-              notes: existing.notes || '',
-              photos: (existing.inspection_photos ?? []).map((p: { photo_url: string }) => p.photo_url),
-            };
-          }),
-        }));
-
-        console.log(`[INSPECTION_FORM] Merged sections:`, merged);
-        setSections(merged);
-        hasLoadedExistingData.current = true;
-      } catch (err) {
-        console.error('[StepBasedInspectionForm] Unexpected error merging existing results:', err);
-      }
-    };
-
-    loadExistingResults();
-  }, [inspectionId, sections]);
-  
   return (
-    <div className="space-y-8">
-      {/* Vehicle thumbnail when selected */}
-      {selectedVehicle && currentStepIndex !== -1 && (
-        <VehicleThumbnail
-          selectedVehicle={selectedVehicle}
-          sections={sections}
-          currentSectionIndex={currentSectionIndex}
-          currentStepIndex={currentStepIndex}
-          isBackdatingEnabled={isBackdatingEnabled}
-          inspectionDate={inspectionDate}
-          progress={getOverallProgress()}
-          estimatedTimeRemaining={estimatedTimeRemaining}
-        />
-      )}
-      
-      {/* Main content based on step */}
-      {currentStepIndex === -1 && (
-        <VehicleSelectionStep
-          vehicles={vehicles}
-          selectedVehicle={selectedVehicle}
-          onVehicleSelect={setSelectedVehicle}
-          onNext={() => setCurrentStepIndex(0)}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          brandFilter={brandFilter}
-          setBrandFilter={setBrandFilter}
-          modelFilter={modelFilter}
-          setModelFilter={setModelFilter}
-          groupFilter={groupFilter}
-          setGroupFilter={setGroupFilter}
-          inspectionDate={inspectionDate}
-          setInspectionDate={setInspectionDate}
-          isBackdatingEnabled={isBackdatingEnabled}
-          setIsBackdatingEnabled={setIsBackdatingEnabled}
-          isSearchFiltersExpanded={isSearchFiltersExpanded}
-          setIsSearchFiltersExpanded={setIsSearchFiltersExpanded}
-          brandOptions={brandOptions}
-          modelOptions={modelOptions}
-          groupOptions={groupOptions}
-          filteredVehicles={filteredVehicles}
-        />
-      )}
-      {currentStepIndex === 0 && (
-        <TypeSelectionStep
-          control={methods.control}
-          onTypeChange={handleTypeChange}
-          selectedType={selectedType}
-          availableTypes={availableTemplateTypes}
-          onBack={() => setCurrentStepIndex(-1)}
-          onStartInspection={handleStartInspection}
-          isSubmitting={isSubmitting}
-        />
-      )}
-      {currentStepIndex === 1 && (
-        <SectionItemsStep
-          sections={sections}
-          currentSectionIndex={currentSectionIndex}
-          onItemStatusChange={handleItemStatus}
-          onCameraClick={handleCameraClick}
-          onDeletePhoto={handleDeletePhoto}
-          onNotesChange={handleNotesChange}
-          onPreviousSection={handlePreviousSection}
-          onNextSection={handleNextSection}
-          onBackToTypeSelection={() => setCurrentStepIndex(0)}
-          onSubmit={handleFormSubmit}
-          isSubmitting={isSubmitting}
-        />
-      )}
-      
-      {/* Camera modal */}
-      {isCameraOpen && (
-        <CameraModal
-          isOpen={isCameraOpen}
-          onClose={() => setIsCameraOpen(false)}
-          onCapture={handlePhotoCapture}
-        />
-      )}
-    </div>
+    <FormProvider {...methods}>
+      <div className="space-y-8">
+        {/* Vehicle thumbnail when selected */}
+        {inspectionState.selectedVehicle && inspectionState.currentStepIndex !== -1 && (
+          <VehicleThumbnail
+            selectedVehicle={inspectionState.selectedVehicle}
+            sections={inspectionState.sections}
+            currentSectionIndex={inspectionState.currentSectionIndex}
+            currentStepIndex={inspectionState.currentStepIndex}
+            isBackdatingEnabled={inspectionState.isBackdatingEnabled}
+            inspectionDate={inspectionState.inspectionDate}
+            progress={inspectionState.getOverallProgress()}
+            estimatedTimeRemaining={inspectionState.estimatedTimeRemaining}
+          />
+        )}
+        
+        {/* Main content based on step */}
+        {inspectionState.currentStepIndex === -1 && (
+          <VehicleSelectionStep
+            vehicles={vehicles}
+            selectedVehicle={inspectionState.selectedVehicle}
+            onVehicleSelect={inspectionState.setSelectedVehicle}
+            onNext={() => inspectionState.setCurrentStepIndex(0)}
+            searchQuery={vehicleFiltering.searchQuery}
+            setSearchQuery={vehicleFiltering.setSearchQuery}
+            brandFilter={vehicleFiltering.brandFilter}
+            setBrandFilter={vehicleFiltering.setBrandFilter}
+            modelFilter={vehicleFiltering.modelFilter}
+            setModelFilter={vehicleFiltering.setModelFilter}
+            groupFilter={vehicleFiltering.groupFilter}
+            setGroupFilter={vehicleFiltering.setGroupFilter}
+            inspectionDate={inspectionState.inspectionDate}
+            setInspectionDate={inspectionState.setInspectionDate}
+            isBackdatingEnabled={inspectionState.isBackdatingEnabled}
+            setIsBackdatingEnabled={inspectionState.setIsBackdatingEnabled}
+            isSearchFiltersExpanded={vehicleFiltering.isSearchFiltersExpanded}
+            setIsSearchFiltersExpanded={vehicleFiltering.setIsSearchFiltersExpanded}
+            brandOptions={vehicleFiltering.brandOptions}
+            modelOptions={vehicleFiltering.modelOptions}
+            groupOptions={vehicleFiltering.groupOptions}
+            filteredVehicles={vehicleFiltering.paginatedVehicles}
+          />
+        )}
+        {inspectionState.currentStepIndex === 0 && (
+          <TypeSelectionStep
+            control={methods.control}
+            onTypeChange={inspectionState.handleTypeChange}
+            selectedType={inspectionState.selectedType}
+            availableTypes={inspectionState.availableTemplateTypes}
+            onBack={() => inspectionState.setCurrentStepIndex(-1)}
+            onStartInspection={handleStartInspection}
+            isSubmitting={isSubmitting}
+          />
+        )}
+        {inspectionState.currentStepIndex === 1 && (
+          <SectionItemsStep
+            sections={inspectionState.sections}
+            currentSectionIndex={inspectionState.currentSectionIndex}
+            onItemStatusChange={handleItemStatus}
+            onCameraClick={handleCameraClick}
+            onDeletePhoto={handleDeletePhoto}
+            onNotesChange={handleNotesChange}
+            onPreviousSection={inspectionState.handlePreviousSection}
+            onNextSection={inspectionState.handleNextSection}
+            onBackToTypeSelection={() => inspectionState.setCurrentStepIndex(0)}
+            onSubmit={handleFormSubmit}
+            isSubmitting={isSubmitting}
+          />
+        )}
+        
+        {/* Camera modal */}
+        {inspectionState.isCameraOpen && (
+          <CameraModal
+            isOpen={inspectionState.isCameraOpen}
+            onClose={() => inspectionState.setIsCameraOpen(false)}
+            onCapture={(photoUrl) => handlePhotoCapture(photoUrl, inspectionState.currentPhotoItem)}
+          />
+        )}
+      </div>
+    </FormProvider>
   );
-} 
+}

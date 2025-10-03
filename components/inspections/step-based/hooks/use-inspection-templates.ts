@@ -58,6 +58,7 @@ interface UseInspectionTemplatesProps {
   setSelectedType: (type: InspectionType) => void;
   setSections: (sections: InspectionSection[]) => void;
   currentStepIndex: number;
+  setCurrentStepIndex: (index: number) => void;
   inspectionId?: string;
   methods: any; // Form methods
   autoTemplateToastShownRef: React.MutableRefObject<boolean>;
@@ -70,6 +71,7 @@ export function useInspectionTemplates({
   setSelectedType,
   setSections,
   currentStepIndex,
+  setCurrentStepIndex,
   inspectionId,
   methods,
   autoTemplateToastShownRef,
@@ -201,8 +203,12 @@ export function useInspectionTemplates({
               });
 
             // Skip type selection step and go directly to inspection
-            if (currentStepIndex === 0 && inspectionId) {
-              // This will be handled by the parent component
+            if (currentStepIndex === -1) {
+              // If we're on vehicle selection step, move to type selection first
+              setCurrentStepIndex(0);
+            } else if (currentStepIndex === 0) {
+              // If we're on type selection step, move to inspection
+              setCurrentStepIndex(1);
             }
             
             if (!alreadyNotified) {

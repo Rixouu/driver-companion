@@ -105,10 +105,6 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   const { t, locale } = useI18n();
   const isMobile = useIsMobile();
   
-  // Use custom hooks for state management
-  const vehicleFiltering = useVehicleFiltering({ vehicles });
-  const inspectionState = useInspectionState({ vehicleId, inspectionId, isResuming });
-  
   // Form setup
   const methods = useForm<InspectionFormData>({
     resolver: zodResolver(inspectionSchema),
@@ -117,6 +113,10 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       type: "routine",
     },
   });
+  
+  // Use custom hooks for state management
+  const vehicleFiltering = useVehicleFiltering({ vehicles });
+  const inspectionState = useInspectionState({ vehicleId, inspectionId, isResuming, methods });
 
   // Use existing hooks
   const { isSubmitting, handleStartInspection } = useInspectionCreation({

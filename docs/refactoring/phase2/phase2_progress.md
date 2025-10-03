@@ -75,11 +75,14 @@
   - [x] Fix duplicate filters issue (removed redundant BookingFilters)
   - [x] Simplify state management (reduced from 20+ to organized hooks)
   - [x] Total reduction: 1,954 → 153 lines (1,801 lines / 92% reduction)
-- [x] **Service Selection Step Refactoring - COMPLETE (Conservative Approach)**
+- [x] **Service Selection Step Refactoring - COMPLETE (Deep Refactoring)**
   - [x] Extract theme management into useServiceTheme hook
   - [x] Extract data helpers into useServiceSelectionData hook
-  - [x] Maintain all business logic in main component (low-risk approach)
-  - [x] Total reduction: 1,955 → 1,811 lines (144 lines / 7.4% reduction)
+  - [x] Extract ServiceItemsList component for service items rendering
+  - [x] Extract ServiceConfigForm component for service configuration
+  - [x] Extract PackageSelectionCard component for package selection
+  - [x] Update main component to use extracted components
+  - [x] Total reduction: 1,955 → 838 lines (1,117 lines / 57% reduction)
 
 ### 🔄 In Progress
 - [ ] **Continue with remaining large components**

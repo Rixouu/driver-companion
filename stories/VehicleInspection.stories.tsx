@@ -1,3 +1,4 @@
+import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react';
 import { StepBasedInspectionForm } from '@/components/inspections/step-based/step-based-inspection-form';
 import { mockVehicleData, mockInspectionTemplates } from '../.storybook/mocks';

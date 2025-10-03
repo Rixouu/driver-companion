@@ -1,3 +1,4 @@
+import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react';
 import { QuotationDetails } from '@/app/(dashboard)/quotations/[id]/quotation-details';
 import { mockQuotationData } from '../.storybook/mocks';

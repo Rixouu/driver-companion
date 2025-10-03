@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { CameraModal } from "@/components/inspections/camera-modal"
 import { InspectionTypeSelector } from "./inspection-type-selector"
+import { VehicleSelectionStep } from "./vehicle-selection-step"
 import { FormField, FormItem, FormControl } from "@/components/ui/form"
 import { withErrorHandling } from "@/lib/utils/error-handler"
 import { cn } from "@/lib/utils"
@@ -196,6 +197,11 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     return Array.from(uniqueModels).sort();
   }, [vehicles, brandFilter]);
 
+  // Model options for dropdown
+  const modelOptions = useMemo(() => {
+    return models.map(model => ({ value: model, label: model }));
+  }, [models]);
+
   // Get unique vehicle groups
   const vehicleGroups = useMemo(() => {
     const uniqueGroups = new Set<VehicleGroup>();
@@ -206,6 +212,11 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     });
     return Array.from(uniqueGroups).sort((a, b) => a.name.localeCompare(b.name));
   }, [vehicles]);
+
+  // Group options for dropdown
+  const groupOptions = useMemo(() => {
+    return vehicleGroups.map(group => ({ value: group.id, label: group.name }));
+  }, [vehicleGroups]);
   
   // Filter Vehicle selection
   const filteredVehicles = useMemo(() => {
@@ -1157,8 +1168,6 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     withErrorHandling(handleSubmit, t("inspections.errors.genericSubmitError"));
   };
   
-  // Render vehicle selection step
-  const renderVehicleSelection = () => (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">{t('inspections.steps.selectVehicle')}</h2>
       
@@ -1547,7 +1556,6 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       )}
       </div>
     </div>
-  );
   
   // Render inspection type selection
   const renderTypeSelection = () => (
@@ -1928,7 +1936,32 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       {selectedVehicle && currentStepIndex !== -1 && renderVehicleThumbnail()}
       
       {/* Main content based on step */}
-      {currentStepIndex === -1 && renderVehicleSelection()}
+      {currentStepIndex === -1 && (
+        <VehicleSelectionStep
+          vehicles={vehicles}
+          selectedVehicle={selectedVehicle}
+          onVehicleSelect={setSelectedVehicle}
+          onNext={() => setCurrentStepIndex(0)}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          brandFilter={brandFilter}
+          setBrandFilter={setBrandFilter}
+          modelFilter={modelFilter}
+          setModelFilter={setModelFilter}
+          groupFilter={groupFilter}
+          setGroupFilter={setGroupFilter}
+          inspectionDate={inspectionDate}
+          setInspectionDate={setInspectionDate}
+          isBackdatingEnabled={isBackdatingEnabled}
+          setIsBackdatingEnabled={setIsBackdatingEnabled}
+          isSearchFiltersExpanded={isSearchFiltersExpanded}
+          setIsSearchFiltersExpanded={setIsSearchFiltersExpanded}
+          brandOptions={brandOptions}
+          modelOptions={modelOptions}
+          groupOptions={groupOptions}
+          filteredVehicles={filteredVehicles}
+        />
+      )}
       {currentStepIndex === 0 && renderTypeSelection()}
       {currentStepIndex === 1 && renderSectionItems()}
       

@@ -163,7 +163,7 @@ export async function processBookingReminderNotifications() {
       const { data: bookings24h } = await supabase
         .from('bookings')
         .select('*')
-        .in('status', ['confirmed', 'pending'])
+        .in('status', ['confirmed', 'pending', 'assigned'])
         .gte('date', tomorrowStart.toISOString().split('T')[0])
         .lt('date', tomorrowEnd.toISOString().split('T')[0])
 
@@ -204,7 +204,7 @@ export async function processBookingReminderNotifications() {
       const { data: bookings2h } = await supabase
         .from('bookings')
         .select('*')
-        .in('status', ['confirmed', 'pending'])
+        .in('status', ['confirmed', 'pending', 'assigned'])
         .eq('date', currentDate)
 
       if (bookings2h && bookings2h.length > 0) {

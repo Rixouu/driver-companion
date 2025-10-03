@@ -99,22 +99,33 @@ export function DashboardContentOptimized({
   const [isLoadingFinancial, setIsLoadingFinancial] = useState(true)
   const [financialError, setFinancialError] = useState<string | null>(null)
 
-  // Fetch bookings with pending and assigned statuses
+  // Fetch bookings - show recent and upcoming bookings
   useEffect(() => {
     async function fetchUpcomingBookings() {
       try {
         setIsLoadingBookings(true)
         const { bookings } = await getBookings({
-          limit: 10,
+          limit: 20,
           page: 1
         }, false)
         
-        // Filter for pending, assigned, and confirmed bookings
-        const filteredBookings = bookings.filter(
-          booking => booking.status === 'pending' || booking.status === 'assigned' || booking.status === 'confirmed'
-        )
+        // Get today's date for filtering
+        const today = new Date().toISOString().split('T')[0]
         
-        // Sort by date (most recent first)
+        // Filter for upcoming bookings (confirmed, assigned, pending) or recent completed bookings
+        const filteredBookings = bookings.filter(booking => {
+          // Show upcoming bookings with active statuses
+          if (['pending', 'assigned', 'confirmed'].includes(booking.status)) {
+            return true
+          }
+          // Show recent completed bookings (last 7 days) for reference
+          if (booking.status === 'completed' && booking.date && booking.date >= today) {
+            return true
+          }
+          return false
+        })
+        
+        // Sort by date (upcoming first, then recent)
         filteredBookings.sort((a, b) => {
           const dateA = new Date(`${a.date} ${a.time || '00:00'}`)
           const dateB = new Date(`${b.date} ${b.time || '00:00'}`)

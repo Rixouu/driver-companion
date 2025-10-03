@@ -3,7 +3,7 @@
  * Combines Redis cache with local fallback and CDN integration
  */
 
-import { pdfCache as redisCache } from './redis-cache.js';
+import { pdfCache as redisCache } from './redis-cache';
 import { pdfCache as localCache } from './pdf-cache';
 import { cdnAssets } from './cdn-assets';
 

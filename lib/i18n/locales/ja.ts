@@ -5,6 +5,7 @@ export const ja: TranslationValue = {
     confidential: "非公開",
     active: "有効",
     inactive: "無効",
+    noImage: "画像なし",
     status: {
       inProgress: "進行中",
       upcoming: "今後",
@@ -229,6 +230,8 @@ export const ja: TranslationValue = {
       model: "タイプで絞り込み",
       allBrands: "すべてのステータス",
       allModels: "すべてのタイプ",
+      group: "グループ",
+      allGroups: "すべてのグループ",
       noResults: "結果が見つかりませんでした",
       clearFilters: "フィルターをクリア"
     },
@@ -475,6 +478,8 @@ export const ja: TranslationValue = {
     backToVehicle: "車両に戻る",
     searchPlaceholder: "車両を検索...",
     noVehicles: "車両が見つかりません",
+    available: "利用可能な車両",
+    noImage: "画像なし",
     filters: {
       search: "車両を検索",
       searchPlaceholder: "名前またはナンバープレートで検索",

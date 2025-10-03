@@ -5,6 +5,7 @@ export const en: TranslationValue = {
     confidential: "Confidential",
     active: "Active",
     inactive: "Inactive",
+    noImage: "No Image",
     status: {
       inProgress: "In Progress",
       upcoming: "Upcoming",
@@ -237,6 +238,8 @@ export const en: TranslationValue = {
       model: "Filter by Type",
       allBrands: "All Statuses",
       allModels: "All Types",
+      group: "Group",
+      allGroups: "All Groups",
       noResults: "No results found",
       clearFilters: "Clear Filters"
     },
@@ -486,6 +489,8 @@ export const en: TranslationValue = {
     backToVehicle: "Back to Vehicle",
     searchPlaceholder: "Search vehicles...",
     noVehicles: "No vehicles found",
+    available: "Available Vehicles",
+    noImage: "No Image",
     filters: {
       search: "Search vehicles",
       searchPlaceholder: "Search by name or plate number",

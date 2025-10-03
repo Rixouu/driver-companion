@@ -549,9 +549,9 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   // Use inspection creation hook
   const { isSubmitting: isCreatingInspection, handleStartInspection: createInspection } = useInspectionCreation({
     selectedVehicle,
-    selectedType: selectedType || null,
-    inspectionId: inspectionId || null,
-    sections: sections as any[],
+    selectedType,
+    inspectionId,
+    sections,
     inspectionDate,
     isAutoStartingRef
   })
@@ -571,8 +571,8 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     handleDeletePhoto,
     handlePhotoCapture: capturePhoto
   } = useInspectionItems({
-    sections: sections as any[],
-    setSections: setSections as any,
+    sections,
+    setSections,
     setCompletedSections,
     setCurrentPhotoItem,
     setIsCameraOpen
@@ -943,7 +943,6 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     withErrorHandling(handleSubmit, t("inspections.errors.genericSubmitError"));
   };
   
-  return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">{t('inspections.steps.selectVehicle')}</h2>
       
@@ -1332,7 +1331,9 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       )}
       </div>
     </div>
-  );
+  
+  
+  
   
   const [existingInspection, setExistingInspection] = useState<any>(null);
   const hasLoadedExistingData = useRef(false);

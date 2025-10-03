@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useI18n } from '@/lib/i18n/context';
-import QuotationFormRefactored from '@/components/quotations/quotation-form-refactored';
+import QuotationForm from '@/components/quotations/quotation-form';
 import { GoogleMapsProvider } from '@/components/providers/google-maps-provider';
 import { Quotation, QuotationItem, ServiceTypeInfo, PricingCategory, PricingItem } from '@/types/quotations';
 
@@ -96,7 +96,7 @@ export default function QuotationFormClient({
       apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''} 
       libraries={['places']}
     >
-      <QuotationFormRefactored
+      <QuotationForm
         initialData={preparedQuotation}
         onSuccess={handleSuccess}
         serviceTypes={serviceTypes}

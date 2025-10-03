@@ -1,0 +1,1468 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { 
+  SearchIcon, 
+  UserIcon, 
+  CarIcon, 
+  CalendarIcon, 
+  ClockIcon,
+  MapPinIcon,
+  PhoneIcon,
+  CheckIcon,
+  XIcon,
+  MoreVerticalIcon,
+  StarIcon,
+  TrendingUpIcon,
+  UsersIcon,
+  FilterIcon,
+  Mail,
+  Smartphone,
+  MessageSquare,
+  Zap,
+  Clock,
+  Edit,
+  Eye,
+  UserX,
+  Grid3X3Icon,
+  List,
+  ArrowRightIcon,
+} from "lucide-react";
+import { useI18n } from "@/lib/i18n/context";
+import { toast } from "@/components/ui/use-toast";
+import { createClient } from "@/lib/supabase";
+import { format, parseISO } from "date-fns";
+import { useRouter, useSearchParams } from "next/navigation";
+import { cn, getDispatchStatusBadgeClasses } from "@/lib/utils/styles";
+import { useSharedDispatchState } from "@/lib/hooks/use-shared-dispatch-state";
+import { DispatchStatus } from "@/types/dispatch";
+import SidePanelDetails from "./side-panel-details";
+import SmartAssignmentModal from '@/components/shared/smart-assignment-modal';
+import { AssignmentFilter, AssignmentFilterOptions } from "./assignment-filter";
+import { AssignmentListView } from "./assignment-list-view";
+
+interface BookingWithRelations {
+  id: string;
+  wp_id?: string;
+  customer_name?: string;
+  customer_email?: string;
+  customer_phone?: string;
+  service_id?: string | null;
+  service_name?: string;
+  service_type_name?: string;
+  date: string;
+  time: string;
+  pickup_location?: string;
+  dropoff_location?: string;
+  status: string;
+  driver_id?: string | null;
+  vehicle_id?: string | null;
+  notes?: string;
+  dispatch_entry_id?: string;
+  driver?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    profile_image_url?: string;
+    phone?: string;
+    email?: string;
+  };
+  vehicle?: {
+    id: string;
+    name?: string;
+    plate_number: string;
+    brand: string;
+    model: string;
+    image_url?: string;
+  };
+}
+
+interface DriverWithAvailability {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email?: string;
+  phone?: string;
+  profile_image_url?: string;
+  status: string;
+  is_available: boolean;
+}
+
+interface VehicleWithStatus {
+  id: string;
+  name?: string;
+  plate_number: string;
+  brand: string;
+  model: string;
+  year: number;
+  image_url?: string;
+  status: string;
+  is_available: boolean;
+}
+
+
+// Enhanced Assignment Card with Visual Status Indicators
+function EnhancedAssignmentCard({ 
+  booking, 
+  onOpenSmartModal,
+  onViewDetails,
+  onUnassign
+}: {
+  booking: BookingWithRelations;
+  onOpenSmartModal: (booking: BookingWithRelations) => void;
+  onViewDetails: (bookingId: string) => void;
+  onUnassign: (bookingId: string) => void;
+}) {
+  const { t } = useI18n();
+  
+  const getStatusColorClasses = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'assigned':
+      case 'confirmed':
+        return {
+          border: 'border-l-blue-500 dark:border-l-blue-400',
+          dot: 'bg-blue-500 dark:bg-blue-400',
+          badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
+          assignedBadge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
+          assignedBox: 'bg-blue-50 border border-blue-200 rounded-md dark:bg-blue-900/10 dark:border-blue-800',
+          avatarFallback: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300',
+        };
+      case 'pending':
+        return {
+          border: 'border-l-amber-500 dark:border-l-amber-400',
+          dot: 'bg-amber-500 dark:bg-amber-400',
+          badge: 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300',
+          unassignedBox: 'bg-amber-50 border border-amber-200 rounded-md text-center dark:bg-amber-900/10 dark:border-amber-800',
+          unassignedText: 'text-amber-800 dark:text-amber-300'
+        };
+      case 'cancelled':
+        return {
+          border: 'border-l-red-500 dark:border-l-red-400',
+          dot: 'bg-red-500 dark:bg-red-400',
+          badge: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300',
+        };
+      default:
+        return {
+          border: 'border-l-gray-300 dark:border-l-gray-600',
+          dot: 'bg-gray-300 dark:bg-gray-600',
+          badge: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300',
+          unassignedBox: 'border-gray-200 dark:border-gray-700'
+        };
+    }
+  };
+
+  const isAssigned = booking.driver_id && booking.vehicle_id;
+  const status = (booking.status || 'pending').toLowerCase();
+  const displayStatus = isAssigned && status !== 'cancelled' ? 'assigned' : status;
+  const colors = getStatusColorClasses(displayStatus);
+
+  return (
+    <Card className={cn(
+      "transition-all duration-200 hover:shadow-lg border bg-card text-card-foreground h-full flex flex-col",
+      colors.border
+    )}>
+      <CardHeader className="pb-3 flex-shrink-0">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <div className={cn(
+              "w-3 h-3 rounded-full mt-1 flex-shrink-0",
+              colors.dot
+            )} />
+            <div className="min-w-0 flex-1">
+              <CardTitle className="text-base text-foreground">
+                {booking.wp_id || `#${booking.id.substring(0, 8)}`}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {booking.customer_name || t("dispatch.assignments.unknownCustomer")}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+            <Badge 
+              variant={isAssigned ? "default" : "secondary"}
+              className={cn(
+                "text-xs px-3 py-1",
+                isAssigned 
+                  ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300" 
+                  : "bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300"
+              )}
+            >
+              {isAssigned ? t("dispatch.assignments.assigned") : t("dispatch.assignments.pending")}
+            </Badge>
+          </div>
+        </div>
+      </CardHeader>
+      
+              <CardContent className="flex-1 flex flex-col">
+          <div className="space-y-4 flex-1">
+            {/* Service and Location Info - Mobile Card Style */}
+            <div className="space-y-3">
+              {/* Service Type */}
+              <div className="flex items-start gap-3">
+                <Zap className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm text-foreground">
+                    {booking.service_type_name || booking.service_name || t("dispatch.assignments.vehicleService")}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {booking.vehicle?.brand} {booking.vehicle?.model}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Location Details */}
+              <div className="flex items-start gap-3">
+                <MapPinIcon className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">From:</span>
+                    <p className="text-sm text-foreground line-clamp-2">
+                      {booking.pickup_location}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <ArrowRightIcon className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">To:</span>
+                    <p className="text-sm text-foreground line-clamp-2">
+                      {booking.dropoff_location}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Date and Time - Mobile Card Style */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-foreground">
+                    {format(parseISO(booking.date), "MMM dd, yyyy")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ClockIcon className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-foreground">
+                    {booking.time}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Assignment Status */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm text-foreground">Assignment Status</h4>
+              
+              {/* Driver and Vehicle in ONE COLUMN together - Mobile Card Style */}
+              <div className="space-y-3">
+                {/* Driver Status */}
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                  <UserIcon className="h-4 w-4 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    {booking.driver_id && booking.driver ? (
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={booking.driver.profile_image_url || ""} />
+                          <AvatarFallback className="text-xs bg-primary text-primary-foreground">
+                            {booking.driver.first_name?.[0]}{booking.driver.last_name?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm text-foreground">
+                            {booking.driver.first_name} {booking.driver.last_name}
+                          </p>
+                          {booking.driver.phone && (
+                            <p className="text-xs text-muted-foreground">
+                              {booking.driver.phone}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {t("dispatch.assignments.notAssigned")}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Vehicle Status */}
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                  <CarIcon className="h-4 w-4 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    {booking.vehicle_id && booking.vehicle ? (
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={booking.vehicle.image_url || "/img/car-placeholder.png"} />
+                          <AvatarFallback>
+                            {booking.vehicle.brand?.[0]}{booking.vehicle.model?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm text-foreground">
+                            {booking.vehicle.plate_number}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {booking.vehicle.brand} {booking.vehicle.model}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {t("dispatch.assignments.notAssigned")}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        {/* Action Buttons - Mobile Card Style */}
+        <div className="flex gap-2 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onViewDetails(booking.id)}
+            className="flex-1 h-10"
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            {t("dispatch.assignments.view")}
+          </Button>
+
+          {isAssigned ? (
+            <Button
+              size="sm"
+              onClick={() => onOpenSmartModal(booking)}
+              className="flex-1 h-10"
+            >
+              <UserIcon className="h-4 w-4 mr-2" />
+              {t("dispatch.assignments.reassign")}
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={() => onOpenSmartModal(booking)}
+              className="flex-1 h-9"
+            >
+              <Zap className="h-4 w-4 mr-1" />
+              {t("dispatch.assignments.smartAssign")}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Smart Assignment Modal
+function SmartAssignmentModalOld({
+  booking,
+  isOpen,
+  onClose,
+  onAssign,
+  drivers,
+  vehicles
+}: {
+  booking: BookingWithRelations | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onAssign: (driverId: string, vehicleId: string) => void;
+  drivers: DriverWithAvailability[];
+  vehicles: VehicleWithStatus[];
+}) {
+  const { t } = useI18n();
+  const [selectedDriver, setSelectedDriver] = useState<string>("");
+  const [selectedVehicle, setSelectedVehicle] = useState<string>("");
+
+  const availableDrivers = drivers.filter(d => d.is_available);
+  const availableVehicles = vehicles.filter(v => v.is_available);
+
+  // Enhanced vehicle matching logic based on service name
+  const getVehicleMatches = () => {
+    if (!booking?.service_name) return availableVehicles.map(v => ({ vehicle: v, matchPercentage: 50 }));
+    
+    const serviceName = booking.service_name.toLowerCase();
+    
+    return availableVehicles.map(vehicle => {
+      let matchPercentage = 30; // base score
+      
+      // Perfect matches based on real data
+      if (serviceName.includes('alphard executive lounge') && vehicle.model.toLowerCase().includes('alphard executive lounge')) {
+        matchPercentage = 100;
+      } else if (serviceName.includes('alphard z') && vehicle.model.toLowerCase().includes('alphard z')) {
+        matchPercentage = 100;
+      } else if (serviceName.includes('mercedes benz v class') && vehicle.model.toLowerCase().includes('v-class')) {
+        matchPercentage = 100;
+      } else if (serviceName.includes('v class') && vehicle.model.toLowerCase().includes('v-class')) {
+        matchPercentage = 95;
+      } else if (serviceName.includes('black suite') && vehicle.model.toLowerCase().includes('black suite')) {
+        matchPercentage = 100;
+      } else if (serviceName.includes('alphard') && vehicle.model.toLowerCase().includes('alphard')) {
+        matchPercentage = 90;
+      } else if (serviceName.includes('mercedes') && vehicle.brand.toLowerCase().includes('mercedes')) {
+        matchPercentage = 85;
+      } else if (serviceName.includes('toyota') && vehicle.brand.toLowerCase().includes('toyota')) {
+        matchPercentage = 85;
+      }
+      
+      // Luxury service matching
+      if (serviceName.includes('luxury') || serviceName.includes('premium') || serviceName.includes('executive')) {
+        if (vehicle.model.toLowerCase().includes('executive') || 
+            vehicle.model.toLowerCase().includes('v-class') ||
+            vehicle.model.toLowerCase().includes('black suite')) {
+          matchPercentage = Math.max(matchPercentage, 90);
+        }
+      }
+      
+      return { vehicle, matchPercentage };
+    }).sort((a, b) => b.matchPercentage - a.matchPercentage);
+  };
+
+  const vehicleMatches = getVehicleMatches();
+
+  const handleAssign = () => {
+    if (selectedDriver && selectedVehicle) {
+      onAssign(selectedDriver, selectedVehicle);
+      onClose();
+      setSelectedDriver("");
+      setSelectedVehicle("");
+    }
+  };
+
+  if (!booking) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-background border border-border">
+        <DialogHeader>
+          <DialogTitle className="text-foreground">
+            {t("dispatch.assignments.smartAssignmentFor", { id: booking.wp_id || booking.id.substring(0, 8) })}
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            {t("dispatch.assignments.smartAssignmentDescription")}
+          </p>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Available Drivers */}
+          <div className="space-y-4">
+            <h3 className="font-medium text-lg flex items-center gap-2 text-foreground">
+              <UsersIcon className="h-5 w-5" />
+              {t("dispatch.assignments.availableDriversCount", { count: availableDrivers.length })}
+            </h3>
+            
+            {availableDrivers.length === 0 ? (
+              <div className="text-center p-6 text-muted-foreground">
+                <UserIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>{t("dispatch.assignments.noDriversAvailable")}</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {availableDrivers.map((driver) => (
+                  <Card 
+                    key={driver.id}
+                    className={cn(
+                      "cursor-pointer transition-all border border-border bg-card",
+                      selectedDriver === driver.id ? "ring-2 ring-primary bg-accent" : "hover:bg-accent/50"
+                    )}
+                    onClick={() => setSelectedDriver(driver.id)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={driver.profile_image_url || ""} />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {driver.first_name?.[0]}{driver.last_name?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-foreground">
+                            {driver.first_name} {driver.last_name}
+                          </p>
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400">{t("dispatch.assignments.statusAvailable")}</p>
+                        </div>
+                        
+                        {selectedDriver === driver.id && (
+                          <CheckIcon className="h-5 w-5 text-primary" />
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Available Vehicles with Smart Matching */}
+          <div className="space-y-4">
+            <h3 className="font-medium text-lg flex items-center gap-2 text-foreground">
+              <CarIcon className="h-5 w-5" />
+              {t("dispatch.assignments.vehicleRecommendations", { count: availableVehicles.length })}
+            </h3>
+            
+            {availableVehicles.length === 0 ? (
+              <div className="text-center p-6 text-muted-foreground">
+                <CarIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>{t("dispatch.assignments.noVehiclesAvailable")}</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {vehicleMatches.map(({ vehicle, matchPercentage }) => (
+                  <Card 
+                    key={vehicle.id}
+                    className={cn(
+                      "cursor-pointer transition-all border border-border bg-card",
+                      selectedVehicle === vehicle.id ? "ring-2 ring-primary bg-accent" : "hover:bg-accent/50"
+                    )}
+                    onClick={() => setSelectedVehicle(vehicle.id)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
+                          {vehicle.image_url ? (
+                            <img src={vehicle.image_url} alt="" className="h-8 w-8 object-cover rounded" />
+                          ) : (
+                            <CarIcon className="h-5 w-5 text-muted-foreground" />
+                          )}
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className="font-medium text-sm text-foreground">
+                              {vehicle.plate_number}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <div className={cn(
+                                "px-2 py-1 rounded-full text-xs font-medium",
+                                matchPercentage >= 90 ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300" :
+                                matchPercentage >= 70 ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300" :
+                                matchPercentage >= 50 ? "bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300" :
+                                "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300"
+                              )}>
+                                {t("dispatch.assignments.matchPercentage", { percentage: matchPercentage })}
+                              </div>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {vehicle.brand} {vehicle.model}
+                          </p>
+                        </div>
+                        
+                        {selectedVehicle === vehicle.id && (
+                          <CheckIcon className="h-5 w-5 text-primary" />
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            {t("common.cancel")}
+          </Button>
+          <Button 
+            onClick={handleAssign}
+            disabled={!selectedDriver || !selectedVehicle}
+          >
+            <CheckIcon className="h-4 w-4 mr-2" />
+            {t("dispatch.assignments.assign")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DispatchDetailsPanel({
+  booking,
+  onUnassign,
+}: {
+  booking: BookingWithRelations;
+  onUnassign: (bookingId: string) => void;
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const formattedDate = format(parseISO(booking.date), "d MMM yyyy");
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground">
+            #{booking.wp_id || booking.id.substring(0, 8)}
+          </h2>
+          <Badge className={cn("text-sm", getDispatchStatusBadgeClasses(booking.status))}>
+            {t(`bookings.status.${booking.status.toLowerCase()}` as any, { defaultValue: booking.status })}
+          </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {formattedDate} at {booking.time}
+        </p>
+      </div>
+
+      {/* Customer Info */}
+      <div className="space-y-3">
+        <h3 className="font-medium text-sm text-foreground">{t("dispatch.assignments.customerInformation")}</h3>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <UserIcon className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-foreground">{booking.customer_name || t("dispatch.assignments.unknownCustomer")}</span>
+          </div>
+          {booking.customer_phone && (
+            <div className="flex items-center gap-2">
+              <PhoneIcon className="h-4 w-4 text-muted-foreground" />
+              <a 
+                href={`tel:${booking.customer_phone}`}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {booking.customer_phone}
+              </a>
+            </div>
+          )}
+          {booking.customer_email && (
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <a 
+                href={`mailto:${booking.customer_email}`}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {booking.customer_email}
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Service Details */}
+      <div className="space-y-3">
+        <h3 className="font-medium text-sm text-foreground">{t("dispatch.assignments.serviceDetails")}</h3>
+        <div className="space-y-2">
+          <p className="text-sm text-foreground">{booking.service_name || t("dispatch.assignments.vehicleService")}</p>
+          {booking.pickup_location && (
+            <div className="flex items-start gap-2">
+              <MapPinIcon className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5" />
+              <div>
+                <p className="text-xs text-muted-foreground">{t("dispatch.assignments.from")}</p>
+                <p className="text-sm text-foreground">{booking.pickup_location}</p>
+              </div>
+            </div>
+          )}
+          {booking.dropoff_location && (
+            <div className="flex items-start gap-2">
+              <MapPinIcon className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5" />
+              <div>
+                <p className="text-xs text-muted-foreground">{t("dispatch.assignments.to")}</p>
+                <p className="text-sm text-foreground">{booking.dropoff_location}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Assignment Status */}
+      <div className="space-y-3">
+        <h3 className="font-medium text-sm text-foreground">{t("dispatch.assignments.assignmentStatus")}</h3>
+        <div className="space-y-4">
+          {/* Driver */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-sm flex items-center gap-2 text-foreground">
+                <UserIcon className="h-4 w-4" />
+                {t("dispatch.assignments.driver")}
+              </h4>
+              {booking.driver_id && (
+                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                  <CheckIcon className="h-3 w-3 mr-1" />
+                  {t("dispatch.assignments.assigned")}
+                </Badge>
+              )}
+            </div>
+            
+            {booking.driver_id && booking.driver ? (
+              <div className="flex items-center gap-2 p-3 rounded-md h-20 bg-blue-50 border border-blue-200 dark:bg-blue-900/10 dark:border-blue-800">
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarImage src={booking.driver.profile_image_url || ""} />
+                  <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
+                    {booking.driver.first_name?.[0]}{booking.driver.last_name?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm truncate text-foreground">
+                    {booking.driver.first_name} {booking.driver.last_name}
+                  </p>
+                  {booking.driver.phone && (
+                    <p className="text-xs text-muted-foreground">{booking.driver.phone}</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="h-20 flex items-center justify-center bg-amber-50 border border-amber-200 rounded-md dark:bg-amber-900/10 dark:border-amber-800">
+                <p className="text-sm text-amber-800 dark:text-amber-300">{t("dispatch.assignments.notAssigned")}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Vehicle */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-sm flex items-center gap-2 text-foreground">
+                <CarIcon className="h-4 w-4" />
+                {t("dispatch.assignments.vehicle")}
+              </h4>
+              {booking.vehicle_id && (
+                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                  <CheckIcon className="h-3 w-3 mr-1" />
+                  {t("dispatch.assignments.assigned")}
+                </Badge>
+              )}
+            </div>
+            
+            {booking.vehicle_id && booking.vehicle ? (
+              <div className="flex items-center gap-2 p-3 rounded-md h-20 bg-blue-50 border border-blue-200 dark:bg-blue-900/10 dark:border-blue-800">
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarImage src={booking.vehicle.image_url || ""} />
+                  <AvatarFallback>
+                    {booking.vehicle.brand?.[0]}
+                    {booking.vehicle.model?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm truncate text-foreground">
+                    {booking.vehicle.plate_number}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {booking.vehicle.brand} {booking.vehicle.model}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="h-20 flex items-center justify-center bg-amber-50 border border-amber-200 rounded-md dark:bg-amber-900/10 dark:border-amber-800">
+                <p className="text-sm text-amber-800 dark:text-amber-300">{t("dispatch.assignments.notAssigned")}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="space-y-3">
+        <h3 className="font-medium text-sm text-foreground">{t("dispatch.assignments.actions")}</h3>
+        <div className="space-y-2">
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => router.push(`/bookings/${booking.id}`)}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            {t("dispatch.assignments.viewFullDetails")}
+          </Button>
+          
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => router.push(`/bookings/${booking.id}/edit`)}
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            {t("dispatch.assignments.editBooking")}
+          </Button>
+
+          {booking.driver_id && booking.vehicle_id && (
+            <Button
+              variant="destructive"
+              className="w-full justify-start mt-2"
+              onClick={() => onUnassign(booking.id)}
+            >
+              <UserX className="h-4 w-4 mr-2" />
+              {t("dispatch.assignments.unassignAll")}
+            </Button>
+          )}
+
+          {booking.customer_phone && (
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => window.open(`tel:${booking.customer_phone}`)}
+            >
+              <PhoneIcon className="h-4 w-4 mr-2" />
+              {t("dispatch.assignments.callCustomer")}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function DispatchAssignments() {
+  const { t } = useI18n();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  const [bookings, setBookings] = useState<BookingWithRelations[]>([]);
+  const [drivers, setDrivers] = useState<DriverWithAvailability[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleWithStatus[]>([]);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [smartModalOpen, setSmartModalOpen] = useState(false);
+  const [selectedBookingForModal, setSelectedBookingForModal] = useState<BookingWithRelations | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<BookingWithRelations | null>(null);
+  const [viewMode, setViewMode] = useState<"cards" | "list">("list");
+  const [filters, setFilters] = useState<AssignmentFilterOptions>({
+    searchQuery: "",
+    statusFilter: "all",
+    dateFilter: "all",
+    serviceFilter: "all",
+    assignmentFilter: "all",
+    sortBy: "date",
+    sortOrder: "desc"
+  });
+
+  // Shared dispatch state for cross-component synchronization
+  const { lastUpdate, updateDispatchStatus, updateAssignment, unassignResources } = useSharedDispatchState();
+
+  // Stats
+  const totalDrivers = drivers.length;
+  const availableDrivers = drivers.filter(d => d.is_available).length;
+  const totalVehicles = vehicles.length;
+  const availableVehicles = vehicles.filter(v => v.is_available).length;
+  const pendingBookings = bookings.filter(b => !b.driver_id || !b.vehicle_id).length;
+  const assignedBookings = bookings.filter(b => b.driver_id && b.vehicle_id).length;
+
+  // Initialize filters from URL params if they exist
+  useEffect(() => {
+    const searchQuery = searchParams?.get('search') || '';
+    const statusFilter = searchParams?.get('status') || 'all';
+    const dateFilter = searchParams?.get('date') || 'all';
+    const serviceFilter = searchParams?.get('service') || 'all';
+    const assignmentFilter = searchParams?.get('assignment') || 'all';
+    
+    setFilters({
+      searchQuery,
+      statusFilter,
+      dateFilter,
+      serviceFilter,
+      assignmentFilter,
+      sortBy: 'date',
+      sortOrder: 'desc'
+    });
+  }, [searchParams]);
+
+  useEffect(() => {
+    loadData();
+  }, [lastUpdate]);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const supabase = createClient();
+      
+      const { data: dispatchData, error: dispatchError } = await supabase
+        .from('dispatch_entries')
+        .select(`*`);
+
+      if (dispatchError) throw dispatchError;
+      const dispatchMap = new Map(dispatchData?.map(d => [d.booking_id, d]) || []);
+
+      // Load bookings with related data
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          driver:drivers(id, first_name, last_name, profile_image_url, phone, email),
+          vehicle:vehicles(id, name, plate_number, brand, model, image_url)
+        `)
+        .in('status', ['pending', 'confirmed', 'publish', 'assigned'])
+        .order('date', { ascending: true });
+
+      if (bookingsError) throw bookingsError;
+      
+      const combinedBookings = bookingsData?.map(booking => {
+        const dispatchEntry = dispatchMap.get(booking.id);
+        const bookingWithDispatchInfo = {
+          ...booking,
+          wp_id: booking.wp_id || undefined,
+          customer_name: booking.customer_name || undefined,
+          customer_email: booking.customer_email || undefined,
+          customer_phone: booking.customer_phone || undefined,
+          driver_id: dispatchEntry?.driver_id || booking.driver_id,
+          vehicle_id: dispatchEntry?.vehicle_id || booking.vehicle_id,
+          pickup_location: booking.pickup_location || undefined,
+          dropoff_location: booking.dropoff_location || undefined,
+          notes: booking.notes || undefined,
+          status: dispatchEntry ? dispatchEntry.status : booking.status,
+          dispatch_entry_id: dispatchEntry?.id,
+          service_type_name: undefined, // Will be populated separately
+          driver: booking.driver ? {
+            ...booking.driver,
+            phone: booking.driver.phone || undefined,
+            email: booking.driver.email || undefined,
+            profile_image_url: booking.driver.profile_image_url || undefined,
+          } : undefined,
+          vehicle: booking.vehicle ? {
+            ...booking.vehicle,
+            name: booking.vehicle.name || undefined,
+            image_url: booking.vehicle.image_url || undefined,
+          } : undefined,
+        };
+        return bookingWithDispatchInfo;
+      }) || [];
+      
+      setBookings(combinedBookings);
+
+      // Load service type names for bookings
+      if (combinedBookings.length > 0) {
+        const serviceIds = combinedBookings
+          .map(booking => booking.service_id)
+          .filter(id => id) as string[];
+        
+        if (serviceIds.length > 0) {
+          const { data: serviceTypesData } = await supabase
+            .from('service_types')
+            .select('id, name')
+            .in('id', serviceIds);
+          
+          if (serviceTypesData) {
+            const serviceTypesMap = new Map(serviceTypesData.map(st => [st.id, st.name]));
+            const updatedBookings = combinedBookings.map(booking => ({
+              ...booking,
+              service_type_name: booking.service_id ? serviceTypesMap.get(booking.service_id) : undefined
+            }));
+            setBookings(updatedBookings);
+          }
+        }
+      }
+
+      // Load drivers
+      const { data: driversData, error: driversError } = await supabase
+        .from('drivers')
+        .select('*')
+        .is('deleted_at', null);
+
+      if (driversError) throw driversError;
+
+      // Load vehicles
+      const { data: vehiclesData, error: vehiclesError } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('status', 'active');
+
+      if (vehiclesError) throw vehiclesError;
+
+      // Process drivers - real data only
+      const processedDrivers: DriverWithAvailability[] = driversData?.map(driver => ({
+        ...driver,
+        phone: driver.phone || undefined,
+        email: driver.email || undefined,
+        profile_image_url: driver.profile_image_url || undefined,
+        status: 'available',
+        is_available: true
+      })) || [];
+
+      // Process vehicles - real data only
+      const processedVehicles: VehicleWithStatus[] = vehiclesData?.map(vehicle => ({
+        ...vehicle,
+        name: vehicle.name || undefined,
+        image_url: vehicle.image_url || undefined,
+        year: parseInt(vehicle.year) || 2023,
+        is_available: vehicle.status === 'active'
+      })) || [];
+
+      setDrivers(processedDrivers);
+      setVehicles(processedVehicles);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load assignment data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOpenSmartModal = (booking: BookingWithRelations) => {
+    setSelectedBookingForModal(booking);
+    setSmartModalOpen(true);
+  };
+
+  const handleViewDetails = (bookingId: string) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (booking) {
+      setSelectedBooking(booking);
+      setDetailsOpen(true);
+    }
+  };
+
+  const handleUnassign = async (bookingId: string) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (!booking) {
+        toast({ title: "Error", description: "Booking not found.", variant: "destructive" });
+        return;
+    }
+    
+    if (!booking.dispatch_entry_id) {
+        toast({ title: "Error", description: "Cannot unassign, dispatch record not found.", variant: "destructive" });
+        return;
+    }
+
+    try {
+        await unassignResources(booking.dispatch_entry_id, booking.id);
+        toast({
+            title: t("dispatch.assignments.messages.unassignSuccess"),
+            description: "Booking has been returned to pending status.",
+        });
+    } catch (error) {
+        console.error('Error unassigning:', error);
+        toast({
+            title: "Error",
+            description: t("dispatch.assignments.messages.unassignError"),
+            variant: "destructive",
+        });
+    }
+  };
+
+  const handleAssignDriverAndVehicle = async (
+    bookingId: string,
+    driverId: string,
+    vehicleId: string
+  ) => {
+    const bookingToUpdate = bookings.find(b => b.id === bookingId);
+    if (!bookingToUpdate) return;
+
+    try {
+      const supabase = createClient();
+      let dispatchId = bookingToUpdate.dispatch_entry_id;
+
+      // If no dispatch entry exists, create one first.
+      if (!dispatchId) {
+          const { data: newDispatchEntry, error: createError } = await supabase
+              .from('dispatch_entries')
+              .insert({
+                  booking_id: bookingId,
+                  status: 'pending', // start as pending
+                  start_time: `${bookingToUpdate.date}T${bookingToUpdate.time}`,
+              })
+              .select()
+              .single();
+          
+          if (createError) throw createError;
+          if (!newDispatchEntry) throw new Error("Failed to create dispatch entry.");
+          dispatchId = newDispatchEntry.id;
+      }
+
+      await updateAssignment(dispatchId, driverId, vehicleId, bookingId);
+
+      // Create a corresponding driver_availability record
+      console.log('[Assign] Creating driver_availability record for booking', bookingId);
+      const { error: availabilityError } = await supabase
+        .from('driver_availability')
+        .insert({
+          driver_id: driverId,
+          // Cover the entire booking day to ensure calendar visibility
+          start_date: `${bookingToUpdate.date}T00:00:00`,
+          end_date: `${bookingToUpdate.date}T23:59:59`,
+          status: 'booking',
+          notes: `Assigned to booking ${bookingId}`
+        });
+
+      if (availabilityError) {
+        console.error('Error creating driver availability record:', availabilityError);
+      }
+
+      toast({
+        title: t("dispatch.assignments.messages.assignSuccess"),
+      });
+
+      // Dispatch event to refresh data for the specific driver
+      document.dispatchEvent(new CustomEvent('refresh-driver-data', { detail: { driverId } }));
+
+    } catch (error) {
+      console.error('Error assigning resources:', error);
+      toast({
+        title: t("common.error"),
+        description: t("dispatch.assignments.messages.assignError"),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getFilteredBookings = () => {
+    const filtered = bookings.filter(booking => {
+      const matchesSearch = !filters.searchQuery || 
+        booking.customer_name?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
+        booking.wp_id?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
+        booking.id.toLowerCase().includes(filters.searchQuery.toLowerCase());
+
+      const matchesStatus = filters.statusFilter === 'all' || 
+        booking.status === filters.statusFilter;
+
+      const today = new Date();
+      const bookingDate = new Date(booking.date);
+      let matchesDate = true;
+
+      if (filters.dateFilter === 'today') {
+        matchesDate = bookingDate.toDateString() === today.toDateString();
+      } else if (filters.dateFilter === 'thisWeek') {
+        const weekStart = new Date(today.getTime());
+        weekStart.setDate(today.getDate() - today.getDay());
+        const weekEnd = new Date(weekStart.getTime());
+        weekEnd.setDate(weekStart.getDate() + 6);
+        matchesDate = bookingDate >= weekStart && bookingDate <= weekEnd;
+      } else if (filters.dateFilter === 'thisMonth') {
+        matchesDate = bookingDate.getMonth() === today.getMonth() && bookingDate.getFullYear() === today.getFullYear();
+      }
+
+      // Add service filter
+      const matchesService = filters.serviceFilter === 'all' || 
+        (booking.service_id && booking.service_id === filters.serviceFilter);
+
+      // Add assignment filter
+      const matchesAssignment = filters.assignmentFilter === 'all' || 
+        (filters.assignmentFilter === 'unassigned' && (!booking.driver_id || !booking.vehicle_id)) ||
+        (filters.assignmentFilter === 'driver_only' && (booking.driver_id && !booking.vehicle_id)) ||
+        (filters.assignmentFilter === 'vehicle_only' && (!booking.driver_id && booking.vehicle_id)) ||
+        (filters.assignmentFilter === 'fully_assigned' && (booking.driver_id && booking.vehicle_id));
+
+      return matchesSearch && matchesStatus && matchesDate && matchesService && matchesAssignment;
+    });
+    
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (filters.sortBy) {
+        case 'date':
+          aValue = new Date(a.date);
+          bValue = new Date(b.date);
+          break;
+        case 'time':
+          aValue = a.time;
+          bValue = b.time;
+          break;
+        case 'customer':
+          aValue = a.customer_name || '';
+          bValue = b.customer_name || '';
+          break;
+        case 'service':
+          aValue = a.service_name || '';
+          bValue = b.service_name || '';
+          break;
+        case 'status':
+          aValue = a.status;
+          bValue = b.status;
+          break;
+        case 'created_at':
+          aValue = new Date(a.date); // Use date as fallback since created_at doesn't exist
+          bValue = new Date(b.date);
+          break;
+        default:
+          aValue = new Date(a.date);
+          bValue = new Date(b.date);
+      }
+      
+      if (filters.sortOrder === 'asc') {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
+    
+    return sorted;
+  };
+
+  const filteredBookings = getFilteredBookings();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-foreground">{t("dispatch.assignments.loading")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-left sm:text-left">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+            {t("dispatch.assignments.title")}
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            {t("dispatch.assignments.description")}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.push('/dispatch')}
+          className="w-full sm:w-auto bg-foreground text-background hover:bg-foreground/80 hover:text-background border-foreground"
+        >
+          <Grid3X3Icon className="h-4 w-4 mr-2" />
+          Dispatch Board
+        </Button>
+      </div>
+
+      {/* Availability Dashboard */}
+      <div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Available Drivers - Blue */}
+          <Card className="relative overflow-hidden border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300">Available Drivers</CardTitle>
+              <UsersIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">{availableDrivers}/{totalDrivers}</div>
+            </CardContent>
+          </Card>
+
+          {/* Available Vehicles - Green */}
+          <Card className="relative overflow-hidden border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300">Available Vehicles</CardTitle>
+              <CarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 dark:text-green-400">{availableVehicles}/{totalVehicles}</div>
+            </CardContent>
+          </Card>
+
+          {/* Pending Bookings - Orange */}
+          <Card className="relative overflow-hidden border-l-4 border-l-orange-500 bg-orange-50/50 dark:bg-orange-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-orange-700 dark:text-orange-300">Pending</CardTitle>
+              <ClockIcon className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600 dark:text-orange-400" />
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-orange-600 dark:text-orange-400">{pendingBookings}</div>
+            </CardContent>
+          </Card>
+
+          {/* Assigned Bookings - Purple */}
+          <Card className="relative overflow-hidden border-l-4 border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300">Assigned</CardTitle>
+              <CheckIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-purple-600 dark:text-purple-400">{assignedBookings}</div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="space-y-4">
+        {/* Filters */}
+        <AssignmentFilter
+          filters={filters}
+          onFiltersChange={setFilters}
+          totalBookings={filteredBookings.length}
+          serviceOptions={[]}
+        />
+        
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredBookings.length} booking{filteredBookings.length !== 1 ? 's' : ''}
+          </div>
+          
+          {/* View Toggle */}
+          <div className="flex border rounded-lg">
+            <button 
+              className={`flex items-center gap-2 px-3 py-2 text-sm rounded-l-lg border-r ${
+                viewMode === "list" 
+                  ? "bg-background text-foreground" 
+                  : "bg-transparent text-muted-foreground hover:text-foreground"
+              }`}
+              onClick={() => setViewMode("list")}
+              title="List view"
+              aria-label="List view"
+            >
+              <List className="h-4 w-4" />
+              List
+            </button>
+            <button 
+              className={`flex items-center gap-2 px-3 py-2 text-sm rounded-r-lg ${
+                viewMode === "cards" 
+                  ? "bg-background text-foreground" 
+                  : "bg-transparent text-muted-foreground hover:text-foreground"
+              }`}
+              onClick={() => setViewMode("cards")}
+              title="Cards view"
+              aria-label="Cards view"
+            >
+              <Grid3X3Icon className="h-4 w-4" />
+              Cards
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Bookings Display */}
+      <div className="flex-1">
+        {filteredBookings.length === 0 ? (
+          <div className="text-center py-12">
+            <CalendarIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-medium mb-2 text-foreground">{t("dispatch.assignments.noBookingsFound")}</h3>
+            <p className="text-muted-foreground">
+              {filters.searchQuery || filters.statusFilter !== 'all' || filters.dateFilter !== 'all'
+                ? t("dispatch.assignments.noBookingsFilter")
+                : t("dispatch.assignments.noBookingsAvailable")}
+            </p>
+          </div>
+        ) : viewMode === "cards" ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filteredBookings.map((booking) => (
+              <EnhancedAssignmentCard
+                key={booking.id}
+                booking={booking}
+                onOpenSmartModal={handleOpenSmartModal}
+                onViewDetails={handleViewDetails}
+                onUnassign={handleUnassign}
+              />
+            ))}
+          </div>
+        ) : (
+          <AssignmentListView
+            bookings={filteredBookings}
+            onViewDetails={(booking) => handleViewDetails(booking.id)}
+            onReassign={handleOpenSmartModal}
+            selectedBookingId={selectedBooking?.id}
+          />
+        )}
+      </div>
+
+      {/* Smart Assignment Modal */}
+      <SmartAssignmentModal
+        booking={selectedBookingForModal ? {
+          id: selectedBookingForModal.id,
+          wp_id: selectedBookingForModal.wp_id,
+          service_name: selectedBookingForModal.service_name,
+          date: selectedBookingForModal.date,
+          time: selectedBookingForModal.time,
+          customer_name: selectedBookingForModal.customer_name,
+          driver_id: selectedBookingForModal.driver_id || undefined,
+          vehicle_id: selectedBookingForModal.vehicle_id || undefined,
+          driver: selectedBookingForModal.driver ? {
+            id: selectedBookingForModal.driver.id,
+            first_name: selectedBookingForModal.driver.first_name,
+            last_name: selectedBookingForModal.driver.last_name,
+            email: selectedBookingForModal.driver.email || '',
+            phone: selectedBookingForModal.driver.phone || '',
+            profile_image_url: selectedBookingForModal.driver.profile_image_url,
+            status: 'available',
+            is_available: true
+          } : undefined,
+          vehicle: selectedBookingForModal.vehicle ? {
+            id: selectedBookingForModal.vehicle.id,
+            name: selectedBookingForModal.vehicle.name || '',
+            plate_number: selectedBookingForModal.vehicle.plate_number,
+            brand: selectedBookingForModal.vehicle.brand,
+            model: selectedBookingForModal.vehicle.model,
+            year: undefined,
+            image_url: selectedBookingForModal.vehicle.image_url,
+            status: 'active',
+            is_available: true
+          } : undefined
+        } : null}
+        isOpen={smartModalOpen}
+        onClose={() => {
+          setSmartModalOpen(false);
+          setSelectedBookingForModal(null);
+        }}
+        onAssign={(driverId, vehicleId) => {
+          if (selectedBookingForModal) {
+            handleAssignDriverAndVehicle(selectedBookingForModal.id, driverId, vehicleId);
+          }
+        }}
+        drivers={drivers.map(driver => ({
+          id: driver.id,
+          first_name: driver.first_name,
+          last_name: driver.last_name,
+          email: driver.email || '',
+          phone: driver.phone || '',
+          profile_image_url: driver.profile_image_url,
+          status: driver.status,
+          is_available: driver.is_available
+        }))}
+        vehicles={vehicles.map(vehicle => ({
+          id: vehicle.id,
+          name: vehicle.name || '',
+          plate_number: vehicle.plate_number,
+          brand: vehicle.brand,
+          model: vehicle.model,
+          year: vehicle.year,
+          image_url: vehicle.image_url,
+          status: vehicle.status,
+          is_available: vehicle.is_available
+        }))}
+        title={selectedBookingForModal ? `Smart Assignment for #${selectedBookingForModal.wp_id || selectedBookingForModal.id}` : undefined}
+        subtitle="Select a driver and vehicle for this booking. The system will suggest the best matches based on the service type."
+      />
+
+      {/* Details Panel */}
+      <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <SheetContent className="w-[400px] sm:w-[540px]">
+          <SheetHeader>
+            <SheetTitle>{t("dispatch.assignments.bookingDetails")}</SheetTitle>
+          </SheetHeader>
+          {selectedBooking && (
+            <div className="mt-6">
+              <SidePanelDetails
+                booking={selectedBooking}
+                onUnassign={() => handleUnassign(selectedBooking.id)}
+                onReassign={() => {
+                  setDetailsOpen(false);
+                  handleOpenSmartModal(selectedBooking);
+                }}
+              />
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+} 

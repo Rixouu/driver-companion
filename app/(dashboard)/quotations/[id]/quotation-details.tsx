@@ -396,27 +396,17 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
         
         // Load package if available
         if (packageId) {
-          console.log('Loading package with ID:', packageId);
           try {
             const packages = await getPricingPackages(false, true);
-            console.log('Available packages:', packages.length);
             const foundPackage = packages.find(pkg => pkg.id === packageId);
             if (foundPackage) {
-              console.log('Found package:', foundPackage.name, 'with items:', foundPackage.items?.length || 0);
               setSelectedPackage(foundPackage);
-            } else {
-              console.log('Package not found in available packages');
             }
           } catch (error) {
             console.error('Error loading package:', error);
           }
         } else {
-          console.log('No package ID found in quotation. Checked fields:', {
-            selected_package_id: (quotation as any).selected_package_id,
-            package_id: (quotation as any).package_id,
-            pricing_package_id: (quotation as any).pricing_package_id,
-            selected_package_name: (quotation as any).selected_package_name
-          });
+          // No package ID found in quotation
         }
         
         // Load promotion if available
@@ -562,7 +552,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
   const handleRegenerateMagicLink = async () => {
     // Check if already processing to prevent duplicates
     if (isLoading) {
-      console.log('🚫 [QUOTATION-DETAILS] Magic link regeneration already in progress');
       return;
     }
     

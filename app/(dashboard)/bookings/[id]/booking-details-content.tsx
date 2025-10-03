@@ -82,9 +82,7 @@ export default function BookingDetailsContent({
   const supabase = createClientComponentClient<Database>()
   
   // Debug logging
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Booking object complete:', booking)
-  }
+  // Development logging removed for production
   
   // Function to fetch and display raw booking data from debug endpoint
   const fetchDebugData = async () => {
@@ -98,8 +96,6 @@ export default function BookingDetailsContent({
       }
       
       const data = await response.json()
-      console.log('DEBUG - Raw booking data:', data.raw)
-      console.log('DEBUG - Mapped booking data:', data.mapped)
     } catch (error) {
       console.error('Error in debug function:', error)
     }
@@ -117,8 +113,6 @@ export default function BookingDetailsContent({
       }
       
       const data = await response.json()
-      console.log('SQL DEBUG - Raw booking data:', data)
-      console.log('SQL DEBUG - Fields of interest:', data.fields_of_interest)
       
       // Show alert with key data
       alert(
@@ -145,7 +139,6 @@ export default function BookingDetailsContent({
       .maybeSingle()
     
     if (!error && data) {
-      console.log('Dispatch status fetched:', data.status);
       setDispatchStatus(data.status);
     } else if (error) {
       console.error('Error fetching dispatch status:', error);

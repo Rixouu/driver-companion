@@ -319,11 +319,9 @@ export default function PricingItemsTab() {
   // Load vehicles data
   const loadVehicles = useCallback(async () => {
     try {
-      console.log('🔍 [VEHICLES] Loading vehicles...');
       const response = await fetch('/api/vehicles?pageSize=100');
       if (response.ok) {
         const vehiclesData = await response.json();
-        console.log('🔍 [VEHICLES] Loaded vehicles:', vehiclesData.vehicles?.length || 0);
         setVehicles(vehiclesData.vehicles || []);
       } else {
         console.error('❌ [VEHICLES] Failed to load vehicles:', response.status, response.statusText);

@@ -119,9 +119,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   
   // Debug component mount
   useEffect(() => {
-    console.log(`[INSPECTION_FORM] Component mounted. Vehicle ID: ${vehicleId}, Inspection ID: ${inspectionId}`);
     return () => {
-      console.log(`[INSPECTION_FORM] Component unmounting`);
       // Reset flags on unmount
       autoTemplateToastShownRef.current = false;
       isAutoStartingRef.current = false;
@@ -130,7 +128,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   
   // Debug sections changes
   useEffect(() => {
-    console.log(`[INSPECTION_FORM] Sections changed:`, sections);
+    // Sections updated
   }, [sections]);
   
   // Camera handling
@@ -324,7 +322,6 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
 
     const loadInspectionTemplate = async () => {
       try {
-        console.log(`[INSPECTION_TEMPLATE] Loading template for type: ${selectedType}`);
         
         // Use the server action to fetch templates
         const categories = await fetchInspectionTemplatesAction(selectedType);
@@ -338,8 +335,6 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           });
           return;
         }
-        
-        console.log(`[INSPECTION_TEMPLATE] Loaded ${categories.length} categories for template: ${selectedType}`);
         
         // Format the sections with their items
         const sectionsWithItems: InspectionSection[] = categories.map((category: any) => {
@@ -365,7 +360,6 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         });
         
         setSections(sectionsWithItems);
-        console.log(`[INSPECTION_TEMPLATE] Processed ${sectionsWithItems.length} sections with items:`, sectionsWithItems);
       } catch (error) {
         console.error('Error loading inspection template:', error);
         toast({
@@ -420,8 +414,6 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           const allAssignments = [...(vehicleAssignments || []), ...groupAssignments];
           const availableTypes = [...new Set(allAssignments.map(a => a.template_type))] as InspectionType[];
 
-          console.log(`[VEHICLE_TEMPLATE_ASSIGNMENT] Vehicle: ${selectedVehicle.name}, Available types:`, availableTypes);
-          console.log(`[VEHICLE_TEMPLATE_ASSIGNMENT] Raw assignments data:`, { vehicleAssignments, groupAssignments });
 
           // Set the available template types state
           setAvailableTemplateTypes(availableTypes);
@@ -431,7 +423,6 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
             const alreadyNotified = autoTemplateToastShownRef.current;
             const autoType = availableTypes[0] as InspectionType;
 
-            console.log(`[VEHICLE_TEMPLATE_ASSIGNMENT] Auto-selecting template type: ${autoType}`);
             setSelectedType(autoType);
             methods.setValue('type', autoType);
             
@@ -439,7 +430,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
             fetchInspectionTemplatesAction(autoType)
               .then(categories => {
                 if (categories && categories.length > 0) {
-                  console.log(`[VEHICLE_TEMPLATE_ASSIGNMENT] Successfully pre-loaded template: ${autoType} with ${categories.length} categories`);
+                  // Template pre-loaded successfully
                 } else {
                   console.error(`[VEHICLE_TEMPLATE_ASSIGNMENT] Failed to pre-load template: ${autoType} - no categories returned`);
                 }
@@ -462,7 +453,6 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
             }
           } else if (availableTypes.length === 0) {
             // No specific templates assigned, show all types as fallback
-            console.log(`[VEHICLE_TEMPLATE_ASSIGNMENT] No templates assigned to vehicle ${selectedVehicle.name}, no templates available`);
             setAvailableTemplateTypes([]); // Empty array will trigger "No templates assigned" message
             setSelectedType('routine');
             methods.setValue('type', 'routine');

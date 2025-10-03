@@ -188,7 +188,6 @@ export default function PricingPromotionsTab() {
             new Set(vehiclesData?.map(v => `${v.brand} ${v.model}`.trim()).filter(Boolean) || [])
           );
           setVehicleTypes(uniqueVehicleTypes);
-          console.log('Loaded vehicle types from database:', uniqueVehicleTypes);
         }
         
         // Get vehicle categories from categories
@@ -196,7 +195,6 @@ export default function PricingPromotionsTab() {
           new Set(categories.map(cat => cat.name).filter(Boolean))
         );
         setVehicleCategories(uniqueVehicleCategories);
-        console.log('Loaded vehicle categories from categories:', uniqueVehicleCategories);
       } catch (error) {
         console.error("Error loading vehicle data:", error);
         setVehicleTypes([]);

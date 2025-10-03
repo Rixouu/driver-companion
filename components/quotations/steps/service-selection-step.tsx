@@ -137,12 +137,7 @@ export function ServiceSelectionStep({
 
   // Debug formData - only log once when formData changes
   useEffect(() => {
-    if (formData) {
-      console.log('🔍 ServiceSelectionStep received formData:', formData);
-      console.log('🔍 formData?.serviceTypes:', formData?.serviceTypes);
-      console.log('🔍 formData?.pricingCategories:', formData?.pricingCategories);
-      console.log('🔍 formData?.vehiclesByCategory:', formData?.vehiclesByCategory);
-    }
+    // Form data is available for processing
   }, [formData]);
 
   // Watch form values
@@ -414,14 +409,6 @@ export function ServiceSelectionStep({
       // For Charter services, use hours per day (e.g., 6), otherwise use 1 hour
       const effectiveDuration = isCharter ? (hoursPerDay || 1) : 1;
       
-      console.log('🔍 [PRICING] Calling calculateQuotationAmount with:', {
-        serviceTypeId: effectiveServiceType,
-        vehicleType: effectiveVehicleType,
-        durationHours: effectiveDuration,
-        serviceDays,
-        hoursPerDay,
-        vehicleCategory: effectiveVehicleCategory
-      });
       
       const pricingResult = await calculateQuotationAmount(
         effectiveServiceType,
@@ -443,8 +430,6 @@ export function ServiceSelectionStep({
         ? calculateTimeBasedAdjustment(pickupTime, pickupDate, effectiveVehicleCategory, effectiveServiceType)
         : { adjustment: 0, ruleName: null };
       
-      console.log('🔍 [TIME-BASED] Rules loaded:', timeBasedRules?.length || 0);
-      console.log('🔍 [TIME-BASED] Adjustment:', timeBasedAdjustment, 'Rule:', ruleName);
       
       // For Charter services, the baseAmount already includes the total duration, so don't multiply by serviceDays again
       const baseServicePrice = isCharter ? pricingResult.baseAmount : pricingResult.baseAmount * (serviceDays || 1);
@@ -538,14 +523,6 @@ export function ServiceSelectionStep({
       // For Charter services, use hours per day (e.g., 6), otherwise use 1 hour
       const effectiveDuration = isCharter ? (hoursPerDay || 1) : 1;
       
-      console.log('🔍 [PRICING] Calling calculateQuotationAmount with:', {
-        serviceTypeId: effectiveServiceType,
-        vehicleType: effectiveVehicleType,
-        durationHours: effectiveDuration,
-        serviceDays,
-        hoursPerDay,
-        vehicleCategory: effectiveVehicleCategory
-      });
       
       const pricingResult = await calculateQuotationAmount(
         effectiveServiceType,

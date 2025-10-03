@@ -1,4 +1,4 @@
-import { ProgressConfig } from '@/lib/hooks/useProgressSteps';
+import { ProgressConfig } from '@/lib/hooks/use-progress-steps';
 
 export const progressConfigs: Record<string, ProgressConfig> = {
   approval: {

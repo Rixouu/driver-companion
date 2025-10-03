@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/pagination"
 import { cn } from "@/lib/utils"
 import { Car, Tag } from "lucide-react"
-import { useVehiclePricingCategories } from "@/lib/hooks/useVehiclePricingCategories"
+import { useVehiclePricingCategories } from "@/lib/hooks/use-vehicle-pricing-categories"
 import { VehicleFilter, VehicleFilterOptions } from "./vehicle-filter"
 
 interface VehicleListProps {
@@ -600,7 +600,7 @@ function VehiclePricingCategoriesBadges({ vehicleId }: VehiclePricingCategoriesB
 
   return (
     <div className="flex flex-wrap gap-1 items-center">
-      {displayCategories.map((category) => (
+      {displayCategories.map((category: any) => (
         <Badge
           key={category.id}
           variant="outline"

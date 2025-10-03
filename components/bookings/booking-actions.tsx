@@ -387,7 +387,6 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
           .eq('booking_id', booking.supabase_id);
       } catch (dispatchError) {
         // Ignore dispatch errors - the main booking update succeeded
-        console.log('Dispatch entry update failed (may not exist):', dispatchError);
       }
 
       toast({

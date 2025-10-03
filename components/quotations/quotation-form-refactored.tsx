@@ -331,17 +331,13 @@ export default function QuotationFormRefactored({
 
   // Submit the form
   const onSubmit = async (data: FormData, sendToCustomer = false) => {
-    console.log('🚀 [FORM] onSubmit called', { sendToCustomer, submittingAndSending, timestamp: new Date().toISOString() });
-    
     // Guard against duplicate submissions
     if (submittingAndSending) {
-      console.log('🚫 [FORM] Duplicate submission prevented');
       return;
     }
 
     // Set submitting state immediately to prevent duplicates
     setSubmittingAndSending(sendToCustomer);
-    console.log('🔒 [FORM] Set submittingAndSending to true');
 
     // Guard: require a valid service type when there are no service items
     // For packages, use Charter Services as the fallback service type since packages don't have service_type_id in the service_types table
@@ -452,10 +448,6 @@ export default function QuotationFormRefactored({
       };
 
       const computedTotals = calculateFormTotals();
-      
-      console.log('🔍 [FORM] Calculated totals:', computedTotals);
-      console.log('🔍 [FORM] Service items:', serviceItems);
-      console.log('🔍 [FORM] Selected promotion:', selectedPromotion);
 
       const input: CreateQuotationInput = {
         title: formData.title || '',
@@ -1173,9 +1165,7 @@ export default function QuotationFormRefactored({
             </Button>
             <Button 
               onClick={async () => {
-                console.log('🚀 [BCC-DIALOG] Button clicked', { submittingAndSending, timestamp: new Date().toISOString() });
                 if (submittingAndSending) {
-                  console.log('🚫 [BCC-DIALOG] Duplicate submission prevented');
                   return;
                 }
                 setIsBccDialogOpen(false);

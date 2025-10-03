@@ -33,7 +33,8 @@ import { Car } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/components/providers/auth-provider"
 import type { Database } from '@/types/supabase';
-import { useVehiclePricingCategories } from "@/lib/hooks/useVehiclePricingCategories"
+import { useVehiclePricingCategories } from "@/lib/hooks/use-vehicle-pricing-categories"
+import { handleError } from "@/lib/utils/error-handler"
 
 interface VehicleFormProps {
   vehicle?: Partial<VehicleFormData> & { id?: string };
@@ -104,7 +105,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
           });
         }
       } catch (error) {
-        console.error('Error checking/creating storage bucket:', error);
+        handleError(error);
       }
     }
     
@@ -143,7 +144,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
 
           finalImageUrl = urlData.publicUrl
         } catch (error) {
-          console.error('Image upload error:', error);
+          handleError(error);
           toast({
             title: t('vehicles.messages.imageUploadError'),
             description: error instanceof Error ? error.message : String(error),
@@ -229,7 +230,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
       router.push(dbVehicle?.id ? `/vehicles/${dbVehicle.id}` : '/vehicles')
       router.refresh()
     } catch (error) {
-      console.error('Error submitting form:', error)
+      handleError(error);
       toast({
         title: t('vehicles.messages.error'),
         description: error instanceof Error ? error.message : String(error),

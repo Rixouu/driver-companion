@@ -149,12 +149,6 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
   // Update payment amount when quotation changes
   React.useEffect(() => {
     const newAmount = (quotation.total_amount || quotation.amount)?.toString() || "0.00";
-    console.log('QuotationWorkflow - Payment amount update:', {
-      total_amount: quotation.total_amount,
-      amount: quotation.amount,
-      newAmount,
-      receipt_url: quotation.receipt_url
-    });
     setPaymentAmount(newAmount);
   }, [quotation.total_amount, quotation.amount, quotation.receipt_url]);
 
@@ -296,11 +290,6 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     setProgressTitle('Sending Payment Link');
     
     try {
-      console.log('Starting payment link sending process...');
-      console.log('Email:', emailAddress);
-      console.log('Language:', emailLanguage);
-      console.log('Payment Link:', paymentLink);
-      console.log('Include Details: true');
       
       // Start progress simulation
       const progressPromise = startProgress(progressConfigs.sendPaymentLink);
@@ -322,14 +311,11 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         throw new Error(`Failed to generate PDF: ${pdfResponse.status} ${pdfResponse.statusText}`);
       }
 
-      console.log('PDF generated successfully');
       const pdfBlob = await pdfResponse.blob();
       
       if (!pdfBlob || pdfBlob.size === 0) {
         throw new Error('Generated PDF is empty or invalid');
       }
-      
-      console.log('PDF blob size:', pdfBlob.size, 'bytes');
 
       // Create form data for the payment link email API
       const formData = new FormData();
@@ -349,20 +335,11 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       }
       formData.append('invoice_pdf', pdfBlob, `INV-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}.pdf`);
 
-      console.log('Form data prepared, sending email...');
-      console.log('Form data entries:');
-      for (const [key, value] of formData.entries()) {
-        console.log(`${key}:`, value);
-      }
-
       // Send payment link email via new API endpoint
       const emailResponse = await fetch('/api/quotations/send-payment-link-email', {
         method: 'POST',
         body: formData
       });
-
-      console.log('Email API response status:', emailResponse.status);
-      console.log('Email API response ok:', emailResponse.ok);
 
       if (!emailResponse.ok) {
         const errorData = await emailResponse.json().catch(() => ({ error: 'Unknown error' }));
@@ -384,15 +361,14 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         });
         
         if (updateResponse.ok) {
-          console.log('Quotation status updated successfully');
           // Mark payment link as sent locally
           setPaymentLinkSent(true);
           setPaymentLinkSentAt(new Date().toISOString());
         } else {
-          console.warn('Failed to update quotation status, but payment link was sent');
+          // Failed to update quotation status, but payment link was sent
         }
       } catch (error) {
-        console.warn('Error updating quotation status:', error);
+        // Error updating quotation status
       }
       
       toast({
@@ -590,7 +566,6 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
             variant: "destructive",
           });
         } else {
-          console.log('Receipt uploaded successfully');
           toast({
             title: "Receipt Uploaded",
             description: "Receipt has been uploaded successfully",
@@ -1344,7 +1319,6 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                   await progressPromise;
                   
                   if (updateResponse.ok) {
-                    console.log('Quotation status updated for bank transfer');
                     setPaymentLinkSent(true);
                     setPaymentLinkSentAt(new Date().toISOString());
                     

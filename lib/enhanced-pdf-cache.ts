@@ -3,7 +3,7 @@
  * Combines Redis cache with local fallback and CDN integration
  */
 
-import { pdfCache as redisCache } from './redis-cache';
+import { pdfCache as redisCache } from './redis-cache.js';
 import { pdfCache as localCache } from './pdf-cache';
 import { cdnAssets } from './cdn-assets';
 
@@ -11,9 +11,9 @@ export class EnhancedPDFCache {
   private useRedis: boolean;
   
   constructor() {
-    // Temporarily disable Redis due to connection issues
-    this.useRedis = false;
-    console.log(`📄 Enhanced PDF Cache initialized (Redis: disabled - using local cache only)`);
+    // Check if Redis is available
+    this.useRedis = !!(redisCache && process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+    console.log(`📄 Enhanced PDF Cache initialized (Redis: ${this.useRedis ? 'enabled' : 'disabled - using local cache only'})`);
   }
 
   /**

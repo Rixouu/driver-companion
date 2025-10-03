@@ -14,7 +14,7 @@ interface CacheEntry {
   size: number;
 }
 
-class RedisPDFCache {
+export class RedisPDFCache {
   private redis: Redis | null = null;
   private keyPrefix = 'pdf_cache:';
   private metaPrefix = 'pdf_meta:';
@@ -200,10 +200,7 @@ class RedisPDFCache {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          value: base64Data,
-          ex: this.cacheExpiry
-        })
+        body: JSON.stringify(base64Data)
       });
 
       if (!pdfResponse.ok) {

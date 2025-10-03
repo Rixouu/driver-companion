@@ -1176,12 +1176,12 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
        <div className="bg-muted/30 rounded-lg">
          {/* Collapsible header - only show on mobile/tablet */}
          <div className={cn(
-           "flex items-center justify-between p-4 cursor-pointer",
+           "flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors",
            "sm:hidden" // Only show on mobile/tablet
          )} onClick={() => setIsSearchFiltersExpanded(!isSearchFiltersExpanded)}>
            <div className="flex items-center gap-2">
-             <Search className="h-4 w-4 text-muted-foreground" />
-             <span className="font-medium">Search & Filters</span>
+             <Search className="h-4 w-4 text-foreground/70" />
+             <span className="font-medium text-foreground">Search & Filters</span>
              {(searchQuery || brandFilter !== "all" || modelFilter !== "all" || groupFilter !== "all") && (
                <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
                  Active
@@ -1191,16 +1191,16 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
            <Button
              variant="ghost"
              size="sm"
-             className="h-8 w-8 p-0"
+             className="h-8 w-8 p-0 hover:bg-muted"
              onClick={(e) => {
                e.stopPropagation();
                setIsSearchFiltersExpanded(!isSearchFiltersExpanded);
              }}
            >
              {isSearchFiltersExpanded ? (
-               <ChevronUp className="h-4 w-4" />
+               <ChevronUp className="h-4 w-4 text-foreground/70" />
              ) : (
-               <ChevronDown className="h-4 w-4" />
+               <ChevronDown className="h-4 w-4 text-foreground/70" />
              )}
            </Button>
          </div>
@@ -1208,8 +1208,8 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
          {/* Desktop header - only show on desktop */}
          <div className="hidden sm:block px-4 pt-4">
            <div className="flex items-center gap-2 mb-4">
-             <Search className="h-4 w-4 text-muted-foreground" />
-             <span className="font-medium">Search & Filters</span>
+             <Search className="h-4 w-4 text-foreground/70" />
+             <span className="font-medium text-foreground">Search & Filters</span>
              {(searchQuery || brandFilter !== "all" || modelFilter !== "all" || groupFilter !== "all") && (
                <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
                  Active

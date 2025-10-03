@@ -20,6 +20,8 @@ import { VehicleSelectionStep } from "./vehicle-selection-step"
 import { TypeSelectionStep } from "./type-selection-step"
 import { SectionItemsStep } from "./section-items-step"
 import { VehicleThumbnail } from "./vehicle-thumbnail"
+import { useInspectionCreation } from "./hooks/use-inspection-creation"
+import { useInspectionItems } from "./hooks/use-inspection-items"
 import { FormField, FormItem, FormControl } from "@/components/ui/form"
 import { withErrorHandling } from "@/lib/utils/error-handler"
 import { cn } from "@/lib/utils"
@@ -544,275 +546,45 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   };
   
   // Start inspection (after selecting vehicle and type)
+  // Use inspection creation hook
+  const { isSubmitting: isCreatingInspection, handleStartInspection: createInspection } = useInspectionCreation({
+    selectedVehicle,
+    selectedType,
+    inspectionId,
+    sections,
+    inspectionDate,
+    isAutoStartingRef
+  })
+
   const handleStartInspection = async () => {
-    if (!selectedVehicle) {
-      toast({
-        title: "Please select a vehicle",
-        variant: "destructive",
-      })
-      return
+    const result = await createInspection()
+    if (result?.shouldMoveToNextStep) {
+      setCurrentStepIndex(1)
     }
-    
-    // Ensure we have a template type selected
-    if (!selectedType) {
-      toast({
-        title: "Please select an inspection type",
-        variant: "destructive",
-      })
-      return
-    }
-    
-    // When creating a brand-new inspection we can proceed immediately and let
-    // the perform page load the template. Only enforce the sections-loaded
-    // check when we are editing / resuming an existing inspection.
-    if (inspectionId && sections.length === 0) {
-      toast({
-        title: "Template not loaded",
-        description: "Please wait for the template to load or try selecting a different template",
-        variant: "destructive",
-      })
-      return
-    }
-
-    // Always create a new inspection if we don't have an inspectionId
-    if (!inspectionId) {
-      if (!user) {
-        toast({
-          title: "Authentication required",
-          description: "Please log in to create an inspection",
-          variant: "destructive",
-        })
-        return
-      }
-
-      console.log(
-        `[INSPECTION_CREATE] User ${user.id} is creating a new inspection. Vehicle: ${selectedVehicle.name}, Type: ${selectedType}`
-      )
-      setIsSubmitting(true)
-      try {
-        const supabaseClient = createClient()
-        // Auto-find driver ID based on user email
-        const { data: driverData, error: driverError } = await supabaseClient
-          .from('drivers')
-          .select('id')
-          .eq('email', user.email!)
-          .single()
-
-        if (driverError || !driverData) {
-          toast({
-            title: "Driver Not Found",
-            description: "Your email is not associated with a driver account. Please contact an administrator.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        // Show confirmation toast with driver info (only if not auto-starting)
-        if (!isAutoStartingRef.current) {
-          toast({
-            title: "Driver Confirmed",
-            description: `Inspection will be performed by: ${user.email}`,
-            variant: "default",
-          });
-        }
-
-        const { data: newInspection, error } = await supabaseClient
-          .from("inspections")
-          .insert({
-            vehicle_id: selectedVehicle.id,
-            type: selectedType,
-            status: "in_progress",
-            created_by: user.id,
-            inspector_id: driverData.id, // Use auto-found driver ID
-            date: (inspectionDate || new Date()).toISOString(),
-          })
-          .select("id")
-          .single()
-
-        if (error) {
-          console.error("[INSPECTION_CREATE] Error creating new inspection:", error)
-          throw error
-        }
-
-        console.log(
-          `[INSPECTION_CREATE] New inspection created (ID: ${newInspection.id}). Redirecting to perform page.`
-        )
-        // Only show toast if not auto-starting (to avoid duplicate notifications)
-        if (!isAutoStartingRef.current) {
-          toast({ title: "Inspection Created", description: "Starting..." })
-        }
-        router.push(`/inspections/${newInspection.id}/perform`)
-        return
-      } catch (error: any) {
-        toast({
-          title: "Failed to Start Inspection",
-          description: error.message || "Could not create the inspection. Please try again.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsSubmitting(false)
-      }
-      return
-    }
-    
-    // If we have an inspectionId, we're editing an existing inspection
-    console.log("[INSPECTION_PERFORM] Starting/continuing inspection. Moving to first section.")
-    setCurrentStepIndex(1)
   }
-  
-  // Handle item status change
-  const handleItemStatus = (sectionId: string, itemId: string, status: "pass" | "fail") => {
-    console.log(`[INSPECTION_FORM] Setting item status: sectionId=${sectionId}, itemId=${itemId}, status=${status}`);
-    
-    setSections(prevSections => {
-      console.log(`[INSPECTION_FORM] Previous sections before status update:`, prevSections);
-      
-      let itemFound = false;
-      const newSections = prevSections.map(section => {
-        if (section.id === sectionId) {
-          return {
-            ...section,
-            items: section.items.map(item => {
-              if (item.id === itemId) {
-                itemFound = true;
-                console.log(`[INSPECTION_FORM] Item found, updating status from ${item.status} to ${status}`);
-                return {
-                  ...item,
-                  status: status
-                };
-              }
-              return item;
-            })
-          };
-        }
-        return section;
-      });
-      
-      if (!itemFound) {
-        console.error(`[INSPECTION_FORM] Item not found! sectionId=${sectionId}, itemId=${itemId}`);
-        console.log(`[INSPECTION_FORM] Available sections:`, prevSections.map(s => ({ id: s.id, items: s.items.map(i => ({ id: i.id, title: i.title })) })));
-      }
-      
-      console.log(`[INSPECTION_FORM] Updated sections:`, newSections);
-      return newSections;
-    });
-    
-    // Check if section is complete
-    checkSectionCompletion(sectionId);
-  };
-  
-  // Check if a section is complete (all items have status)
-  const checkSectionCompletion = (sectionId: string) => {
-    const section = sections.find(s => s.id === sectionId);
-    if (!section) return;
-    
-    const isComplete = section.items.every(item => item.status !== null);
-    
-    setCompletedSections(prev => ({
-      ...prev,
-      [sectionId]: isComplete
-    }));
-  };
-  
-  // Handle notes change
-  const handleNotesChange = (sectionId: string, itemId: string, notesValue: string) => {
-    setSections(prevSections => {
-      return prevSections.map(section => {
-        if (section.id === sectionId) {
-          return {
-            ...section,
-            items: section.items.map(item => {
-              if (item.id === itemId) {
-                return {
-                  ...item,
-                  notes: notesValue
-                };
-              }
-              return item;
-            })
-          };
-        }
-        return section;
-      });
-    });
-  };
-  
-  // Handle camera click
-  const handleCameraClick = (sectionId: string, itemId: string) => {
-    console.log(`[INSPECTION_FORM] Camera click: sectionId=${sectionId}, itemId=${itemId}`);
-    setCurrentPhotoItem({ sectionId, itemId });
-    setIsCameraOpen(true);
-  };
-  
+
+  // Use inspection items hook
+  const { 
+    handleItemStatus, 
+    handleNotesChange, 
+    handleCameraClick, 
+    handleDeletePhoto,
+    handlePhotoCapture: capturePhoto
+  } = useInspectionItems({
+    sections,
+    setSections,
+    setCompletedSections,
+    setCurrentPhotoItem,
+    setIsCameraOpen
+  })
+
   // Handle photo capture
   const handlePhotoCapture = async (photoUrl: string) => {
-    console.log(`[INSPECTION_FORM] Photo captured: ${photoUrl}`);
-    console.log(`[INSPECTION_FORM] Current photo item:`, currentPhotoItem);
-    
-    if (!currentPhotoItem) {
-      console.error(`[INSPECTION_FORM] No current photo item set!`);
-      return;
-    }
-    
-    setSections(prevSections => {
-      console.log(`[INSPECTION_FORM] Previous sections before photo capture:`, prevSections);
-      
-      let itemFound = false;
-      const newSections = prevSections.map(section => {
-        if (section.id === currentPhotoItem.sectionId) {
-          return {
-            ...section,
-            items: section.items.map(item => {
-              if (item.id === currentPhotoItem.itemId) {
-                itemFound = true;
-                console.log(`[INSPECTION_FORM] Adding photo to item, current photos:`, item.photos);
-                const newPhotos = [...item.photos, photoUrl];
-                console.log(`[INSPECTION_FORM] New photos array:`, newPhotos);
-                return {
-                  ...item,
-                  photos: newPhotos
-                };
-              }
-              return item;
-            })
-          };
-        }
-        return section;
-      });
-      
-      if (!itemFound) {
-        console.error(`[INSPECTION_FORM] Photo item not found! sectionId=${currentPhotoItem.sectionId}, itemId=${currentPhotoItem.itemId}`);
-        console.log(`[INSPECTION_FORM] Available sections:`, prevSections.map(s => ({ id: s.id, items: s.items.map(i => ({ id: i.id, title: i.title })) })));
-      }
-      
-      console.log(`[INSPECTION_FORM] Updated sections after photo capture:`, newSections);
-      return newSections;
-    });
-    
-    setIsCameraOpen(false);
-    setCurrentPhotoItem(null);
-  };
+    await capturePhoto(photoUrl, currentPhotoItem)
+    setIsCameraOpen(false)
+    setCurrentPhotoItem(null)
+  }
   
-  // Handle photo deletion
-  const handleDeletePhoto = (sectionId: string, itemId: string, photoIndex: number) => {
-    setSections(prevSections =>
-      prevSections.map(section =>
-        section.id === sectionId
-          ? {
-              ...section,
-              items: section.items.map(item =>
-                item.id === itemId
-                  ? {
-                      ...item,
-                      photos: item.photos.filter((_, index) => index !== photoIndex),
-                    }
-                  : item
-              ),
-            }
-          : section
-      )
-    );
-  };
   
   // Calculate overall progress
   const getOverallProgress = () => {

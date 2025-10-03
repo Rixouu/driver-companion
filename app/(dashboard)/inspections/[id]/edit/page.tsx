@@ -1,6 +1,6 @@
 import { createServerClient } from "@/lib/supabase/index";
 import { cookies } from 'next/headers';
-import { StepBasedInspectionForm } from "@/components/inspections/step-based-inspection-form";
+import { StepBasedInspectionForm } from "@/components/inspections/step-based/step-based-inspection-form";
 import { redirect } from "next/navigation";
 import { getDictionary } from "@/lib/i18n/server";
 // import { Breadcrumbs } from "@/components/shared/breadcrumbs";

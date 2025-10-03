@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { FormProvider } from "react-hook-form"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
-import { InspectionTypeSelector } from "./inspection-type-selector"
+import { InspectionTypeSelector } from "../inspection-type-selector"
 import type { InspectionType } from "@/types/inspections"
 import type { Control } from "react-hook-form"
 

@@ -1,7 +1,7 @@
 import { Metadata } from "next"
 import { cookies } from "next/headers"
 import { createServerClient } from "@/lib/supabase/index"
-import { StepBasedInspectionForm } from "@/components/inspections/step-based-inspection-form"
+import { StepBasedInspectionForm } from "@/components/inspections/step-based/step-based-inspection-form"
 import { PageBreadcrumb } from "@/components/layout/page-breadcrumb"
 import Link from "next/link"
 import { getDictionary } from "@/lib/i18n/server"

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDictionary } from '@/lib/i18n/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { notificationService } from '@/lib/services/notification-service';
+import { handleApiError } from '@/lib/errors/error-handler';
+import { DatabaseError } from '@/lib/errors/app-error';
 
 // Force dynamic rendering to avoid cookie issues
 export const dynamic = "force-dynamic";
@@ -67,11 +69,7 @@ export async function GET(request: NextRequest) {
     const { data: quotations, error, count } = await query;
 
     if (error) {
-      console.error('Error fetching quotations:', error);
-      return NextResponse.json(
-        { error: t('quotations.notifications.error') },
-        { status: 500 }
-      );
+      throw new DatabaseError('Error fetching quotations from database.', { cause: error });
     }
 
     return NextResponse.json({
@@ -81,12 +79,7 @@ export async function GET(request: NextRequest) {
       offset
     });
   } catch (error) {
-    console.error('Error handling quotations GET request:', error);
-    const { t } = await getDictionary();
-    return NextResponse.json(
-      { error: t('quotations.notifications.error') },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 

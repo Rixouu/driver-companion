@@ -19,6 +19,17 @@ const config: StorybookConfig = {
   },
   "staticDirs": [
     "../public"
-  ]
+  ],
+  "viteFinal": async (config) => {
+    // Add Node.js polyfills for browser environment
+    config.define = {
+      ...config.define,
+      global: 'globalThis',
+      __dirname: '""',
+      __filename: '""',
+    };
+    
+    return config;
+  }
 };
 export default config;

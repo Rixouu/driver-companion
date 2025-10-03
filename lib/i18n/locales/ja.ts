@@ -666,7 +666,6 @@ export const ja: TranslationValue = {
       inactive: "非稼働",
       maintenance: "メンテナンス中"
     },
-    noImage: "画像なし",
     detailsPage: {
       titleFallback: "車両詳細",
       descriptionFallback: "車両詳細の表示"

@@ -51,6 +51,23 @@ const preview: Preview = {
       ],
     },
 
+    // Chromatic visual testing parameters
+    chromatic: {
+      // Disable animations for consistent visual testing
+      disableSnapshot: false,
+      // Capture viewport sizes for responsive testing
+      viewports: [320, 768, 1024, 1280],
+      // Delay before capturing screenshots
+      delay: 1000,
+      // Pause animations during capture
+      pauseAnimationAtEnd: true,
+      // Mode for visual testing
+      modes: {
+        'mobile': { viewport: 'mobile1' },
+        'tablet': { viewport: 'tablet' },
+        'desktop': { viewport: 'desktop' },
+      },
+    },
 
     docs: {
       toc: true,

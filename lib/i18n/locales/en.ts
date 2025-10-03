@@ -680,7 +680,6 @@ export const en: TranslationValue = {
       inactive: "Inactive",
       maintenance: "In Maintenance"
     },
-    noImage: "No image",
     detailsPage: { // New object for details page specific translations
       titleFallback: "Vehicle Details",
       descriptionFallback: "View vehicle details"

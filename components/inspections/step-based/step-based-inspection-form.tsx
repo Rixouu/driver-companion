@@ -550,7 +550,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   const { isSubmitting: isCreatingInspection, handleStartInspection: createInspection } = useInspectionCreation({
     selectedVehicle,
     selectedType,
-    inspectionId,
+    inspectionId: inspectionId || null,
     sections,
     inspectionDate,
     isAutoStartingRef
@@ -571,8 +571,81 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     handleDeletePhoto,
     handlePhotoCapture: capturePhoto
   } = useInspectionItems({
-    sections,
-    setSections,
+    sections: sections.map(section => ({
+      id: section.id,
+      title: section.title,
+      description: section.description,
+      items: section.items.map(item => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        requires_photo: item.requires_photo,
+        requires_notes: item.requires_notes,
+        status: item.status,
+        notes: item.notes,
+        photos: item.photos
+      }))
+    })),
+    setSections: (newSections) => {
+      if (typeof newSections === 'function') {
+        setSections(prevSections => {
+          const updated = newSections(prevSections.map(section => ({
+            id: section.id,
+            title: section.title,
+            description: section.description,
+            items: section.items.map(item => ({
+              id: item.id,
+              title: item.title,
+              description: item.description,
+              requires_photo: item.requires_photo,
+              requires_notes: item.requires_notes,
+              status: item.status,
+              notes: item.notes,
+              photos: item.photos
+            }))
+          })));
+          return updated.map(section => ({
+            id: section.id,
+            name_translations: section.title ? { [locale]: section.title } : {},
+            description_translations: section.description ? { [locale]: section.description } : {},
+            title: section.title,
+            description: section.description,
+            items: section.items.map(item => ({
+              id: item.id,
+              name_translations: item.title ? { [locale]: item.title } : {},
+              description_translations: item.description ? { [locale]: item.description } : {},
+              title: item.title,
+              description: item.description,
+              requires_photo: item.requires_photo,
+              requires_notes: item.requires_notes,
+              status: item.status,
+              notes: item.notes,
+              photos: item.photos
+            }))
+          }));
+        });
+      } else {
+        setSections(newSections.map(section => ({
+          id: section.id,
+          name_translations: section.title ? { [locale]: section.title } : {},
+          description_translations: section.description ? { [locale]: section.description } : {},
+          title: section.title,
+          description: section.description,
+          items: section.items.map(item => ({
+            id: item.id,
+            name_translations: item.title ? { [locale]: item.title } : {},
+            description_translations: item.description ? { [locale]: item.description } : {},
+            title: item.title,
+            description: item.description,
+            requires_photo: item.requires_photo,
+            requires_notes: item.requires_notes,
+            status: item.status,
+            notes: item.notes,
+            photos: item.photos
+          }))
+        })));
+      }
+    },
     setCompletedSections,
     setCurrentPhotoItem,
     setIsCameraOpen

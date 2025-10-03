@@ -79,7 +79,7 @@ jobs:
           CI: true
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # Add CODECOV_TOKEN to your GitHub secrets
           files: ./coverage/coverage-final.json,./coverage/lcov.info # Adjust if your coverage report name/path differs

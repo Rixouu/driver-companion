@@ -25,6 +25,12 @@ interface UseVehicleFilteringProps {
 export function useVehicleFiltering({ vehicles }: UseVehicleFilteringProps) {
   const isMobile = useIsMobile();
   
+  // Debug: Log vehicles to console
+  useEffect(() => {
+    console.log('[VehicleFiltering] Available vehicles:', vehicles);
+    console.log('[VehicleFiltering] Toyota Hi-Ace vehicles:', vehicles.filter(v => v.model?.toLowerCase().includes('hi-ace')));
+  }, [vehicles]);
+  
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [brandFilter, setBrandFilter] = useState<string>("all");

@@ -12,6 +12,7 @@ import { Search, Filter, XCircle, Calendar, ChevronDown, ChevronUp } from "lucid
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/lib/i18n/context"
 import { useIsMobile } from "@/lib/hooks/use-mobile"
+import Image from "next/image"
 // Local Vehicle interface to match the parent component
 interface Vehicle {
   id: string;
@@ -282,16 +283,38 @@ export function VehicleSelectionStep({
               onClick={() => onVehicleSelect(vehicle)}
             >
               <CardContent className="p-4">
-                <div className="space-y-2">
-                  <h4 className="font-medium">{vehicle.brand} {vehicle.model}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {vehicle.plate_number} • {vehicle.year}
-                  </p>
-                  {vehicle.vehicle_group && (
-                    <span className="inline-block bg-muted px-2 py-1 rounded text-xs">
-                      {vehicle.vehicle_group.name}
-                    </span>
+                <div className="space-y-3">
+                  {/* Vehicle Thumbnail */}
+                  {vehicle.image_url ? (
+                    <div className="relative w-full h-32 bg-muted rounded-lg overflow-hidden">
+                      <Image
+                        src={vehicle.image_url}
+                        alt={`${vehicle.brand} ${vehicle.model}`}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-full h-32 bg-muted rounded-lg flex items-center justify-center">
+                      <div className="text-muted-foreground text-sm">
+                        {t('vehicles.noImage')}
+                      </div>
+                    </div>
                   )}
+                  
+                  {/* Vehicle Details */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium">{vehicle.brand} {vehicle.model}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {vehicle.plate_number} • {vehicle.year}
+                    </p>
+                    {vehicle.vehicle_group && (
+                      <span className="inline-block bg-muted px-2 py-1 rounded text-xs">
+                        {vehicle.vehicle_group.name}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

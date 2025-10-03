@@ -238,7 +238,9 @@ export const en: TranslationValue = {
       allBrands: "All Statuses",
       allModels: "All Types",
       noResults: "No results found",
-      clearFilters: "Clear Filters"
+      clearFilters: "Clear Filters",
+      group: "Group",
+      allGroups: "All Groups"
     },
     actions: {
       addDriver: "Add Driver",
@@ -482,6 +484,8 @@ export const en: TranslationValue = {
     backToVehicles: "← Vehicles",
     addVehicle: "Add Vehicle",
     newVehicle: "New Vehicle",
+    available: "Available Vehicles",
+    noImage: "No Image",
     editVehicle: "Edit Vehicle",
     backToVehicle: "Back to Vehicle",
     searchPlaceholder: "Search vehicles...",
@@ -1070,6 +1074,11 @@ export const en: TranslationValue = {
       selectDate: "Select a date",
       backdatingWarning: "⚠️ Backdating inspection to {date} ({daysAgo} days ago)",
       currentDateInspection: "Inspection will be dated: {date}"
+    },
+    date: {
+      title: "Inspection Date",
+      backdatingWarning: "⚠️ Backdating inspection to {date} ({daysAgo} days ago)",
+      enableBackdating: "Enable Backdating"
     },
     inspectionDate: "Inspection Date",
     actions: {

@@ -230,7 +230,9 @@ export const ja: TranslationValue = {
       allBrands: "すべてのステータス",
       allModels: "すべてのタイプ",
       noResults: "結果が見つかりませんでした",
-      clearFilters: "フィルターをクリア"
+      clearFilters: "フィルターをクリア",
+      group: "グループ",
+      allGroups: "すべてのグループ"
     },
     actions: {
       addDriver: "ドライバーを追加",
@@ -471,6 +473,8 @@ export const ja: TranslationValue = {
     description: "車両フリートを管理します",
     addVehicle: "車両を追加",
     newVehicle: "新規車両",
+    available: "利用可能な車両",
+    noImage: "画像なし",
     editVehicle: "車両を編集",
     backToVehicle: "車両に戻る",
     searchPlaceholder: "車両を検索...",
@@ -1056,6 +1060,11 @@ export const ja: TranslationValue = {
       selectDate: "日付を選択",
       backdatingWarning: "⚠️ 点検を{date}に遡って記録（{daysAgo}日前）",
       currentDateInspection: "点検日: {date}"
+    },
+    date: {
+      title: "点検日",
+      backdatingWarning: "⚠️ 点検を{date}に遡って記録（{daysAgo}日前）",
+      enableBackdating: "遡り記録を有効にする"
     },
     inspectionDate: "点検日",
     actions: {

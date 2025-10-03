@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { handleApiError } from '@/lib/errors/error-handler'
+import { DatabaseError } from '@/lib/errors/app-error'
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,8 +26,7 @@ export async function GET(request: NextRequest) {
     const { data: partials, error } = await query
 
     if (error) {
-      console.error('Error fetching partials:', error)
-      return NextResponse.json({ error: `Failed to fetch partials: ${error.message}` }, { status: 500 })
+      throw new DatabaseError('Error fetching partials from database.', { cause: error })
     }
 
     console.log('Successfully fetched partials:', partials?.length || 0)
@@ -45,8 +46,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(transformedPartials)
   } catch (error) {
-    console.error('Error in partials GET:', error)
-    return NextResponse.json({ error: `Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}` }, { status: 500 })
+    return handleApiError(error)
   }
 }
 

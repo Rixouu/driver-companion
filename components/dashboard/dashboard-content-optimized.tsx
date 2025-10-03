@@ -378,7 +378,7 @@ export function DashboardContentOptimized({
         {/* Key Metrics - Enhanced Cards with Colors */}
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Revenue */}
-          <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/20">
+          <Card className="border border-emerald-200 dark:border-emerald-800 shadow-sm bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/20">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -396,7 +396,7 @@ export function DashboardContentOptimized({
           </Card>
 
           {/* Total Quotations */}
-          <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/20">
+          <Card className="border border-blue-200 dark:border-blue-800 shadow-sm bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/20">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -414,7 +414,7 @@ export function DashboardContentOptimized({
           </Card>
 
           {/* Average Quote */}
-          <Card className="border-0 shadow-sm bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/20">
+          <Card className="border border-purple-200 dark:border-purple-800 shadow-sm bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/20">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -432,7 +432,7 @@ export function DashboardContentOptimized({
           </Card>
 
           {/* Conversion Rate */}
-          <Card className="border-0 shadow-sm bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-900/20 dark:to-orange-800/20">
+          <Card className="border border-orange-200 dark:border-orange-800 shadow-sm bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-900/20 dark:to-orange-800/20">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>

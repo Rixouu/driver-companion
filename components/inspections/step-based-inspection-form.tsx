@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { CameraModal } from "@/components/inspections/camera-modal"
 import { InspectionTypeSelector } from "./inspection-type-selector"
 import { VehicleSelectionStep } from "./vehicle-selection-step"
+import { TypeSelectionStep } from "./type-selection-step"
 import { FormField, FormItem, FormControl } from "@/components/ui/form"
 import { withErrorHandling } from "@/lib/utils/error-handler"
 import { cn } from "@/lib/utils"
@@ -1557,43 +1558,6 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       </div>
     </div>
   
-  // Render inspection type selection
-  const renderTypeSelection = () => (
-    <div className="space-y-8">
-      <h2 className="text-xl font-semibold">{t("inspections.steps.selectType")}</h2>
-
-      <FormProvider {...methods}>
-        <InspectionTypeSelector
-          control={methods.control}
-          onTypeChange={handleTypeChange}
-          defaultValue={selectedType}
-          availableTypes={availableTemplateTypes}
-          showAllTypes={false}
-        />
-      </FormProvider>
-
-
-      <div className="flex justify-between mt-8">
-        <Button
-          variant="outline"
-          onClick={() => {
-            setCurrentStepIndex(-1)
-          }}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" /> {t("common.back")}
-        </Button>
-        {availableTemplateTypes.length > 0 && (
-          <Button 
-            onClick={handleStartInspection} 
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? t("common.creating") : t("inspections.actions.startInspection")}{" "}
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        )}
-      </div>
-    </div>
-  );
   
   // Render section items with improved spacing
   const renderSectionItems = () => {
@@ -1962,7 +1926,17 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           filteredVehicles={filteredVehicles}
         />
       )}
-      {currentStepIndex === 0 && renderTypeSelection()}
+      {currentStepIndex === 0 && (
+        <TypeSelectionStep
+          control={methods.control}
+          onTypeChange={handleTypeChange}
+          selectedType={selectedType}
+          availableTypes={availableTemplateTypes}
+          onBack={() => setCurrentStepIndex(-1)}
+          onStartInspection={handleStartInspection}
+          isSubmitting={isSubmitting}
+        />
+      )}
       {currentStepIndex === 1 && renderSectionItems()}
       
       {/* Camera modal */}

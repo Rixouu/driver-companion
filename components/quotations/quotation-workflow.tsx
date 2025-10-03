@@ -994,294 +994,83 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         />
       </CardContent>
 
-      {/* Payment Link Dialog */}
-      <Dialog open={isPaymentLinkDialogOpen} onOpenChange={setIsPaymentLinkDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              {t('quotationWorkflow.sendPaymentLinkTitle')}
-            </DialogTitle>
-            <DialogDescription>
-              Send the invoice with payment link to the customer, or skip if using bank transfer.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="payment-email">Customer Email</Label>
-              <Input
-                id="payment-email"
-                type="email"
-                value={emailAddress}
-                onChange={(e) => setEmailAddress(e.target.value)}
-                placeholder="customer@example.com"
-                className="bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-                required
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Email will be sent to the customer's registered email address
-              </p>
-            </div>
+      <PaymentLinkDialog
+        isOpen={isPaymentLinkDialogOpen}
+        onOpenChange={setIsPaymentLinkDialogOpen}
+        emailAddress={emailAddress}
+        setEmailAddress={setEmailAddress}
+        bccEmails={bccEmails}
+        setBccEmails={setBccEmails}
+        emailLanguage={emailLanguage}
+        setEmailLanguage={setEmailLanguage}
+        customPaymentName={customPaymentName}
+        setCustomPaymentName={setCustomPaymentName}
+        paymentLink={paymentLink}
+        setPaymentLink={setPaymentLink}
+        paymentLinkSent={paymentLinkSent}
+        paymentLinkSentAt={paymentLinkSentAt}
+        quotationId={quotation.id}
+        setProgressOpen={setProgressOpen}
+        setProgressVariant={setProgressVariant}
+        setProgressTitle={setProgressTitle}
+        startProgress={startProgress}
+        onSendPaymentLink={handleSendPaymentLink}
+        onSkipPaymentLink={async () => {
+          try {
+            setProgressOpen(true);
+            setProgressVariant('default');
+            setProgressTitle('Skipping Payment Link');
             
-            <div>
-              <Label htmlFor="bcc-emails">BCC Emails</Label>
-              <Input
-                id="bcc-emails"
-                value={bccEmails}
-                onChange={(e) => setBccEmails(e.target.value)}
-                placeholder="Enter email addresses separated by commas"
-                className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Default: booking@japandriver.com. Add more emails separated by commas.
-              </p>
-            </div>
+            const progressPromise = startProgress({
+              steps: [
+                { label: 'Updating payment method...', value: 50 },
+                { label: 'Finalizing...', value: 90 }
+              ],
+              totalDuration: 1000
+            });
             
-            <div>
-              <Label>Language</Label>
-              <Select value={emailLanguage} onValueChange={(value: 'en' | 'ja') => setEmailLanguage(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="ja">日本語</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            const updateResponse = await fetch(`/api/quotations/${quotation.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                payment_link_sent_at: new Date().toISOString(),
+                payment_method: 'bank_transfer'
+              })
+            });
             
-            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md">
-              <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100 mb-2">
-                📧 What's included in the email:
-              </h4>
-              <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
-                <li>• Complete invoice details and service information</li>
-                <li>• Customer information and billing details</li>
-                <li>• Service breakdown and pricing</li>
-                <li>• Invoice PDF attachment</li>
-                <li>• Secure payment link for online payment</li>
-                <li>• Payment instructions and terms</li>
-                <li>• Company branding and contact information</li>
-              </ul>
-            </div>
+            await progressPromise;
             
-            <div>
-              <Label htmlFor="custom-payment-name">Payment Link Name (Optional)</Label>
-              <Input
-                id="custom-payment-name"
-                type="text"
-                value={customPaymentName}
-                onChange={(e) => setCustomPaymentName(e.target.value)}
-                placeholder="e.g., Vehicle Inspection Service - Premium Package"
-                className="w-full bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Custom name for the payment link. Leave empty to use default.
-              </p>
-            </div>
-
-
-
-            {paymentLinkSent && (
-              <div className="grid gap-2">
-                <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                  <CheckCircle className="h-4 w-4" />
-                  Payment link sent on {paymentLinkSentAt ? new Date(paymentLinkSentAt).toLocaleDateString() : 'recently'}
-                </div>
-              </div>
-            )}
-
-            <div className="grid gap-2">
-              <Label htmlFor="payment-link-url">Payment Link</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="payment-link-url"
-                  type="url"
-                  value={paymentLink}
-                  onChange={(e) => setPaymentLink(e.target.value)}
-                  placeholder="https://linksplus.omise.co/..."
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      setProgressOpen(true);
-                      setProgressVariant('default');
-                      setProgressTitle('Generating Payment Link');
-                      
-                      // Start progress simulation
-                      const progressPromise = startProgress({
-                        steps: [
-                          { label: 'Creating Omise payment link...', value: 50 },
-                          { label: 'Finalizing...', value: 90 }
-                        ],
-                        totalDuration: 1500
-                      });
-                      
-                      const response = await fetch('/api/quotations/generate-omise-payment-link', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                          quotation_id: quotation.id,
-                          regenerate: true,
-                          customName: customPaymentName || undefined
-                        })
-                      });
-                      
-                      // Wait for progress to complete
-                      await progressPromise;
-                      
-                      if (response.ok) {
-                        const data = await response.json();
-                        setPaymentLink(data.paymentUrl);
-                        toast({
-                          title: "Payment Link Generated",
-                          description: "New Omise payment link has been created",
-                          variant: "default",
-                        });
-                        
-                        // Close the progress modal after successful generation
-                        setTimeout(() => {
-                          setProgressOpen(false);
-                        }, 500);
-                      } else {
-                        throw new Error('Failed to generate payment link');
-                      }
-                    } catch (error) {
-                      console.error('Error generating payment link:', error);
-                      toast({
-                        title: "Error",
-                        description: "Failed to generate payment link",
-                        variant: "destructive",
-                      });
-                      
-                      // Close the progress modal on error
-                      setTimeout(() => {
-                        setProgressOpen(false);
-                      }, 1000);
-                    }
-                  }}
-                  className="px-3"
-                >
-                  Generate
-                </Button>
-                <Link2 className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Click Generate to create a new Omise payment link
-              </p>
+            if (updateResponse.ok) {
+              setPaymentLinkSent(true);
+              setPaymentLinkSentAt(new Date().toISOString());
               
-              {/* Bank Transfer Note */}
-              <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md">
-                <div className="flex items-start gap-2">
-                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                  <div className="text-xs text-blue-800 dark:text-blue-200">
-                    <p className="font-medium mb-1">Bank Transfer Option</p>
-                    <p>If the customer prefers bank transfer, you can skip sending a payment link and mark this step as complete. The customer will receive bank transfer instructions separately.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPaymentLinkDialogOpen(false)}>
-              {t('quotationWorkflow.cancel')}
-            </Button>
-            
-            {/* Skip button for bank transfer */}
-            <Button 
-              variant="outline" 
-              onClick={async () => {
-                try {
-                  setProgressOpen(true);
-                  setProgressVariant('default');
-                  setProgressTitle('Skipping Payment Link');
-                  
-                  // Start progress simulation
-                  const progressPromise = startProgress({
-                    steps: [
-                      { label: 'Updating payment method...', value: 50 },
-                      { label: 'Finalizing...', value: 90 }
-                    ],
-                    totalDuration: 1000
-                  });
-                  
-                  // Update the quotation status to mark payment link as sent (for bank transfer)
-                  const updateResponse = await fetch(`/api/quotations/${quotation.id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      payment_link_sent_at: new Date().toISOString(),
-                      payment_method: 'bank_transfer'
-                    })
-                  });
-                  
-                  // Wait for progress to complete
-                  await progressPromise;
-                  
-                  if (updateResponse.ok) {
-                    setPaymentLinkSent(true);
-                    setPaymentLinkSentAt(new Date().toISOString());
-                    
-                    toast({
-                      title: "Bank Transfer Selected",
-                      description: "Payment link step skipped for bank transfer method",
-                      variant: "default",
-                    });
-                    
-                    setIsPaymentLinkDialogOpen(false);
-                    setProgressOpen(false);
-                    
-                    // Refresh the quotation data to update the workflow status
-                    if (onRefresh) {
-                      onRefresh();
-                    }
-                  } else {
-                    throw new Error('Failed to update quotation status');
-                  }
-                } catch (error) {
-                  console.error('Error skipping payment link:', error);
-                  setProgressOpen(false);
-                  toast({
-                    title: "Error",
-                    description: "Failed to skip payment link step",
-                    variant: "destructive",
-                  });
-                }
-              }}
-              className="mr-2"
-            >
-              Skip (Bank Transfer)
-            </Button>
-            
-            <Button onClick={handleSendPaymentLink} disabled={isSendingPaymentLink || !emailAddress}>
-              {isSendingPaymentLink ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-{t('quotationWorkflow.sending')}
-                </>
-              ) : paymentLinkSent ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Regenerate & Resend
-                </>
-              ) : (
-                <>
-                  <CreditCard className="mr-2 h-4 w-4" />
-{t('quotationWorkflow.sendPaymentLink')}
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              toast({
+                title: "Bank Transfer Selected",
+                description: "Payment link step skipped for bank transfer method",
+                variant: "default",
+              });
+              
+              setIsPaymentLinkDialogOpen(false);
+              setProgressOpen(false);
+              
+              if (onRefresh) {
+                onRefresh();
+              }
+            } else {
+              throw new Error('Failed to update quotation status');
+            }
+          } catch (error) {
+            console.error('Error skipping payment link:', error);
+            setProgressOpen(false);
+            toast({
+              title: "Error",
+              description: "Failed to skip payment link step",
+              variant: "destructive",
+            });
+          }
+        }}
+        isSendingPaymentLink={isSendingPaymentLink}
+      />
 
       {/* Progress Modal */}
       <LoadingModal

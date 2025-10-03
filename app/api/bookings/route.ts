@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { handleApiError } from '@/lib/errors/error-handler'
+import { DatabaseError, AuthenticationError } from '@/lib/errors/app-error'
 
 // Force dynamic rendering to avoid cookie issues
 export const dynamic = "force-dynamic"
@@ -11,7 +13,7 @@ export async function GET(request: NextRequest) {
     // Check auth
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new AuthenticationError('User not authenticated')
     }
 
     const searchParams = request.nextUrl.searchParams
@@ -62,8 +64,7 @@ export async function GET(request: NextRequest) {
     const { data: bookings, error, count } = await query
 
     if (error) {
-      console.error('Error fetching bookings:', error)
-      return NextResponse.json({ error: 'Failed to fetch bookings' }, { status: 500 })
+      throw new DatabaseError('Error fetching bookings from database.', { cause: error })
     }
 
     return NextResponse.json({
@@ -74,7 +75,6 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Bookings API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error)
   }
 }

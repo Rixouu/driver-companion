@@ -2,6 +2,8 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { Database } from '@/types/supabase'
+import { handleApiError } from '@/lib/errors/error-handler'
+import { DatabaseError } from '@/lib/errors/app-error'
 
 export async function GET() {
   try {
@@ -31,8 +33,7 @@ export async function GET() {
       .not('model', 'is', null)
 
     if (error) {
-      console.error('Error fetching vehicle models:', error)
-      return NextResponse.json({ error: 'Failed to fetch vehicle models' }, { status: 500 })
+      throw new DatabaseError('Error fetching vehicle models from database.', { cause: error })
     }
 
     // Extract unique models and trim whitespace
@@ -57,7 +58,6 @@ export async function GET() {
 
     return NextResponse.json(formattedModels)
   } catch (error) {
-    console.error('Error in vehicle models API:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error)
   }
 }

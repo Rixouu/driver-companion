@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { DataTable } from '@/components/data-table';
+
 // Mock bookings data
 const mockBookings = [
   {

@@ -3,28 +3,10 @@ import { I18nProvider } from '@/lib/i18n/context';
 import { ThemeProvider } from '@/components/theme-provider';
 import { NextIntlClientProvider } from 'next-intl';
 import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import { mockSupabaseClient, mockRouter, setupWindowMocks } from './mocks';
 
-// Mock Next.js router
-const mockRouter = {
-  push: () => Promise.resolve(true),
-  replace: () => Promise.resolve(true),
-  prefetch: () => Promise.resolve(),
-  back: () => Promise.resolve(true),
-  forward: () => Promise.resolve(true),
-  refresh: () => Promise.resolve(true),
-  pathname: '/',
-  route: '/',
-  asPath: '/',
-  query: {},
-  isReady: true,
-  isPreview: false,
-  isLocaleDomain: false,
-  events: {
-    on: () => {},
-    off: () => {},
-    emit: () => {},
-  },
-};
+// Setup window mocks
+setupWindowMocks();
 
 // Mock messages for i18n
 const mockMessages = {
@@ -89,6 +71,9 @@ const mockMessages = {
     paid: 'Paid',
   },
 };
+
+// Note: Module mocking is handled in the Vite configuration
+// These are just type definitions for reference
 
 export const withProviders = (Story: React.ComponentType) => (
   <AppRouterContext.Provider value={mockRouter}>

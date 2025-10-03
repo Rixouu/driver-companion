@@ -27,6 +27,7 @@ const config: StorybookConfig = {
       global: 'globalThis',
       __dirname: '""',
       __filename: '""',
+      'process.env': '{}',
     };
 
     // Ensure React is available globally
@@ -36,7 +37,21 @@ const config: StorybookConfig = {
         ...config.resolve?.alias,
         'react': 'react',
         'react-dom': 'react-dom',
+        '@': '/Users/cto/Documents/Repositories/02-Pro/vehicle-inspection',
       },
+    };
+
+    // Add fallbacks for Node.js modules
+    config.resolve.fallback = {
+      ...config.resolve?.fallback,
+      fs: false,
+      path: false,
+      os: false,
+      crypto: false,
+      stream: false,
+      util: false,
+      buffer: false,
+      process: false,
     };
     
     return config;

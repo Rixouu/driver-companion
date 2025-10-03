@@ -31,6 +31,8 @@ import { toast } from '@/components/ui/use-toast';
 import { ServiceCard } from '@/components/quotations/service-card';
 import { useQuotationFormData } from '@/lib/hooks/use-quotation-form-data';
 import { useTimeBasedPricing } from '@/lib/hooks/use-time-based-pricing';
+import { useServiceTheme } from '@/lib/hooks/use-service-theme';
+import { useServiceSelectionData } from '@/lib/hooks/use-service-selection-data';
 import { GooglePlaceAutocomplete } from '@/components/bookings/google-place-autocomplete';
 import { FlightSearch } from '@/components/bookings/flight-search';
 import { useGoogleMaps } from '@/components/providers/google-maps-provider';
@@ -145,164 +147,18 @@ export function ServiceSelectionStep({
   const vehicleCategory = form.watch('vehicle_category');
   const vehicleType = form.watch('vehicle_type');
   const serviceDays = form.watch('service_days');
-  
-  // Determine color theme based on service type
-  const getServiceTheme = (serviceTypeId: string | null) => {
-    if (!serviceTypeId) return 'default';
-    const serviceTypeName = allServiceTypes.find(st => st.id === serviceTypeId)?.name?.toLowerCase() || '';
-    
-    if (serviceTypeName.includes('airport') || serviceTypeName.includes('haneda') || serviceTypeName.includes('narita')) {
-      return 'airport'; // Green theme
-    } else if (serviceTypeName.includes('charter')) {
-      return 'charter'; // Blue theme
-    }
-    return 'default'; // Default theme
-  };
-  
-  const currentTheme = getServiceTheme(serviceType);
   const hoursPerDay = form.watch('hours_per_day');
   
-  // Get theme colors based on current theme
-  const getThemeColors = (theme: string) => {
-    switch (theme) {
-      case 'airport':
-        return {
-          primary: 'green',
-          primaryBg: 'bg-green-50/30 dark:bg-green-900/10',
-          primaryBorder: 'border-green-500',
-          primaryHover: 'hover:border-green-300',
-          primaryText: 'text-green-600 dark:text-green-400',
-          primaryButton: 'bg-green-600 hover:bg-green-700',
-          primaryIcon: 'text-green-600 dark:text-green-400',
-          primaryBadge: 'bg-green-100 text-green-700',
-          primaryCard: 'bg-green-50/50 dark:bg-green-900/20',
-          primaryCardBorder: 'border-green-200 dark:border-green-800'
-        };
-      case 'charter':
-        return {
-          primary: 'blue',
-          primaryBg: 'bg-blue-50/30 dark:bg-blue-900/10',
-          primaryBorder: 'border-blue-500',
-          primaryHover: 'hover:border-blue-300',
-          primaryText: 'text-blue-600 dark:text-blue-400',
-          primaryButton: 'bg-blue-600 hover:bg-blue-700',
-          primaryIcon: 'text-blue-600 dark:text-blue-400',
-          primaryBadge: 'bg-blue-100 text-blue-700',
-          primaryCard: 'bg-blue-50/50 dark:bg-blue-900/20',
-          primaryCardBorder: 'border-blue-200 dark:border-blue-800'
-        };
-      default:
-        return {
-          primary: 'gray',
-          primaryBg: 'bg-gray-50/30 dark:bg-gray-900/10',
-          primaryBorder: 'border-gray-500',
-          primaryHover: 'hover:border-gray-300',
-          primaryText: 'text-gray-600 dark:text-gray-400',
-          primaryButton: 'bg-gray-600 hover:bg-gray-700',
-          primaryIcon: 'text-gray-600 dark:text-gray-400',
-          primaryBadge: 'bg-gray-100 text-gray-700',
-          primaryCard: 'bg-gray-50/50 dark:bg-gray-900/20',
-          primaryCardBorder: 'border-gray-200 dark:border-gray-800'
-        };
-    }
-  };
+  // Use theme hook for dynamic theming
+  const { currentTheme, themeColors, getServiceTheme, getThemeColors } = useServiceTheme(serviceType, allServiceTypes);
   
-  const themeColors = getThemeColors(currentTheme);
-
-  // Helper functions - now use dynamic data when available
-  const getAvailableServiceTypes = (): ServiceTypeInfo[] => {
-    // Use dynamic data if available, otherwise fall back to existing data
-    if (formData?.serviceTypes && formData.serviceTypes.length > 0) {
-      return formData.serviceTypes.map((st: any) => ({
-        id: st.id,
-        name: st.name
-      }));
-    }
-    
-    // Fallback to existing data
-    return allServiceTypes.length > 0 ? allServiceTypes : [
-      { id: '212ea0ed-0012-4d87-8722-b1145495a561', name: 'Charter Services' },
-      { id: 'a2538c63-bad1-4523-a234-a708b03744b4', name: 'Airport Transfer Haneda' },
-      { id: '296804ed-3879-4cfc-b7dd-e57d18df57a2', name: 'Airport Transfer Narita' }
-    ];
-  };
-
-  const getVehicleCategories = () => {
-    // Use dynamic data if available - this should show your real pricing categories
-    if (formData?.pricingCategories && formData.pricingCategories.length > 0) {
-      return formData.pricingCategories.map((category: any) => ({
-        id: category.id,
-        name: category.name
-      }));
-    }
-    
-    // Fallback to existing data - use actual database UUIDs
-    return [
-      { id: '611107df-a656-4812-b0c1-d54b8e67e7f1', name: 'Elite' },
-      { id: 'eeb5632d-d028-4272-92c0-8c0d22abb06a', name: 'Platinum' },
-      { id: 'ad9eb0c4-4e33-4c2a-a466-18a05086b854', name: 'Luxury' },
-      { id: '57fb7a7e-1e7c-4f46-b00a-55246030d691', name: 'Premium' }
-    ];
-  };
-
-  const getVehicleTypesForCategory = (categoryId?: string) => {
-    const targetCategory = categoryId || vehicleCategory;
-    if (!targetCategory) return [];
-    
-    // Use dynamic data if available
-    if (formData?.vehiclesByCategory && targetCategory) {
-      const categoryData = formData.vehiclesByCategory[targetCategory];
-      if (categoryData && categoryData.vehicles && Array.isArray(categoryData.vehicles)) {
-        // Return the full vehicle objects so we can access brand and model
-        return categoryData.vehicles;
-      }
-    }
-    
-    // Fallback to existing data - use actual database UUIDs
-    switch (targetCategory) {
-      case '611107df-a656-4812-b0c1-d54b8e67e7f1': // Elite
-        return [
-          { id: 'elite-1', brand: 'Mercedes', model: 'S580 Long', name: '品川 300 い 4182' },
-          { id: 'elite-2', brand: 'Mercedes', model: 'Maybach', name: '品川 300い 4181' }
-        ];
-      case 'eeb5632d-d028-4272-92c0-8c0d22abb06a': // Platinum
-        return [
-          { id: 'platinum-1', brand: 'Mercedes Benz', model: 'V Class - Black Suite', name: '品川 300 い 4058' },
-          { id: 'platinum-2', brand: 'Toyota', model: 'Alphard Executive Lounge', name: '品川 300い 4077' }
-        ];
-      case 'ad9eb0c4-4e33-4c2a-a466-18a05086b854': // Luxury
-        return [
-          { id: 'luxury-1', brand: 'Mercedes Benz', model: 'V class - Extra Long', name: '品川 300 い 4059' },
-          { id: 'luxury-2', brand: 'Toyota', model: 'Alphard Z class', name: '品川 300 い 4073' }
-        ];
-      case '57fb7a7e-1e7c-4f46-b00a-55246030d691': // Premium
-        return [
-          { id: 'premium-1', brand: 'Toyota', model: 'Hi-Ace', name: '品川 300い 4252' }
-        ];
-      default:
-        return [];
-    }
-  };
-
-  const getDurationsForServiceAndVehicle = () => {
-    if (!serviceType || !vehicleType) return [];
-    
-    // Use dynamic data if available
-    if (formData) {
-      // For now, use a simple duration array since getAvailableDurations is not available
-      const availableDurations = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-      if (availableDurations.length > 0) {
-        return availableDurations;
-      }
-    }
-    
-    // Fallback logic
-    if (serviceType.includes('airportTransfer')) {
-      return [1];
-    }
-    
-    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-  };
+  // Use data selection hook for service/vehicle data
+  const { 
+    getAvailableServiceTypes, 
+    getVehicleCategories, 
+    getVehicleTypesForCategory, 
+    getDurationsForServiceAndVehicle 
+  } = useServiceSelectionData(formData, allServiceTypes, pricingCategories, serviceType, vehicleType, vehicleCategory);
 
   const selectedServiceTypeObject = allServiceTypes.find(st => st.id === serviceType);
 

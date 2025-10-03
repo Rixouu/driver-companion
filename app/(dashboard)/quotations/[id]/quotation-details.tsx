@@ -78,7 +78,7 @@ import { PricingSummary } from '@/components/quotations/quotation-details/pricin
 import { QuotationInfoCard } from '@/components/quotations/quotation-details/quotation-info-card';
 import { ServiceCard } from '@/components/quotations/service-card';
 import { QuotationShareButtons } from '@/components/quotations/quotation-share-buttons';
-import { QuotationWorkflow } from '@/components/quotations/quotation-workflow';
+import { QuotationWorkflow } from '@/components/quotations/quotation-workflow/quotation-workflow';
 
 import { Dialog, DialogTitle, DialogContent, DialogDescription, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';

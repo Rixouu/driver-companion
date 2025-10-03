@@ -15,6 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import LoadingModal from '@/components/ui/loading-modal';
 import { useProgressSteps } from '@/lib/hooks/use-progress-steps'
 import { QuotationStatusSummary } from './quotation-status-summary'
+import { QuotationWorkflowSteps } from './quotation-workflow-steps'
 // Removed countdown toast imports - using simple toast instead
 import { progressConfigs } from '@/lib/config/progressConfigs';
 import { useI18n } from '@/lib/i18n/context';
@@ -933,54 +934,12 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         </div>
       </CardHeader>
       <CardContent className="pt-2">
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-2">
-          {workflowSteps.map((step, index) => {
-            const isLast = index === workflowSteps.length - 1;
-            
-            return (
-              <div key={step.id} className="relative flex-1">
-                {/* Step Content */}
-                <div 
-                  className="flex items-start gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-all duration-200 hover:shadow-sm hover:scale-[1.01] active:scale-[0.99]"
-                  onClick={() => setSelectedStep(selectedStep === step.id ? null : step.id)}
-                >
-                  {/* Icon with status indicator */}
-                  <div className={cn(
-                    "relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-200 flex-shrink-0",
-                    getStepStatusColor(step.status),
-                    selectedStep === step.id ? "ring-2 ring-blue-500/20 scale-105" : "hover:scale-105"
-                  )}>
-                    {step.icon}
-                    {step.status === 'completed' && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                        <CheckCircle className="h-3 w-3 text-white" />
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Step Details */}
-                  <div className="flex-1 min-w-0 transition-all duration-200">
-                    <h4 className={cn(
-                      "font-medium text-sm mb-1 transition-colors duration-200",
-                      step.status === 'completed' ? 'text-green-700 dark:text-green-300' :
-                      step.status === 'current' ? 'text-blue-700 dark:text-blue-300' :
-                      'text-gray-500 dark:text-gray-400'
-                    )}>
-                      {step.title}
-                    </h4>
-                    <p className="text-xs text-muted-foreground transition-colors duration-200">
-                      {t('quotations.workflow.clickForDetails')}
-                    </p>
-                    
-                    
-                    
-                  </div>
-                </div>
-                
-              </div>
-            );
-          })}
-        </div>
+        <QuotationWorkflowSteps 
+          workflowSteps={workflowSteps}
+          selectedStep={selectedStep}
+          setSelectedStep={setSelectedStep}
+          getStepStatusColor={getStepStatusColor}
+        />
 
         {/* Details Panel with Animation */}
         <div className={cn(

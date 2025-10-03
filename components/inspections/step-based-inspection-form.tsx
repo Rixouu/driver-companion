@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { useToast } from "@/components/ui/use-toast"
-import { Check, X, Camera, ArrowRight, ArrowLeft, ChevronDown, Search, Filter, XCircle, Calendar } from "lucide-react"
+import { Check, X, Camera, ArrowRight, ArrowLeft, ChevronDown, Search, Filter, XCircle, Calendar, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Card, CardContent } from "@/components/ui/card"
@@ -18,7 +18,9 @@ import { CameraModal } from "@/components/inspections/camera-modal"
 import { InspectionTypeSelector } from "./inspection-type-selector"
 import { FormField, FormItem, FormControl } from "@/components/ui/form"
 import { withErrorHandling } from "@/lib/utils/error-handler"
+import { cn } from "@/lib/utils"
 import { useI18n } from "@/lib/i18n/context"
+import { useIsMobile } from "@/lib/hooks/use-mobile"
 import type { InspectionType } from "@/types/inspections"
 import { fetchInspectionTemplatesAction } from "@/app/(dashboard)/inspections/actions"
 import Image from "next/image"
@@ -99,6 +101,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   const { toast } = useToast();
   const { user } = useAuth();
   const { t, locale } = useI18n();
+  const isMobile = useIsMobile();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
@@ -106,6 +109,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   const [sections, setSections] = useState<InspectionSection[]>([]);
   const [inspectionDate, setInspectionDate] = useState<Date | undefined>(new Date());
   const [isBackdatingEnabled, setIsBackdatingEnabled] = useState(false);
+  const [isSearchFiltersExpanded, setIsSearchFiltersExpanded] = useState(false);
   
   // Step handling
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
@@ -154,6 +158,14 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   // Prevent duplicate toast notifications when auto-selecting templates
   const autoTemplateToastShownRef = useRef(false);
   const isAutoStartingRef = useRef(false);
+
+  // Auto-expand search filters on mobile when filters become active
+  useEffect(() => {
+    const hasActiveFilters = searchQuery || brandFilter !== "all" || modelFilter !== "all" || groupFilter !== "all";
+    if (hasActiveFilters && isMobile && !isSearchFiltersExpanded) {
+      setIsSearchFiltersExpanded(true);
+    }
+  }, [searchQuery, brandFilter, modelFilter, groupFilter, isMobile, isSearchFiltersExpanded]);
   
   // Helpers for brand normalization (avoid duplicates like 'Toyota' vs 'toyota')
   const normalizeBrand = (b?: string | null) => (b || '').trim().toLowerCase();
@@ -1160,108 +1172,160 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">{t('inspections.steps.selectVehicle')}</h2>
       
-      {/* Search and filters */}
-      <div className="bg-muted/30 p-4 rounded-lg space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          {/* Search input */}
-          <div className="flex-1 relative">
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('vehicles.filters.searchPlaceholder')}
-              className="pl-9 w-full"
-            />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            {searchQuery && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0" 
-                onClick={() => setSearchQuery("")}
-              >
-                <XCircle className="h-4 w-4" />
-                <span className="sr-only">Clear search</span>
-              </Button>
-            )}
-          </div>
-          
-          {/* Brand filter */}
-          <div className="w-full sm:w-48">
-            <Select value={brandFilter} onValueChange={setBrandFilter}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={t('drivers.filters.brand')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('drivers.filters.allBrands')}</SelectItem>
-                {brandOptions.map(opt => (
-                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {/* Model filter - only show if brand is selected */}
-          {brandFilter !== "all" && (
-            <div className="w-full sm:w-48">
-              <Select value={modelFilter} onValueChange={setModelFilter}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={t('drivers.filters.model')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('drivers.filters.allModels')}</SelectItem>
-                  {models.map(model => (
-                    <SelectItem key={model} value={model}>{model}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+       {/* Search and filters */}
+       <div className="bg-muted/30 rounded-lg">
+         {/* Collapsible header - only show on mobile/tablet */}
+         <div className={cn(
+           "flex items-center justify-between p-4 cursor-pointer",
+           "sm:hidden" // Only show on mobile/tablet
+         )} onClick={() => setIsSearchFiltersExpanded(!isSearchFiltersExpanded)}>
+           <div className="flex items-center gap-2">
+             <Search className="h-4 w-4 text-muted-foreground" />
+             <span className="font-medium">Search & Filters</span>
+             {(searchQuery || brandFilter !== "all" || modelFilter !== "all" || groupFilter !== "all") && (
+               <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
+                 Active
+               </span>
+             )}
+           </div>
+           <Button
+             variant="ghost"
+             size="sm"
+             className="h-8 w-8 p-0"
+             onClick={(e) => {
+               e.stopPropagation();
+               setIsSearchFiltersExpanded(!isSearchFiltersExpanded);
+             }}
+           >
+             {isSearchFiltersExpanded ? (
+               <ChevronUp className="h-4 w-4" />
+             ) : (
+               <ChevronDown className="h-4 w-4" />
+             )}
+           </Button>
+         </div>
 
-          {/* Vehicle Group filter */}
-          <div className="w-full sm:w-48">
-            <Select value={groupFilter} onValueChange={setGroupFilter}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={t('vehicleGroups.filter')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('vehicleGroups.allGroups')}</SelectItem>
-                {vehicleGroups.map(group => (
-                  <SelectItem key={group.id} value={group.id}>
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: group.color }}
-                      />
-                      {group.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {/* Clear filters button - only show if any filter is applied */}
-          {(searchQuery || brandFilter !== "all" || modelFilter !== "all" || groupFilter !== "all") && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="sm:self-end" 
-              onClick={resetFilters}
-            >
-              {t('drivers.filters.clearFilters')}
-            </Button>
-          )}
-        </div>
-        
-        {/* Showing results info */}
-        <div className="text-sm text-muted-foreground">
-          {t('inspections.labels.showingVehicles', {
-            start: String(Math.min((currentPage - 1) * vehiclesPerPage + 1, filteredVehicles.length)),
-            end: String(Math.min(currentPage * vehiclesPerPage, filteredVehicles.length)),
-            total: String(filteredVehicles.length)
-          })}
-        </div>
-      </div>
+         {/* Desktop header - only show on desktop */}
+         <div className="hidden sm:block px-4 pt-4">
+           <div className="flex items-center gap-2 mb-4">
+             <Search className="h-4 w-4 text-muted-foreground" />
+             <span className="font-medium">Search & Filters</span>
+             {(searchQuery || brandFilter !== "all" || modelFilter !== "all" || groupFilter !== "all") && (
+               <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
+                 Active
+               </span>
+             )}
+           </div>
+         </div>
+
+         {/* Collapsible content */}
+         <div className={cn(
+           "space-y-4 transition-all duration-300 ease-in-out overflow-hidden",
+           isMobile ? (isSearchFiltersExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0") : "max-h-none opacity-100"
+         )}>
+           <div className="px-4 pb-4">
+             <div className="flex flex-col sm:flex-row gap-4">
+               {/* Search input */}
+               <div className="flex-1 relative">
+                 <Input
+                   value={searchQuery}
+                   onChange={(e) => setSearchQuery(e.target.value)}
+                   placeholder={t('vehicles.filters.searchPlaceholder')}
+                   className="pl-9 w-full"
+                 />
+                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                 {searchQuery && (
+                   <Button 
+                     variant="ghost" 
+                     size="sm" 
+                     className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0" 
+                     onClick={() => setSearchQuery("")}
+                   >
+                     <XCircle className="h-4 w-4" />
+                     <span className="sr-only">Clear search</span>
+                   </Button>
+                 )}
+               </div>
+               
+               {/* Brand filter */}
+               <div className="w-full sm:w-48">
+                 <Select value={brandFilter} onValueChange={setBrandFilter}>
+                   <SelectTrigger className="w-full">
+                     <SelectValue placeholder={t('drivers.filters.brand')} />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="all">{t('drivers.filters.allBrands')}</SelectItem>
+                     {brandOptions.map(opt => (
+                       <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                     ))}
+                   </SelectContent>
+                 </Select>
+               </div>
+               
+               {/* Model filter - only show if brand is selected */}
+               {brandFilter !== "all" && (
+                 <div className="w-full sm:w-48">
+                   <Select value={modelFilter} onValueChange={setModelFilter}>
+                     <SelectTrigger className="w-full">
+                       <SelectValue placeholder={t('drivers.filters.model')} />
+                     </SelectTrigger>
+                     <SelectContent>
+                       <SelectItem value="all">{t('drivers.filters.allModels')}</SelectItem>
+                       {models.map(model => (
+                         <SelectItem key={model} value={model}>{model}</SelectItem>
+                       ))}
+                     </SelectContent>
+                   </Select>
+                 </div>
+               )}
+
+               {/* Vehicle Group filter */}
+               <div className="w-full sm:w-48">
+                 <Select value={groupFilter} onValueChange={setGroupFilter}>
+                   <SelectTrigger className="w-full">
+                     <SelectValue placeholder={t('vehicleGroups.filter')} />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="all">{t('vehicleGroups.allGroups')}</SelectItem>
+                     {vehicleGroups.map(group => (
+                       <SelectItem key={group.id} value={group.id}>
+                         <div className="flex items-center gap-2">
+                           <div 
+                             className="w-3 h-3 rounded-full" 
+                             style={{ backgroundColor: group.color }}
+                           />
+                           {group.name}
+                         </div>
+                       </SelectItem>
+                     ))}
+                   </SelectContent>
+                 </Select>
+               </div>
+               
+               {/* Clear filters button - only show if any filter is applied */}
+               {(searchQuery || brandFilter !== "all" || modelFilter !== "all" || groupFilter !== "all") && (
+                 <Button 
+                   variant="outline" 
+                   size="sm" 
+                   className="sm:self-end" 
+                   onClick={resetFilters}
+                 >
+                   {t('drivers.filters.clearFilters')}
+                 </Button>
+               )}
+             </div>
+             
+             {/* Showing results info */}
+             <div className="text-sm text-muted-foreground mt-4">
+               {t('inspections.labels.showingVehicles', {
+                 start: String(Math.min((currentPage - 1) * vehiclesPerPage + 1, filteredVehicles.length)),
+                 end: String(Math.min(currentPage * vehiclesPerPage, filteredVehicles.length)),
+                 total: String(filteredVehicles.length)
+               })}
+             </div>
+           </div>
+         </div>
+       </div>
       
       {/* Vehicle list */}
       {filteredVehicles.length === 0 ? (
@@ -1372,36 +1436,54 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       
       {/* Date Selection Section - Better positioned */}
       {selectedVehicle && (
-        <div className="bg-muted/30 p-6 rounded-lg space-y-4 mt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-medium">{t("inspections.labels.inspectionDate")}</h3>
-              <p className="text-sm text-muted-foreground">{t("inspections.labels.inspectionDateDescription")}</p>
+        <div className="bg-muted/30 p-4 sm:p-6 rounded-lg space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="text-base sm:text-lg font-medium">{t("inspections.labels.inspectionDate")}</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground">{t("inspections.labels.inspectionDateDescription")}</p>
             </div>
             <Button
               variant="outline"
-              size="sm"
+              size={isMobile ? "default" : "sm"}
+              className={cn(
+                "w-full sm:w-auto min-h-[44px] sm:min-h-0",
+                isMobile && "text-sm"
+              )}
               onClick={() => setIsBackdatingEnabled(!isBackdatingEnabled)}
             >
               <Calendar className="mr-2 h-4 w-4" />
-              {isBackdatingEnabled ? t("inspections.actions.useCurrentDate") : t("inspections.actions.backdateInspection")}
+              <span className="truncate">
+                {isBackdatingEnabled ? t("inspections.actions.useCurrentDate") : t("inspections.actions.backdateInspection")}
+              </span>
             </Button>
           </div>
 
           {isBackdatingEnabled && (
             <div className="space-y-4">
-              <div className="flex items-center space-x-4">
+              <div className="w-full">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-left font-normal"
+                      className={cn(
+                        "w-full justify-start text-left font-normal min-h-[44px]",
+                        isMobile && "text-sm"
+                      )}
                     >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {inspectionDate ? format(inspectionDate, "PPP") : t("inspections.labels.selectDate")}
+                      <Calendar className="mr-2 h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">
+                        {inspectionDate ? format(inspectionDate, "PPP") : t("inspections.labels.selectDate")}
+                      </span>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent 
+                    className={cn(
+                      "w-auto p-0",
+                      isMobile && "w-[calc(100vw-2rem)] max-w-sm mx-auto"
+                    )} 
+                    align={isMobile ? "center" : "start"}
+                    side={isMobile ? "bottom" : "bottom"}
+                  >
                     <CalendarComponent
                       mode="single"
                       selected={inspectionDate}
@@ -1411,25 +1493,46 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
                       }}
                       disabled={(date) => date > new Date() || date < new Date(1900, 0, 1)}
                       initialFocus
+                      className={cn(
+                        isMobile && "w-full [&_table]:w-full [&_td]:w-[14.28%] [&_td]:p-0 [&_td_button]:w-full [&_td_button]:h-10 [&_td_button]:rounded-none [&_td_button]:text-center [&_td_button]:text-sm"
+                      )}
+                      classNames={isMobile ? {
+                        day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                        day_today: "bg-accent text-accent-foreground",
+                        day_outside: "text-muted-foreground opacity-50",
+                        day_disabled: "text-muted-foreground opacity-50",
+                        day_hidden: "invisible",
+                        caption: "flex justify-center pt-1 relative items-center",
+                        caption_label: "text-sm font-medium",
+                        nav: "space-x-1 flex items-center",
+                        nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+                        table: "w-full border-collapse space-y-1",
+                        head_row: "flex w-full justify-between",
+                        head_cell: "text-muted-foreground text-center font-normal text-xs w-[14.28%] px-0",
+                        row: "flex w-full mt-2",
+                        cell: "text-center text-sm p-0 relative w-[14.28%] [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                      } : undefined}
                     />
                   </PopoverContent>
                 </Popover>
               </div>
               
               {inspectionDate && inspectionDate < new Date() && (
-                <div className="flex items-center space-x-2 text-sm text-amber-600 dark:text-amber-400">
-                  <Calendar className="h-4 w-4" />
-                  <span>{t("inspections.labels.backdatingWarning", { 
-                    date: format(inspectionDate, "PPP"),
-                    daysAgo: Math.ceil((new Date().getTime() - inspectionDate.getTime()) / (1000 * 60 * 60 * 24))
-                  })}</span>
+                <div className="flex items-start space-x-2 text-xs sm:text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-md">
+                  <Calendar className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">
+                    {t("inspections.labels.backdatingWarning", { 
+                      date: format(inspectionDate, "PPP"),
+                      daysAgo: Math.ceil((new Date().getTime() - inspectionDate.getTime()) / (1000 * 60 * 60 * 24))
+                    })}
+                  </span>
                 </div>
               )}
             </div>
           )}
 
           {!isBackdatingEnabled && (
-            <div className="text-sm text-muted-foreground">
+            <div className="text-xs sm:text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
               {t("inspections.labels.currentDateInspection", { date: format(new Date(), "PPP") })}
             </div>
           )}
@@ -1437,9 +1540,13 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       )}
 
       {/* Navigation buttons */}
-      <div className="flex justify-end mt-6">
+      <div className="flex justify-end mt-4 sm:mt-6">
       {selectedVehicle && (
           <Button 
+            className={cn(
+              "w-full sm:w-auto min-h-[44px] sm:min-h-0",
+              isMobile && "text-sm"
+            )}
             onClick={() => {
               console.log(`[INSPECTION_FLOW] Moving to type selection with vehicle: ${selectedVehicle.name}`);
               setCurrentStepIndex(0);

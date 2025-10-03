@@ -15,8 +15,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LoadingModal from '@/components/ui/loading-modal';
-import { useProgressSteps } from '@/lib/hooks/useProgressSteps';
+import { useProgressSteps } from '@/lib/hooks/use-progress-steps';
 import { progressConfigs } from '@/lib/config/progressConfigs';
+import { handleError } from '@/lib/utils/error-handler';
 import { Calendar, Clock, CreditCard, Edit, FileText, Link as LinkIcon, MapPin, User, X, Mail, Phone, Navigation, CloudSun, CalendarPlus, FileX, Loader2, ArrowLeft, Truck, Car, Tag, Package, Timer, Building, CheckIcon, CheckCircle, UserX, RefreshCw, StickyNote } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from '@/components/ui/use-toast';
@@ -115,7 +116,7 @@ export default function BookingDetailsPage() {
         await loadAssignedResources(bookingData.booking);
       }
     } catch (err) {
-      console.error('Error loading booking:', err);
+      handleError(err);
       setError('Failed to load booking details');
     } finally {
       setLoading(false);
@@ -178,7 +179,7 @@ export default function BookingDetailsPage() {
         }
       }
     } catch (error) {
-      console.error('Error loading assigned resources:', error);
+      handleError(error);
     }
   };
 
@@ -221,7 +222,7 @@ export default function BookingDetailsPage() {
         throw new Error(result.message);
       }
     } catch (error) {
-      console.error('Error updating booking status:', error);
+      handleError(error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to update booking status",
@@ -265,7 +266,7 @@ export default function BookingDetailsPage() {
       setDrivers(driversData || []);
       setVehicles(vehiclesData || []);
     } catch (error) {
-      console.error('Error loading resources:', error);
+      handleError(error);
     }
   };
 
@@ -316,7 +317,7 @@ export default function BookingDetailsPage() {
         .eq('id', booking?.id || '');
       
       if (error) {
-        console.error('Error updating booking:', error);
+        handleError(error);
         toast({
           title: "Error",
           description: "Failed to update assignment",
@@ -347,7 +348,7 @@ export default function BookingDetailsPage() {
       // Refresh the page to update the booking data
       window.location.reload();
     } catch (error) {
-      console.error('Error in handleAssign:', error);
+      handleError(error);
       toast({
         title: "Error",
         description: "An error occurred while updating the assignment",
@@ -429,7 +430,7 @@ export default function BookingDetailsPage() {
       }, 500);
       
     } catch (error) {
-      console.error('Error sending booking details email:', error);
+      handleError(error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to send email",
@@ -498,7 +499,7 @@ export default function BookingDetailsPage() {
       }, 500);
       
     } catch (error) {
-      console.error('Error sending booking invoice:', error);
+      handleError(error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to send invoice",
@@ -559,7 +560,7 @@ export default function BookingDetailsPage() {
       window.location.reload();
       
     } catch (error) {
-      console.error('Error rescheduling booking:', error);
+      handleError(error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to reschedule booking",

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { PricingPackage, PackageType, PackageItemType, PricingPackageItem, PricingCategory, PricingItem } from "@/types/quotations";
-import { useQuotationService } from "@/lib/hooks/useQuotationService";
+import { useQuotationService } from "@/lib/hooks/use-quotation-service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +50,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useI18n } from "@/lib/i18n/context";
 import { cn, getStatusBadgeClasses } from "@/lib/utils/styles";
+import { handleError } from "@/lib/utils/error-handler";
 import { CalendarDateRangePicker } from "@/components/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
@@ -62,6 +63,7 @@ interface ServiceTypeInfo {
 
 interface EnrichedPricingItem extends PricingItem {
   service_type_name?: string;
+  vehicle_type?: string;
 }
 
 interface PackageServiceItem {
@@ -136,12 +138,12 @@ export default function PricingPackagesTab() {
         setAllServiceTypes(serviceTypesData);
         
         const uniqueVehicleTypes = Array.from(
-          new Set(itemsData.map(item => item.vehicle_type))
-        );
+          new Set(itemsData.map(item => item.vehicle_type).filter(Boolean))
+        ) as string[];
         setAvailableVehicleTypes(uniqueVehicleTypes);
         
       } catch (error) {
-        console.error("Error loading packages:", error);
+        handleError(error);
         toast({
           title: "Error",
           description: "Failed to load pricing packages",
@@ -356,7 +358,7 @@ export default function PricingPackagesTab() {
         }
       }
     } catch (error) {
-      console.error("Error saving package:", error);
+      handleError(error);
       toast({
         title: "Error",
         description: `Failed to ${isEditing ? 'update' : 'create'} package`,
@@ -381,7 +383,7 @@ export default function PricingPackagesTab() {
         });
       }
     } catch (error) {
-      console.error("Error deleting package:", error);
+      handleError(error);
       toast({
         title: "Error",
         description: "Failed to delete package",
@@ -406,7 +408,7 @@ export default function PricingPackagesTab() {
         });
       }
     } catch (error) {
-      console.error("Error toggling package status:", error);
+      handleError(error);
       toast({
         title: "Error",
         description: "Failed to update package status",
@@ -431,7 +433,7 @@ export default function PricingPackagesTab() {
         pricing_item_id: item.id,
         service_type_id: item.service_type_id || '',
         service_type_name: item.service_type_name || getServiceTypeName(item.service_type_id),
-        vehicle_type: item.vehicle_type,
+        vehicle_type: item.vehicle_type || '',
         duration_hours: item.duration_hours,
         price: item.price,
         quantity: 1,

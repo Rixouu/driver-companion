@@ -20,7 +20,7 @@ import { cancelBookingAction } from '@/app/actions/bookings'
 import { useToast } from '@/components/ui/use-toast'
 import SmartAssignmentModal from '@/components/shared/smart-assignment-modal'
 import LoadingModal from '@/components/ui/loading-modal'
-import { useProgressSteps } from '@/lib/hooks/useProgressSteps'
+import { useProgressSteps } from '@/lib/hooks/use-progress-steps'
 import { progressConfigs } from '@/lib/config/progressConfigs'
 
 interface BookingActionsProps {

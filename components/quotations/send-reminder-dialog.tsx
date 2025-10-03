@@ -11,7 +11,7 @@ import { useI18n } from '@/lib/i18n/context'
 import { toast } from '@/components/ui/use-toast'
 import { Quotation } from '@/types/quotations'
 import { Loader2, RefreshCw } from 'lucide-react'
-import { useProgressSteps } from '@/lib/hooks/useProgressSteps'
+import { useProgressSteps } from '@/lib/hooks/use-progress-steps'
 import { progressConfigs } from '@/lib/config/progressConfigs'
 import LoadingModal from '@/components/ui/loading-modal'
 

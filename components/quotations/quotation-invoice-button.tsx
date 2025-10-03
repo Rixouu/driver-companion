@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import LoadingModal from "@/components/ui/loading-modal";
-import { useProgressSteps } from "@/lib/hooks/useProgressSteps";
+import { useProgressSteps } from "@/lib/hooks/use-progress-steps";
 import { progressConfigs } from "@/lib/config/progressConfigs";
 import { toast } from "@/components/ui/use-toast";
 import { Loader2, FileText, CreditCard } from "lucide-react";
@@ -288,12 +288,12 @@ export function QuotationInvoiceButton({ quotation, onSuccess, onSendPaymentLink
       >
         <FileText className="h-4 w-4" />
         {isGenerating ? (t('invoices.actions.generating') || 'Generating...') : 
-          (quotation.status === 'paid' || quotation.status === 'converted' || quotation.payment_completed_at) ? 'Download Invoice (Paid)' : 
+          (quotation.status === 'paid' || quotation.status === 'converted' || quotation.payment_date) ? 'Download Invoice (Paid)' : 
           (t('invoices.actions.downloadPdf') || 'Download Invoice')}
       </Button>
       
       {/* Only show Send Payment Link for non-final statuses */}
-      {!['paid', 'converted'].includes(quotation.status) && !quotation.payment_completed_at && isAdmin && (
+      {!['paid', 'converted'].includes(quotation.status) && !quotation.payment_date && isAdmin && (
         <Button 
           onClick={() => onSendPaymentLink?.()} 
           disabled={isSendingPaymentLink}

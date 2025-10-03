@@ -8,7 +8,7 @@ import { toast } from '@/components/ui/use-toast'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import LoadingModal from '@/components/ui/loading-modal'
-import { useProgressSteps } from '@/lib/hooks/useProgressSteps'
+import { useProgressSteps } from '@/lib/hooks/use-progress-steps'
 // Removed countdown toast imports
 import { progressConfigs } from '@/lib/config/progressConfigs'
 import { Label } from '@/components/ui/label'

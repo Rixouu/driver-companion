@@ -19,14 +19,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useQuotationService } from '@/lib/hooks/useQuotationService';
+import { useQuotationService } from '@/lib/hooks/use-quotation-service';
 import { toast } from '@/components/ui/use-toast';
 import { useMediaQuery } from '@/lib/hooks/use-media-query';
 import LoadingSpinner from '@/components/shared/loading-spinner';
 import { TeamSwitcher } from '@/components/team-switcher';
 import LoadingModal from '@/components/ui/loading-modal';
-import { useProgressSteps } from '@/lib/hooks/useProgressSteps'
-import { useCountdownToast } from '@/lib/hooks/useCountdownToast'
+import { useProgressSteps } from '@/lib/hooks/use-progress-steps'
+import { useCountdownToast } from '@/lib/hooks/use-countdown-toast'
 import { CountdownToast } from '@/components/ui/countdown-toast';
 import { progressConfigs } from '@/lib/config/progressConfigs';
 
@@ -50,7 +50,7 @@ import {
   PricingPackage,
   PricingPromotion
 } from '@/types/quotations';
-import { useQuotationFormData } from '@/lib/hooks/useQuotationFormData';
+import { useQuotationFormData } from '@/lib/hooks/use-quotation-form-data';
 
 // Define form schema with zod
 const formSchema = z.object({

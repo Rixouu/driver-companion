@@ -15,9 +15,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { DeleteConfirmationModal } from '@/components/shared/delete-confirmation-modal';
 import QuotationList from '@/components/quotations/quotation-list';
-import { useQuotationService } from "@/lib/hooks/useQuotationService";
+import { useQuotationService } from "@/lib/hooks/use-quotation-service";
 import { Quotation, QuotationStatus } from "@/types/quotations";
 import { SendReminderDialog } from '@/components/quotations/send-reminder-dialog';
+import { handleError } from '@/lib/utils/error-handler';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle, Filter, Edit, Eye, Copy, Trash, Send, FileText, RefreshCw, Download, AlertTriangle, CheckCircle, XCircle, Clock } from "lucide-react";
 
@@ -95,7 +96,7 @@ export default function QuotationsTableClient({
             errorCount++;
           }
         } catch (error) {
-          console.error(`Error deleting quotation ${id}:`, error);
+          handleError(error);
           errorCount++;
         }
       }
@@ -126,7 +127,7 @@ export default function QuotationsTableClient({
         });
       }
     } catch (error) {
-      console.error('Error deleting quotations:', error);
+      handleError(error);
       toast({
         title: t('quotations.notifications.error'),
         description: 'Failed to delete quotations',
@@ -156,7 +157,7 @@ export default function QuotationsTableClient({
         });
       }
     } catch (error) {
-      console.error('Error sending quotation:', error);
+      handleError(error);
       toast({
         title: t('quotations.notifications.error'),
         description: 'Failed to send quotation',

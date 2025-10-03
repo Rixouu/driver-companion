@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { PricingItem, PricingCategory, ServiceTypeInfo } from "@/types/quotations";
-import { useQuotationService } from "@/lib/hooks/useQuotationService";
+import { useQuotationService } from "@/lib/hooks/use-quotation-service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -30,7 +30,6 @@ import { PricingResponsiveTable, PricingTableHeader, PricingTableHead, PricingTa
 import { Plus, Edit, Trash, Check, X, Filter, Search, Car, Clock, DollarSign, Database, RefreshCw, Users, Copy } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { toast } from "@/components/ui/use-toast";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn, getStatusBadgeClasses } from "@/lib/utils/styles";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ManageVehiclesModal } from "./manage-vehicles-modal";

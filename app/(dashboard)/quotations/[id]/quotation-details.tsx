@@ -13,7 +13,7 @@ import { StatusBadge } from '@/components/shared/status-badge';
 import { Separator } from "@/components/ui/separator";
 import { Progress } from '@/components/ui/progress';
 import LoadingModal from '@/components/ui/loading-modal';
-import { useProgressSteps } from '@/lib/hooks/useProgressSteps';
+import { useProgressSteps } from '@/lib/hooks/use-progress-steps';
 import { progressConfigs } from '@/lib/config/progressConfigs';
 import { useCurrency } from '@/lib/services/currency-service';
 import { CurrencySelector } from '@/components/ui/currency-selector';
@@ -56,7 +56,7 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { Quotation, QuotationItem, QuotationStatus, PricingPackage, PricingPromotion, PackageType } from '@/types/quotations';
-import { useQuotationService } from "@/lib/hooks/useQuotationService";
+import { useQuotationService } from "@/lib/hooks/use-quotation-service";
 import LoadingSpinner from '@/components/shared/loading-spinner';
 import { QuotationPdfButton } from '@/components/quotations/quotation-pdf-button';
 import { QuotationInvoiceButton } from '@/components/quotations/quotation-invoice-button';

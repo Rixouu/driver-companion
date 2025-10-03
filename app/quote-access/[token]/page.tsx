@@ -41,8 +41,9 @@ import { Info } from 'lucide-react';
 import { QuotationDetailsApprovalPanel } from '@/components/quotations/quotation-details/approval-panel';
 import { QuotationShareButtons } from '@/components/quotations/quotation-share-buttons';
 import LoadingModal from '@/components/ui/loading-modal';
-import { useProgressSteps } from '@/lib/hooks/useProgressSteps';
+import { useProgressSteps } from '@/lib/hooks/use-progress-steps';
 import { toast } from 'sonner';
+import { handleError } from '@/lib/utils/error-handler';
 
 interface QuotationData {
   id: string;
@@ -246,7 +247,7 @@ export default function QuoteAccessPage() {
       setTimeout(() => setProgressOpen(false), 500);
       
       } catch (error) {
-      console.error('Error downloading document:', error);
+      handleError(error);
       toast.error(`Failed to download document: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setProgressOpen(false);
       } finally {
@@ -280,7 +281,7 @@ export default function QuoteAccessPage() {
         throw new Error('Failed to approve quotation');
       }
     } catch (error) {
-      console.error('Error approving quotation:', error);
+      handleError(error);
       toast.error('Failed to approve quotation. Please try again.');
     } finally {
       setIsApproving(false);
@@ -312,7 +313,7 @@ export default function QuoteAccessPage() {
         throw new Error('Failed to reject quotation');
       }
     } catch (error) {
-      console.error('Error rejecting quotation:', error);
+      handleError(error);
       toast.error('Failed to reject quotation. Please try again.');
     } finally {
       setIsRejecting(false);
@@ -339,7 +340,7 @@ export default function QuoteAccessPage() {
         const data = await response.json();
         setQuotation(data.quotation);
     } catch (error) {
-        console.error('Error fetching quotation:', error);
+        handleError(error);
         setError(error instanceof Error ? error.message : 'Failed to load quotation');
     } finally {
         setLoading(false);
@@ -359,7 +360,7 @@ export default function QuoteAccessPage() {
           setExchangeRates(data.rates);
         }
       } catch (error) {
-        console.error('Error fetching exchange rates:', error);
+        handleError(error);
       }
     };
 

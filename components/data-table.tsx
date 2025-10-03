@@ -36,7 +36,6 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  SlidersHorizontal,
 } from "lucide-react"
 import {
   DropdownMenu,

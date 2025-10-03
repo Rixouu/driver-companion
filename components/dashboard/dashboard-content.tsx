@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useI18n } from "@/lib/i18n/context"
 import { formatDate } from "@/lib/utils/formatting"
-import { cn, getInspectionStatusBadgeClasses, getMaintenanceStatusBadgeClasses } from "@/lib/utils/styles"
+import { cn, getInspectionStatusBadgeClasses, getMaintenanceStatusBadgeClasses, getStatusBadgeClasses, getQuotationStatusBadgeClasses } from "@/lib/utils/styles"
 import {
   Car,
   Wrench,
@@ -24,12 +24,8 @@ import {
   ArrowRight,
   BarChart3,
   Bell,
-  CheckSquare,
   Fuel,
   RotateCw,
-  Sparkles,
-  ThumbsUp,
-
   MapPin,
   User,
   Timer,
@@ -72,88 +68,27 @@ interface DashboardContentProps {
 }
 
 function getQuotationStatusBadge(status: string, t: (key: string, options?: any) => string) {
-  switch (status) {
-    case 'draft':
-      return (
-        <Badge variant="outline" className="text-gray-800 border-gray-400 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
-          {t('quotations.status.draft')}
-        </Badge>
-      );
-    case 'sent':
-      return (
-        <Badge variant="outline" className="text-blue-800 border-blue-400 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700">
-          {t('quotations.status.sent')}
-        </Badge>
-      );
-    case 'approved':
-      return (
-        <Badge variant="outline" className="text-green-800 border-green-400 bg-green-50 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">
-          {t('quotations.status.approved')}
-        </Badge>
-      );
-    case 'rejected':
-      return (
-        <Badge variant="outline" className="text-red-800 border-red-400 bg-red-50 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700">
-          {t('quotations.status.rejected')}
-        </Badge>
-      );
-    case 'converted':
-      return (
-        <Badge variant="outline" className="text-purple-800 border-purple-400 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700">
-          {t('quotations.status.converted')}
-        </Badge>
-      );
-    case 'paid':
-      return (
-        <Badge variant="outline" className="text-green-800 border-green-400 bg-green-50 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">
-          {t('quotations.status.paid')}
-        </Badge>
-      );
-    case 'expired':
-      return (
-        <Badge variant="outline" className="text-amber-800 border-orange-400 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-700">
-          {t('quotations.status.expired')}
-        </Badge>
-      );
-    default:
-      return (
-        <Badge variant="outline" className="text-gray-800 border-gray-400 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
-          {status}
-        </Badge>
-      );
-  }
+  return (
+    <Badge variant="outline" className={getQuotationStatusBadgeClasses(status)}>
+      {t(`quotations.status.${status}`) || status}
+    </Badge>
+  );
 }
 
 function getBookingStatusBadge(status: string, t: (key: string, options?: any) => string) {
-    switch (status) {
-      case 'completed':
-      case 'confirmed':
-        return <Badge variant="outline" className="text-green-800 border-green-400 bg-green-50 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">{t(`bookings.status.${status}`)}</Badge>;
-      case 'assigned':
-        return <Badge variant="outline" className="text-blue-800 border-blue-400 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700">{t(`bookings.status.${status}`)}</Badge>;
-      case 'pending':
-        return <Badge variant="outline" className="text-yellow-800 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700">{t(`bookings.status.${status}`)}</Badge>;
-      case 'cancelled':
-        return <Badge variant="outline" className="text-red-800 border-red-400 bg-red-50 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700">{t(`bookings.status.${status}`)}</Badge>;
-      default:
-        return <Badge variant="outline" className="text-gray-800 border-gray-400 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">{t(`bookings.status.${status}`)}</Badge>;
-    }
+  return (
+    <Badge variant="outline" className={getStatusBadgeClasses(status)}>
+      {t(`bookings.status.${status}`) || status}
+    </Badge>
+  );
 }
 
 function getMaintenanceStatusBadge(status: string, t: (key: string, options?: any) => string) {
-    switch (status) {
-      case 'completed':
-        return <Badge variant="outline" className="text-green-800 border-green-400 bg-green-50 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">{t(`maintenance.status.${status}`)}</Badge>;
-      case 'in_progress':
-        return <Badge variant="outline" className="text-yellow-800 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700">{t(`maintenance.status.${status}`)}</Badge>;
-      case 'scheduled':
-      case 'pending':
-        return <Badge variant="outline" className="text-amber-800 border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700">{t(`maintenance.status.${status}`)}</Badge>;
-      case 'cancelled':
-        return <Badge variant="outline" className="text-red-800 border-red-400 bg-red-50 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700">{t(`maintenance.status.${status}`)}</Badge>;
-      default:
-        return <Badge variant="outline" className="text-gray-800 border-gray-400 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">{t(`maintenance.status.${status}`)}</Badge>;
-    }
+  return (
+    <Badge variant="outline" className={getStatusBadgeClasses(status)}>
+      {t(`maintenance.status.${status}`) || status}
+    </Badge>
+  );
 }
 
 
@@ -453,7 +388,7 @@ export function DashboardContent({
           <CardContent>
             <div className="space-y-3">
               {expiringQuotations.map((quotation) => (
-                <Link key={quotation.id} href={getQuotationUrl(quotation)}>
+                <Link key={quotation.id} href={getQuotationUrl(quotation) as any}>
                   <div className="flex items-center justify-between p-3 bg-background rounded-lg border hover:bg-accent transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
@@ -1053,7 +988,7 @@ function BookingCard({ booking }: { booking: Booking }) {
 function QuotationCard({ quotation }: { quotation: any }) {
   const { t } = useI18n()
   return (
-    <Link href={getQuotationUrl(quotation)} className="block">
+    <Link href={getQuotationUrl(quotation) as any} className="block">
       <div className="p-3 sm:p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
         <div className="flex items-start gap-3">
           <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">

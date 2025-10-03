@@ -47,9 +47,14 @@ export async function processQuotationExpiryNotifications() {
           if (!existing) {
             await notificationService.createAdminNotification(
               'quotation_expiring_24h',
-              quotation.id,
-              `Quotation #${quotation.quote_number} expires in 24 hours`,
-              `Quotation for ${quotation.customer_name} (${quotation.service_type}) expires tomorrow at ${new Date(quotation.expiry_date).toLocaleString()}`
+              {
+                quotationId: quotation.id,
+                quoteNumber: quotation.quote_number,
+                customerName: quotation.customer_name,
+                serviceType: quotation.service_type,
+                expiryDate: quotation.expiry_date
+              },
+              quotation.id
             )
             console.log(`[Scheduled Notifications] Sent 24h expiry notification for quotation #${quotation.quote_number}`)
           }
@@ -78,9 +83,14 @@ export async function processQuotationExpiryNotifications() {
           if (!existing) {
             await notificationService.createAdminNotification(
               'quotation_expiring_2h',
-              quotation.id,
-              `Urgent: Quotation #${quotation.quote_number} expires in 2 hours`,
-              `Quotation for ${quotation.customer_name} (${quotation.service_type}) expires soon at ${new Date(quotation.expiry_date).toLocaleString()}`
+              {
+                quotationId: quotation.id,
+                quoteNumber: quotation.quote_number,
+                customerName: quotation.customer_name,
+                serviceType: quotation.service_type,
+                expiryDate: quotation.expiry_date
+              },
+              quotation.id
             )
             console.log(`[Scheduled Notifications] Sent 2h expiry notification for quotation #${quotation.quote_number}`)
           }
@@ -114,9 +124,14 @@ export async function processQuotationExpiryNotifications() {
           if (!existing) {
             await notificationService.createAdminNotification(
               'quotation_expired',
-              quotation.id,
-              `Quotation #${quotation.quote_number} has expired`,
-              `Quotation for ${quotation.customer_name} (${quotation.service_type}) expired at ${new Date(quotation.expiry_date).toLocaleString()}`
+              {
+                quotationId: quotation.id,
+                quoteNumber: quotation.quote_number,
+                customerName: quotation.customer_name,
+                serviceType: quotation.service_type,
+                expiryDate: quotation.expiry_date
+              },
+              quotation.id
             )
             console.log(`[Scheduled Notifications] Marked quotation #${quotation.quote_number} as expired`)
           }
@@ -165,9 +180,16 @@ export async function processBookingReminderNotifications() {
           if (!existing) {
             await notificationService.createAdminNotification(
               'booking_reminder_24h',
-              booking.id,
-              `Booking reminder: ${booking.service_name} tomorrow`,
-              `Booking for ${booking.customer_name} (${booking.service_name}) is scheduled for tomorrow at ${booking.time}. Pickup: ${booking.pickup_location}`
+              {
+                bookingId: booking.id,
+                wpId: booking.wp_id,
+                customerName: booking.customer_name,
+                serviceName: booking.service_name,
+                time: booking.time,
+                pickupLocation: booking.pickup_location,
+                date: booking.date
+              },
+              booking.id
             )
             console.log(`[Scheduled Notifications] Sent 24h reminder for booking ${booking.wp_id}`)
           }
@@ -207,9 +229,16 @@ export async function processBookingReminderNotifications() {
             if (!existing) {
               await notificationService.createAdminNotification(
                 'booking_reminder_2h',
-                booking.id,
-                `Urgent: Booking starts in 2 hours - ${booking.service_name}`,
-                `Booking for ${booking.customer_name} (${booking.service_name}) starts at ${booking.time}. Pickup: ${booking.pickup_location}`
+                {
+                  bookingId: booking.id,
+                  wpId: booking.wp_id,
+                  customerName: booking.customer_name,
+                  serviceName: booking.service_name,
+                  time: booking.time,
+                  pickupLocation: booking.pickup_location,
+                  date: booking.date
+                },
+                booking.id
               )
               console.log(`[Scheduled Notifications] Sent 2h reminder for booking ${booking.wp_id}`)
             }

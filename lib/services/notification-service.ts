@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/index';
+import { createServiceClient } from '@/lib/supabase/service-client';
 import { NotificationInsert, NotificationType } from '@/types/notifications';
 
 interface CreateNotificationOptions {
@@ -217,21 +218,25 @@ export class NotificationService {
     dueDate?: string
   ): Promise<void> {
     try {
-      // Get all admin users - handle RLS policy errors gracefully
-      const { data: adminUsers, error: adminError } = await this.supabase
+      // Use service client to bypass RLS policies
+      const serviceSupabase = createServiceClient();
+      
+      // Get all admin users using service client
+      const { data: adminUsers, error: adminError } = await serviceSupabase
         .from('admin_users')
         .select('id');
 
       if (adminError) {
-        console.warn('Error fetching admin users (RLS policy issue):', adminError.message);
-        // Don't throw error, just skip admin notifications for now
-        // This is a known issue with RLS policies causing infinite recursion
-        return;
+        console.error('Error fetching admin users:', adminError.message);
+        throw new Error(`Failed to fetch admin users: ${adminError.message}`);
       }
 
       if (adminUsers && adminUsers.length > 0) {
         const userIds = adminUsers.map(user => user.id);
         await this.createBulkNotifications(type, userIds, data, relatedId, dueDate);
+        console.log(`[NotificationService] Created admin notification for ${userIds.length} admin users`);
+      } else {
+        console.warn('[NotificationService] No admin users found, skipping admin notification');
       }
     } catch (error) {
       console.error('NotificationService.createAdminNotification error:', error);

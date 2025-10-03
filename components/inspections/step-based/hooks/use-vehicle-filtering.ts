@@ -25,10 +25,10 @@ interface UseVehicleFilteringProps {
 export function useVehicleFiltering({ vehicles }: UseVehicleFilteringProps) {
   const isMobile = useIsMobile();
   
-  // Debug: Log vehicles to console
+  // Debug: Log vehicles to console (can be removed in production)
   useEffect(() => {
-    console.log('[VehicleFiltering] Available vehicles:', vehicles);
-    console.log('[VehicleFiltering] Toyota Hi-Ace vehicles:', vehicles.filter(v => v.model?.toLowerCase().includes('hi-ace')));
+    console.log('[VehicleFiltering] Available vehicles:', vehicles.length);
+    console.log('[VehicleFiltering] Toyota Hi-Ace vehicles:', vehicles.filter(v => v.model?.toLowerCase().includes('hi-ace')).length);
   }, [vehicles]);
   
   // Search and filter state
@@ -39,7 +39,7 @@ export function useVehicleFiltering({ vehicles }: UseVehicleFilteringProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [isSearchFiltersExpanded, setIsSearchFiltersExpanded] = useState(false);
   
-  const vehiclesPerPage = 10;
+  const vehiclesPerPage = 15; // Increased to show more vehicles per page
 
   // Auto-expand search filters on mobile when filters become active
   useEffect(() => {
@@ -77,7 +77,7 @@ export function useVehicleFiltering({ vehicles }: UseVehicleFilteringProps) {
         }
       }
     });
-    return Array.from(uniqueModels).sort();
+    return Array.from(uniqueModels).sort().map(model => ({ value: model, label: model }));
   }, [vehicles, brandFilter]);
 
   // Get unique groups
@@ -88,7 +88,7 @@ export function useVehicleFiltering({ vehicles }: UseVehicleFilteringProps) {
         uniqueGroups.add(vehicle.group.name);
       }
     });
-    return Array.from(uniqueGroups).sort();
+    return Array.from(uniqueGroups).sort().map(group => ({ value: group, label: group }));
   }, [vehicles]);
 
   // Filter vehicles based on search and filters

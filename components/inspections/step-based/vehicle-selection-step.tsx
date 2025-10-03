@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
-import { Search, Filter, XCircle, Calendar, ChevronDown, ChevronUp } from "lucide-react"
+import { Search, Filter, XCircle, Calendar, ChevronDown, ChevronUp, ArrowLeft, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/lib/i18n/context"
 import { useIsMobile } from "@/lib/hooks/use-mobile"
@@ -55,6 +55,11 @@ interface VehicleSelectionStepProps {
   modelOptions: Array<{ value: string; label: string }>
   groupOptions: Array<{ value: string; label: string }>
   filteredVehicles: Vehicle[]
+  paginatedVehicles: Vehicle[]
+  currentPage: number
+  setCurrentPage: (page: number) => void
+  totalPages: number
+  vehiclesPerPage: number
 }
 
 export function VehicleSelectionStep({
@@ -79,7 +84,12 @@ export function VehicleSelectionStep({
   brandOptions,
   modelOptions,
   groupOptions,
-  filteredVehicles
+  filteredVehicles,
+  paginatedVehicles,
+  currentPage,
+  setCurrentPage,
+  totalPages,
+  vehiclesPerPage,
 }: VehicleSelectionStepProps) {
   const { t } = useI18n()
   const isMobile = useIsMobile()
@@ -267,11 +277,18 @@ export function VehicleSelectionStep({
 
       {/* Vehicle list */}
       <div className="space-y-4">
-        <h3 className="font-medium">
-          {t('vehicles.available')} ({filteredVehicles.length})
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="font-medium">
+            {t('vehicles.available')} ({filteredVehicles.length})
+          </h3>
+          {totalPages > 1 && (
+            <div className="text-sm text-muted-foreground">
+              {t('vehicles.pagination.showing')} {((currentPage - 1) * vehiclesPerPage) + 1}-{Math.min(currentPage * vehiclesPerPage, filteredVehicles.length)} {t('vehicles.pagination.of')} {filteredVehicles.length}
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredVehicles.map((vehicle) => (
+          {paginatedVehicles.map((vehicle) => (
             <Card
               key={vehicle.id}
               className={cn(
@@ -320,6 +337,33 @@ export function VehicleSelectionStep({
             </Card>
           ))}
         </div>
+        
+        {/* Pagination controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              {t('common.previous')}
+            </Button>
+            <span className="text-sm text-muted-foreground px-4">
+              {t('vehicles.pagination.page')} {currentPage} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+            >
+              {t('common.next')}
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Next button */}

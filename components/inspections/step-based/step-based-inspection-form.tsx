@@ -268,7 +268,12 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
             brandOptions={vehicleFiltering.brandOptions}
             modelOptions={vehicleFiltering.modelOptions}
             groupOptions={vehicleFiltering.groupOptions}
-            filteredVehicles={vehicleFiltering.paginatedVehicles}
+            filteredVehicles={vehicleFiltering.filteredVehicles}
+            paginatedVehicles={vehicleFiltering.paginatedVehicles}
+            currentPage={vehicleFiltering.currentPage}
+            setCurrentPage={vehicleFiltering.setCurrentPage}
+            totalPages={vehicleFiltering.totalPages}
+            vehiclesPerPage={vehicleFiltering.vehiclesPerPage}
           />
         )}
         {inspectionState.currentStepIndex === 0 && (

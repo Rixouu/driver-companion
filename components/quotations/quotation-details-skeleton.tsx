@@ -6,231 +6,227 @@ import { Separator } from '@/components/ui/separator'
 export function QuotationDetailsSkeleton() {
   return (
     <div className="space-y-6 p-6">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-56" />
-          <Skeleton className="h-5 w-40" />
-        </div>
-        <div className="flex gap-2">
-          <Skeleton className="h-9 w-24" />
-          <Skeleton className="h-9 w-24" />
-          <Skeleton className="h-9 w-24" />
-        </div>
-      </div>
-
-      {/* Status and Progress Section */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-1">
-          <Skeleton className="h-6 w-32 mb-2" />
-          <Skeleton className="h-4 w-48" />
-        </div>
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-6 w-20" />
-          <Skeleton className="h-4 w-16" />
-        </div>
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Left Column - Main Content */}
-        <div className="xl:col-span-2 space-y-6">
-          {/* Customer Information Card */}
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-40" />
-              <Skeleton className="h-4 w-56" />
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-start space-x-4">
-                <Skeleton className="h-12 w-12 rounded-full" />
-                <div className="space-y-2 flex-1">
-                  <Skeleton className="h-5 w-32" />
-                  <Skeleton className="h-4 w-48" />
-                  <Skeleton className="h-4 w-36" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quotation Information Card */}
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-4 w-64" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="space-y-2">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-5 w-32" />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Services Section */}
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-32" />
-              <Skeleton className="h-4 w-48" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Skeleton className="h-5 w-48" />
-                    <Skeleton className="h-6 w-20" />
-                  </div>
-                  <Skeleton className="h-4 w-full" />
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <Skeleton className="h-3 w-16" />
-                      <Skeleton className="h-4 w-12" />
-                    </div>
-                    <div className="space-y-1">
-                      <Skeleton className="h-3 w-16" />
-                      <Skeleton className="h-4 w-12" />
-                    </div>
-                    <div className="space-y-1">
-                      <Skeleton className="h-3 w-16" />
-                      <Skeleton className="h-4 w-12" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Pricing Details Card */}
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-36" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="flex justify-between items-center">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-4 w-20" />
-                  </div>
-                ))}
-              </div>
-              <Separator />
-              <div className="flex justify-between items-center">
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-6 w-28" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Notes Section */}
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-24" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-20 w-full" />
-            </CardContent>
-          </Card>
+      {/* Header Section - Matches the actual page layout */}
+      <div className="space-y-4">
+        {/* Title and Share Button Row */}
+        <div className="flex justify-between items-start">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" /> {/* "Test Beer" title */}
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-64" /> {/* Quotation number and creator */}
+              <Skeleton className="h-6 w-32 rounded-full" /> {/* Status badge */}
+            </div>
+          </div>
+          <Skeleton className="h-9 w-20" /> {/* Share button */}
         </div>
 
-        {/* Right Column - Sidebar */}
-        <div className="space-y-6">
-          {/* Status Card */}
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-20" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-6 w-20" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-6 w-20" />
-              </div>
-            </CardContent>
-          </Card>
+        {/* Success Message Bar */}
+        <div className="flex items-center gap-2 p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
+          <Skeleton className="h-4 w-4 rounded-full" /> {/* Green dot */}
+          <Skeleton className="h-4 w-48" /> {/* Success message */}
+        </div>
 
-          {/* Pricing Summary Card */}
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-32" />
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex justify-between">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-16" />
-                </div>
-              ))}
-              <Separator />
-              <div className="flex justify-between">
-                <Skeleton className="h-5 w-16" />
-                <Skeleton className="h-5 w-20" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Actions Card */}
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-20" />
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-9 w-full" />
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Approval Panel Card */}
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-32" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-6 w-32" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-4 w-40" />
-              </div>
-              <div className="flex gap-2">
-                <Skeleton className="h-8 w-20" />
-                <Skeleton className="h-8 w-20" />
-              </div>
-            </CardContent>
-          </Card>
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <Skeleton className="h-10 w-40" /> {/* Download Invoice button */}
+          <Skeleton className="h-10 w-44" /> {/* Send Magic Link button */}
         </div>
       </div>
 
-      {/* Workflow Section */}
+      {/* Quotation Workflow Section */}
       <Card>
         <CardHeader>
-          <Skeleton className="h-6 w-32" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-5" /> {/* Document icon */}
+            <Skeleton className="h-6 w-40" /> {/* "Quotation Workflow" title */}
+          </div>
+          <Skeleton className="h-4 w-80" /> {/* Description */}
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          {/* Workflow Progress Circles */}
+          <div className="flex items-center justify-between mb-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex items-center space-x-4">
-                <Skeleton className="h-8 w-8 rounded-full" />
-                <div className="space-y-1 flex-1">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-24" />
-                </div>
-                <Skeleton className="h-6 w-16" />
+              <div key={i} className="flex flex-col items-center space-y-2">
+                <Skeleton className="h-8 w-8 rounded-full" /> {/* Progress circle */}
+                <Skeleton className="h-4 w-16" /> {/* Stage name */}
+                <Skeleton className="h-3 w-20" /> {/* "Click for details" */}
               </div>
             ))}
           </div>
+          
+          {/* Current Status */}
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-16" /> {/* "Status:" label */}
+            <Skeleton className="h-6 w-32 rounded-full" /> {/* Status badge */}
+          </div>
         </CardContent>
       </Card>
+
+      {/* Main Content Grid - Matches the actual 2-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Main Content (2/3 width) */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Customer Information Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-5 w-5" /> {/* Person icon */}
+                <Skeleton className="h-6 w-40" /> {/* "Customer Information" title */}
+              </div>
+              <Skeleton className="h-4 w-56" /> {/* Description */}
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Contact Information */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-5 w-5" /> {/* Person icon */}
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-24" /> {/* "Full Name" label */}
+                      <Skeleton className="h-5 w-32" /> {/* Name value */}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-5 w-5" /> {/* Mail icon */}
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-20" /> {/* "Email" label */}
+                      <Skeleton className="h-5 w-48" /> {/* Email value */}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-5 w-5" /> {/* Phone icon */}
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-16" /> {/* "Phone" label */}
+                      <Skeleton className="h-5 w-32" /> {/* Phone value */}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Billing Address */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-5 w-5" /> {/* Building icon */}
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-24" /> {/* "Company" label */}
+                      <Skeleton className="h-5 w-32" /> {/* Company value */}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-5 w-5" /> {/* Map pin icon */}
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-20" /> {/* "Address" label */}
+                      <Skeleton className="h-5 w-40" /> {/* Address value */}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Selected Services Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-5 w-5" /> {/* Car icon */}
+                  <Skeleton className="h-6 w-36" /> {/* "Selected Services" title */}
+                  <Skeleton className="h-4 w-24" /> {/* "2 services selected" */}
+                </div>
+                <Skeleton className="h-8 w-20" /> {/* Expand button */}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Service Items */}
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-5 w-5" /> {/* Service icon */}
+                      <div className="space-y-1">
+                        <Skeleton className="h-5 w-48" /> {/* Service name */}
+                        <Skeleton className="h-4 w-64" /> {/* Service details */}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-6 w-20" /> {/* Price */}
+                      <Skeleton className="h-4 w-4" /> {/* Dropdown arrow */}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              {/* Total Amount */}
+              <div className="border-t pt-3">
+                <div className="flex justify-between">
+                  <Skeleton className="h-4 w-24" /> {/* "Total Amount" label */}
+                  <Skeleton className="h-5 w-20" /> {/* Total value */}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column - Sidebar (1/3 width) */}
+        <div className="space-y-6">
+          {/* Price Details Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-5 w-5" /> {/* Document icon */}
+                  <Skeleton className="h-6 w-28" /> {/* "Price Details" title */}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-8 w-16" /> {/* Currency selector */}
+                  <Skeleton className="h-5 w-5" /> {/* Clock icon */}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Service Items in Price Details */}
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-4 w-32" /> {/* Service name */}
+                    <Skeleton className="h-4 w-20" /> {/* Price */}
+                  </div>
+                  <Skeleton className="h-3 w-40" /> {/* Quantity details */}
+                </div>
+              ))}
+              
+              <Separator />
+              
+              {/* Pricing Summary */}
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Skeleton className="h-4 w-24" /> {/* "Services Subtotal" */}
+                  <Skeleton className="h-4 w-20" /> {/* Subtotal value */}
+                </div>
+                <div className="flex justify-between">
+                  <Skeleton className="h-4 w-20" /> {/* "Discount" */}
+                  <Skeleton className="h-4 w-16" /> {/* Discount value */}
+                </div>
+                <div className="flex justify-between">
+                  <Skeleton className="h-4 w-16" /> {/* "Subtotal" */}
+                  <Skeleton className="h-4 w-20" /> {/* Subtotal value */}
+                </div>
+                <div className="flex justify-between">
+                  <Skeleton className="h-4 w-12" /> {/* "Tax" */}
+                  <Skeleton className="h-4 w-16" /> {/* Tax value */}
+                </div>
+              </div>
+              
+              <Separator />
+              
+              {/* Total Amount Due */}
+              <div className="flex justify-between items-center">
+                <Skeleton className="h-5 w-32" /> {/* "Total Amount Due" */}
+                <Skeleton className="h-6 w-24" /> {/* Total amount */}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   )
 }

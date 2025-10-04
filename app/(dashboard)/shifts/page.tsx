@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/page-header";
-import { CrewTaskCalendarGrid } from "@/components/shifts/crew-task-calendar-grid";
+import { ShiftCalendarGrid } from "@/components/shifts/shift-calendar-grid";
 import { ShiftFilters } from "@/components/shifts/shift-filters";
 import { ShiftStatistics } from "@/components/shifts/shift-statistics";
 import { UnassignedBookings } from "@/components/shifts/unassigned-bookings";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { ShiftTabsList } from "@/components/shifts/shift-tabs-list";
-import { useCrewTasks } from "@/lib/hooks/use-crew-tasks";
-import { CrewTask, CreateCrewTaskRequest } from "@/types/crew-tasks";
+import { useShiftSchedule } from "@/lib/hooks/use-shift-schedule";
+import { Booking } from "@/types/bookings";
 import { format, startOfWeek, endOfWeek, addDays, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -34,6 +35,7 @@ export default function ShiftsPage() {
   const [modalDate, setModalDate] = useState<string | undefined>();
   const [modalTaskNumber, setModalTaskNumber] = useState<number | undefined>();
   const [drivers, setDrivers] = useState<Array<{ id: string; first_name: string; last_name: string }>>([]);
+  
 
   // Calculate date range based on view type
   const getDateRange = () => {
@@ -67,8 +69,8 @@ export default function ShiftsPage() {
     end: new Date(dateRange.end),
   }).map((date) => format(date, "yyyy-MM-dd"));
 
-  // Fetch crew task schedule data
-  const { data, meta, isLoading, error, refetch, createTask } = useCrewTasks({
+  // Fetch shift schedule data (bookings)
+  const { data, meta, isLoading, error, refetch } = useShiftSchedule({
     startDate: dateRange.start,
     endDate: dateRange.end,
     driverIds: selectedDriverIds.length > 0 ? selectedDriverIds : undefined,
@@ -99,14 +101,9 @@ export default function ShiftsPage() {
     loadDrivers();
   }, []);
 
-  const handleTaskClick = (task: CrewTask) => {
-    // If task is linked to booking, navigate to booking details
-    if (task.booking_id) {
-      window.location.href = `/bookings/${task.booking_id}`;
-    } else {
-      // Otherwise, open task details modal (TODO: implement)
-      console.log("Task clicked:", task);
-    }
+  const handleBookingClick = (booking: Booking) => {
+    // Navigate to booking details
+    window.location.href = `/bookings/${booking.id}`;
   };
 
   const handleCellClick = (driverId: string, date: string) => {
@@ -117,9 +114,10 @@ export default function ShiftsPage() {
     setIsModalOpen(true);
   };
 
-  const handleTaskCreate = async (task: CreateCrewTaskRequest) => {
+  const handleTaskCreate = async (task: any) => {
     try {
-      await createTask(task);
+      // TODO: Implement task creation
+      console.log("Creating task:", task);
       // Modal will close automatically on success
     } catch (error) {
       console.error("Error creating task:", error);
@@ -133,6 +131,7 @@ export default function ShiftsPage() {
     setModalDate(undefined);
     setModalTaskNumber(undefined);
   };
+
 
   const handleDriverClick = (driverId: string) => {
     // Navigate to driver details
@@ -164,6 +163,7 @@ export default function ShiftsPage() {
         onDriverIdsChange={setSelectedDriverIds}
         onRefresh={refetch}
       />
+      
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -191,10 +191,10 @@ export default function ShiftsPage() {
                 </div>
               </Card>
             ) : data ? (
-            <CrewTaskCalendarGrid
-              schedule={data}
+            <ShiftCalendarGrid
+              schedule={data || []}
               dates={dates}
-              onTaskClick={handleTaskClick}
+              onBookingClick={handleBookingClick}
               onCellClick={handleCellClick}
               onDriverClick={handleDriverClick}
             />

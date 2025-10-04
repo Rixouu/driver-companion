@@ -87,6 +87,19 @@ export function BookingCell({
               </div>
               <div className="text-[10px] truncate text-gray-700 dark:text-gray-300">
                 {booking.time} • {booking.service_name}
+                {booking.service_days > 1 && (
+                  <span className="ml-1 text-blue-600 dark:text-blue-400">
+                    (Day {booking.day_number || 1}/{booking.service_days})
+                  </span>
+                )}
+              </div>
+              <div className="text-[10px] font-medium text-gray-700 dark:text-gray-300">
+                {booking.duration_hours}h
+                {booking.service_days > 1 && (
+                  <span className="text-blue-600 dark:text-blue-400">
+                    /day
+                  </span>
+                )}
               </div>
               {booking.price_formatted && (
                 <div className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
@@ -208,7 +221,14 @@ function BookingDetails({
             <div>
               <div className="font-medium">{booking.time}</div>
               {booking.duration_hours && (
-                <div className="text-muted-foreground">{booking.duration_hours} hours</div>
+                <div className="text-muted-foreground">
+                  {booking.duration_hours} hours
+                  {booking.service_days > 1 && (
+                    <span className="text-blue-600 dark:text-blue-400">
+                      {" "}(Day {booking.day_number || 1} of {booking.service_days})
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           </div>

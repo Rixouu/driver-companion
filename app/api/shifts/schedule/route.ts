@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service-client";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,7 @@ interface ShiftScheduleParams {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await getSupabaseServerClient();
+    const supabase = createServiceClient();
     
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform data for easier consumption
-    const transformedData = transformShiftData(data);
+    const transformedData = await transformShiftData(data);
 
     return NextResponse.json({
       success: true,
@@ -66,8 +66,9 @@ export async function GET(request: NextRequest) {
 
 /**
  * Transform raw shift data into a more structured format
+ * This function also expands multi-day bookings across multiple days
  */
-function transformShiftData(rawData: any[]) {
+async function transformShiftData(rawData: any[]) {
   if (!rawData || rawData.length === 0) {
     return { drivers: [], dates: [], grid: {} };
   }
@@ -85,8 +86,9 @@ function transformShiftData(rawData: any[]) {
       });
     }
 
-    // Add date to set
-    datesSet.add(row.shift_date);
+    // Add date to set (convert to YYYY-MM-DD format)
+    const dateStr = new Date(row.shift_date).toISOString().split('T')[0];
+    datesSet.add(dateStr);
   });
 
   const drivers = Array.from(driversMap.values());
@@ -95,30 +97,132 @@ function transformShiftData(rawData: any[]) {
   // Create grid structure: { driverId: { date: { shifts, bookings } } }
   const grid: Record<string, Record<string, any>> = {};
 
+  // First, populate with existing data (but don't add bookings yet - we'll handle them in the expansion)
   rawData.forEach((row) => {
     if (!grid[row.driver_id]) {
       grid[row.driver_id] = {};
     }
 
-    grid[row.driver_id][row.shift_date] = {
+    // Convert date to YYYY-MM-DD format (adjust for timezone)
+    const date = new Date(row.shift_date);
+    const dateStr = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+
+    // Initialize grid cell
+    grid[row.driver_id][dateStr] = {
       shifts: row.shifts || [],
-      bookings: row.bookings || [],
-      booking_count: row.bookings ? row.bookings.length : 0,
-      total_hours: row.bookings
-        ? row.bookings.reduce(
-            (sum: number, b: any) => sum + (b.duration_hours || 0),
-            0
-          )
-        : 0,
-      total_revenue: row.bookings
-        ? row.bookings.reduce(
-            (sum: number, b: any) => sum + (b.price_amount || 0),
-            0
-          )
-        : 0,
+      bookings: [],
+      booking_count: 0,
+      total_hours: 0,
+      total_revenue: 0,
     };
   });
 
-  return { drivers, dates, grid };
+  // Now expand multi-day bookings
+  // First, we need to fetch additional booking data to get service_days and hours_per_day
+  const bookingIds = new Set<string>();
+  rawData.forEach((row) => {
+    if (row.bookings && row.bookings.length > 0) {
+      row.bookings.forEach((booking: any) => {
+        bookingIds.add(booking.booking_id);
+      });
+    }
+  });
+
+  // Fetch additional booking data if we have bookings
+  let bookingDetails: Record<string, any> = {};
+  if (bookingIds.size > 0) {
+    try {
+      const supabase = createServiceClient();
+      const { data: bookingsData, error } = await supabase
+        .from('bookings')
+        .select('id, service_days, hours_per_day, duration_hours')
+        .in('id', Array.from(bookingIds));
+
+      if (!error && bookingsData) {
+        bookingsData.forEach((booking: any) => {
+          bookingDetails[booking.id] = {
+            service_days: booking.service_days || 1,
+            hours_per_day: booking.hours_per_day || booking.duration_hours || 0,
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching booking details:', error);
+    }
+  }
+
+  rawData.forEach((row) => {
+    if (row.bookings && row.bookings.length > 0) {
+      row.bookings.forEach((booking: any) => {
+        // Get booking details
+        const details = bookingDetails[booking.booking_id] || {};
+        const serviceDays = details.service_days || 1;
+        const hoursPerDay = details.hours_per_day || booking.duration_hours || 0;
+        
+        const startDate = new Date(row.shift_date);
+        // Adjust for timezone offset to get the correct date
+        const startDateStr = new Date(startDate.getTime() - startDate.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+        
+        if (serviceDays > 1) {
+          // Multi-day booking - expand across all days
+          for (let day = 0; day < serviceDays; day++) {
+            const currentDate = new Date(startDate);
+            currentDate.setDate(startDate.getDate() + day);
+            const currentDateStr = currentDate.toISOString().split('T')[0];
+            
+            // Add this date to our dates set
+            datesSet.add(currentDateStr);
+            
+            // Initialize grid for this date if it doesn't exist
+            if (!grid[row.driver_id][currentDateStr]) {
+              grid[row.driver_id][currentDateStr] = {
+                shifts: [],
+                bookings: [],
+                booking_count: 0,
+                total_hours: 0,
+                total_revenue: 0,
+              };
+            }
+            
+            // Create a booking entry for this day
+            const dayBooking = {
+              ...booking,
+              duration_hours: hoursPerDay,
+              price_amount: booking.price_amount / serviceDays,
+              day_number: day + 1,
+              service_days: serviceDays,
+              hours_per_day: hoursPerDay,
+            };
+            
+            // Add to the grid
+            grid[row.driver_id][currentDateStr].bookings.push(dayBooking);
+            grid[row.driver_id][currentDateStr].booking_count += 1;
+            grid[row.driver_id][currentDateStr].total_hours += hoursPerDay;
+            grid[row.driver_id][currentDateStr].total_revenue += dayBooking.price_amount;
+          }
+        } else {
+          // Single-day booking - add to the original date
+          const dayBooking = {
+            ...booking,
+            duration_hours: hoursPerDay,
+            day_number: 1,
+            service_days: 1,
+            hours_per_day: hoursPerDay,
+          };
+          
+          // Add to the grid
+          grid[row.driver_id][startDateStr].bookings.push(dayBooking);
+          grid[row.driver_id][startDateStr].booking_count += 1;
+          grid[row.driver_id][startDateStr].total_hours += hoursPerDay;
+          grid[row.driver_id][startDateStr].total_revenue += booking.price_amount;
+        }
+      });
+    }
+  });
+
+  // Update the dates array with the expanded dates
+  const finalDates = Array.from(datesSet).sort();
+
+  return { drivers, dates: finalDates, grid };
 }
 

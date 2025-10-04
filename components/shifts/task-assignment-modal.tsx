@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useI18n } from "@/lib/i18n/hooks/useI18n";
+import { useI18n } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -266,6 +266,7 @@ export function TaskAssignmentModal({
                 checked={isMultiDay}
                 onChange={(e) => handleMultiDayToggle(e.target.checked)}
                 className="rounded"
+                aria-label={t("shifts.modal.multiDayTask")}
               />
               <Label htmlFor="multi_day">{t("shifts.modal.multiDayTask")}</Label>
             </div>

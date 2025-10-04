@@ -1,4 +1,5 @@
 import type { Preview } from '@storybook/nextjs-vite'
+import React from 'react'
 import '../app/globals.css'
 
 const preview: Preview = {
@@ -60,8 +61,24 @@ const preview: Preview = {
     },
 
     layout: 'centered',
+    
+    // Mock Next.js router
+    nextjs: {
+      appDirectory: true,
+      navigation: {
+        pathname: '/',
+        query: {},
+      },
+    },
   },
 
+  decorators: [
+    (Story) => (
+      <div className="font-sans antialiased">
+        <Story />
+      </div>
+    ),
+  ],
 };
 
 export default preview;

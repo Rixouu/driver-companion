@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service-client";
 
 // =====================================================
 // GET /api/crew-tasks/[id]
@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = getSupabaseServerClient();
+    const supabase = createServiceClient();
     const { id } = params;
 
     const { data, error } = await supabase
@@ -58,7 +58,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = getSupabaseServerClient();
+    const supabase = createServiceClient();
     const { id } = params;
     const body = await request.json();
 
@@ -153,7 +153,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = getSupabaseServerClient();
+    const supabase = createServiceClient();
     const { id } = params;
 
     const { error } = await supabase

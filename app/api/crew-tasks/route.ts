@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service-client";
 
 // =====================================================
 // GET /api/crew-tasks
@@ -8,7 +8,8 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseServerClient();
+    const supabase = createServiceClient();
+    
     const { searchParams } = new URL(request.url);
 
     // Parse query parameters
@@ -33,12 +34,18 @@ export async function GET(request: NextRequest) {
       ? taskNumbersParam.split(",").map(Number).filter(n => !isNaN(n))
       : null;
 
-    // Fetch tasks from crew_task_schedule_view
+    // Fetch tasks from crew_tasks table directly
     // Filter by date range (tasks that overlap with the date range)
     let query = supabase
-      .from("crew_task_schedule_view")
-      .select("*")
-      .or(`start_date.lte.${endDate},end_date.gte.${startDate}`);
+      .from("crew_tasks")
+      .select(`
+        *,
+        drivers!crew_tasks_driver_id_fkey (
+          id,
+          first_name,
+          last_name
+        )
+      `);
     
     // Apply driver filter if provided
     if (driverIds && driverIds.length > 0) {
@@ -51,6 +58,7 @@ export async function GET(request: NextRequest) {
     }
     
     const { data: tasksData, error } = await query;
+
 
     if (error) {
       console.error("Error fetching crew task schedule:", error);
@@ -99,7 +107,7 @@ export async function GET(request: NextRequest) {
         if (!schedule[driverId]) {
           schedule[driverId] = {
             driver_id: task.driver_id,
-            driver_name: task.driver_name,
+            driver_name: task.drivers ? `${task.drivers.first_name} ${task.drivers.last_name}` : 'Unknown Driver',
             dates: {},
           };
         }
@@ -142,7 +150,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseServerClient();
+    const supabase = createServiceClient();
     const body = await request.json();
 
     // Validate required fields

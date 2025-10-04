@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { format, addWeeks, subWeeks, addMonths, subMonths } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
 
 type ViewType = "week" | "2weeks" | "month";
 
@@ -34,6 +35,8 @@ export function ShiftFilters({
   onDateChange,
   onRefresh,
 }: ShiftFiltersProps) {
+  const { t } = useI18n();
+  
   const handlePrevious = () => {
     switch (viewType) {
       case "week":
@@ -113,7 +116,7 @@ export function ShiftFilters({
             size="sm"
             onClick={handleToday}
           >
-            Today
+            {t('shifts.filters.today')}
           </Button>
         </div>
 
@@ -124,12 +127,12 @@ export function ShiftFilters({
             onValueChange={(value) => onViewTypeChange(value as ViewType)}
           >
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="View" />
+              <SelectValue placeholder={t('common.view')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="week">Week View</SelectItem>
-              <SelectItem value="2weeks">2 Weeks</SelectItem>
-              <SelectItem value="month">Month View</SelectItem>
+              <SelectItem value="week">{t('shifts.viewType.week')}</SelectItem>
+              <SelectItem value="2weeks">{t('shifts.viewType.twoWeeks')}</SelectItem>
+              <SelectItem value="month">{t('shifts.viewType.month')}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -138,6 +141,7 @@ export function ShiftFilters({
             size="sm"
             onClick={onRefresh}
             className="h-9 w-9 p-0"
+            title={t('shifts.filters.refresh')}
           >
             <RefreshCw className="h-4 w-4" />
           </Button>

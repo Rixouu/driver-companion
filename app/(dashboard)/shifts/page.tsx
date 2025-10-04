@@ -7,20 +7,24 @@ import { ShiftFilters } from "@/components/shifts/shift-filters";
 import { ShiftStatistics } from "@/components/shifts/shift-statistics";
 import { UnassignedBookings } from "@/components/shifts/unassigned-bookings";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { ShiftTabsList } from "@/components/shifts/shift-tabs-list";
 import { useShiftSchedule } from "@/lib/hooks/use-shift-schedule";
 import { ShiftBooking } from "@/types/shifts";
 import { format, startOfWeek, endOfWeek, addDays, startOfMonth, endOfMonth } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CalendarDays } from "lucide-react";
+import { useI18n } from "@/lib/i18n/context";
 
 type ViewType = "week" | "2weeks" | "month";
 
 export default function ShiftsPage() {
+  const { t } = useI18n();
   const [viewType, setViewType] = useState<ViewType>("week");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedDriverIds, setSelectedDriverIds] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState("schedule");
 
   // Calculate date range based on view type
   const getDateRange = () => {
@@ -71,8 +75,8 @@ export default function ShiftsPage() {
     <div className="flex flex-col gap-6">
       {/* Page Header */}
       <PageHeader
-        title="Driver Shift Schedule"
-        description="Manage driver shifts, view assignments, and optimize scheduling"
+        title={t('shifts.title')}
+        description={t('shifts.description')}
       >
         <div className="flex items-center gap-2">
           <CalendarDays className="h-5 w-5 text-muted-foreground" />
@@ -94,70 +98,68 @@ export default function ShiftsPage() {
       />
 
       {/* Main Content */}
-      <Tabs defaultValue="schedule" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="schedule">Schedule</TabsTrigger>
-          <TabsTrigger value="unassigned">Unassigned</TabsTrigger>
-          <TabsTrigger value="statistics">Statistics</TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <ShiftTabsList value={activeTab} onValueChange={setActiveTab} />
+        
+        <div className="mt-8">
+          {/* Schedule Tab */}
+          <TabsContent value="schedule">
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {t('shifts.errors.loadFailed')}: {error.message}
+                </AlertDescription>
+              </Alert>
+            )}
 
-        {/* Schedule Tab */}
-        <TabsContent value="schedule" className="mt-6">
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Failed to load shift schedule: {error.message}
-              </AlertDescription>
-            </Alert>
-          )}
+            {isLoading ? (
+              <Card className="p-6">
+                <div className="space-y-4">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-32 w-full" />
+                  <Skeleton className="h-32 w-full" />
+                  <Skeleton className="h-32 w-full" />
+                </div>
+              </Card>
+            ) : data ? (
+              <ShiftCalendarGrid
+                schedule={data}
+                onBookingClick={handleBookingClick}
+                onDriverClick={handleDriverClick}
+              />
+            ) : (
+              <Card className="p-12">
+                <div className="text-center text-muted-foreground">
+                  <CalendarDays className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>{t('shifts.booking.noBookings')}</p>
+                </div>
+              </Card>
+            )}
+          </TabsContent>
 
-          {isLoading ? (
-            <Card className="p-6">
-              <div className="space-y-4">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-32 w-full" />
-                <Skeleton className="h-32 w-full" />
-                <Skeleton className="h-32 w-full" />
-              </div>
-            </Card>
-          ) : data ? (
-            <ShiftCalendarGrid
-              schedule={data}
-              onBookingClick={handleBookingClick}
-              onDriverClick={handleDriverClick}
+          {/* Unassigned Bookings Tab */}
+          <TabsContent value="unassigned">
+            <UnassignedBookings
+              startDate={dateRange.start}
+              endDate={dateRange.end}
+              onAssign={(bookingId, driverId) => {
+                // Handle assignment
+                console.log("Assign booking:", bookingId, "to driver:", driverId);
+                refetch();
+              }}
             />
-          ) : (
-            <Card className="p-12">
-              <div className="text-center text-muted-foreground">
-                <CalendarDays className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No shift data available for the selected period</p>
-              </div>
-            </Card>
-          )}
-        </TabsContent>
+          </TabsContent>
 
-        {/* Unassigned Bookings Tab */}
-        <TabsContent value="unassigned" className="mt-6">
-          <UnassignedBookings
-            startDate={dateRange.start}
-            endDate={dateRange.end}
-            onAssign={(bookingId, driverId) => {
-              // Handle assignment
-              console.log("Assign booking:", bookingId, "to driver:", driverId);
-              refetch();
-            }}
-          />
-        </TabsContent>
-
-        {/* Statistics Tab */}
-        <TabsContent value="statistics" className="mt-6">
-          <ShiftStatistics
-            startDate={dateRange.start}
-            endDate={dateRange.end}
-            driverIds={selectedDriverIds}
-          />
-        </TabsContent>
+          {/* Statistics Tab */}
+          <TabsContent value="statistics">
+            <ShiftStatistics
+              startDate={dateRange.start}
+              endDate={dateRange.end}
+              driverIds={selectedDriverIds}
+            />
+          </TabsContent>
+        </div>
       </Tabs>
     </div>
   );

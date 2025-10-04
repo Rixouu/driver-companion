@@ -8,11 +8,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
-import { Search, Filter, XCircle, Calendar, ChevronDown, ChevronUp, ArrowLeft, ArrowRight } from "lucide-react"
+import { Search, Filter, XCircle, Calendar, ChevronDown, ChevronUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/lib/i18n/context"
 import { useIsMobile } from "@/lib/hooks/use-mobile"
-import Image from "next/image"
 // Local Vehicle interface to match the parent component
 interface Vehicle {
   id: string;
@@ -55,11 +54,6 @@ interface VehicleSelectionStepProps {
   modelOptions: Array<{ value: string; label: string }>
   groupOptions: Array<{ value: string; label: string }>
   filteredVehicles: Vehicle[]
-  paginatedVehicles: Vehicle[]
-  currentPage: number
-  setCurrentPage: (page: number) => void
-  totalPages: number
-  vehiclesPerPage: number
 }
 
 export function VehicleSelectionStep({
@@ -84,12 +78,7 @@ export function VehicleSelectionStep({
   brandOptions,
   modelOptions,
   groupOptions,
-  filteredVehicles,
-  paginatedVehicles,
-  currentPage,
-  setCurrentPage,
-  totalPages,
-  vehiclesPerPage,
+  filteredVehicles
 }: VehicleSelectionStepProps) {
   const { t } = useI18n()
   const isMobile = useIsMobile()
@@ -277,18 +266,11 @@ export function VehicleSelectionStep({
 
       {/* Vehicle list */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-medium">
-            {t('vehicles.available')} ({filteredVehicles.length})
-          </h3>
-          {totalPages > 1 && (
-            <div className="text-sm text-muted-foreground">
-              {t('vehicles.pagination.showing')} {((currentPage - 1) * vehiclesPerPage) + 1}-{Math.min(currentPage * vehiclesPerPage, filteredVehicles.length)} {t('vehicles.pagination.of')} {filteredVehicles.length}
-            </div>
-          )}
-        </div>
+        <h3 className="font-medium">
+          {t('vehicles.available')} ({filteredVehicles.length})
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {paginatedVehicles.map((vehicle) => (
+          {filteredVehicles.map((vehicle) => (
             <Card
               key={vehicle.id}
               className={cn(
@@ -300,70 +282,21 @@ export function VehicleSelectionStep({
               onClick={() => onVehicleSelect(vehicle)}
             >
               <CardContent className="p-4">
-                <div className="space-y-3">
-                  {/* Vehicle Thumbnail */}
-                  {vehicle.image_url ? (
-                    <div className="relative w-full h-32 bg-muted rounded-lg overflow-hidden">
-                      <Image
-                        src={vehicle.image_url}
-                        alt={`${vehicle.brand} ${vehicle.model}`}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-full h-32 bg-muted rounded-lg flex items-center justify-center">
-                      <div className="text-muted-foreground text-sm">
-                        {t('vehicles.noImage')}
-                      </div>
-                    </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">{vehicle.brand} {vehicle.model}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {vehicle.plate_number} • {vehicle.year}
+                  </p>
+                  {vehicle.vehicle_group && (
+                    <span className="inline-block bg-muted px-2 py-1 rounded text-xs">
+                      {vehicle.vehicle_group.name}
+                    </span>
                   )}
-                  
-                  {/* Vehicle Details */}
-                  <div className="space-y-2">
-                    <h4 className="font-medium">{vehicle.brand} {vehicle.model}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {vehicle.plate_number} • {vehicle.year}
-                    </p>
-                    {vehicle.vehicle_group && (
-                      <span className="inline-block bg-muted px-2 py-1 rounded text-xs">
-                        {vehicle.vehicle_group.name}
-                      </span>
-                    )}
-                  </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
-        
-        {/* Pagination controls */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-6">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              {t('common.previous')}
-            </Button>
-            <span className="text-sm text-muted-foreground px-4">
-              {t('vehicles.pagination.page')} {currentPage} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-            >
-              {t('common.next')}
-              <ArrowRight className="h-4 w-4 ml-1" />
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Next button */}

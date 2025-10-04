@@ -340,13 +340,13 @@ export function BookingDetailsSidebar({
         <h3 className="font-medium text-sm text-foreground">{t("dispatch.assignments.actions")}</h3>
         <div className="space-y-2">
           {variant === 'assignment' ? (
-            // Assignment variant - horizontal buttons
+            // Assignment variant - horizontal buttons with consistent styling
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onUnassign?.()}
-                className="flex-1"
+                className="flex-1 h-9"
               >
                 <XIcon className="h-4 w-4 mr-2" />
                 {t("dispatch.assignments.unassignAll")}
@@ -355,25 +355,26 @@ export function BookingDetailsSidebar({
                 variant="outline"
                 size="sm"
                 onClick={() => onViewDetails?.() || router.push(`/bookings/${booking.id}`)}
-                className="flex-1"
+                className="flex-1 h-9"
               >
                 <Eye className="h-4 w-4 mr-2" />
                 {t("dispatch.assignments.viewDetails")}
               </Button>
             </div>
           ) : (
-            // Dispatch variant - vertical buttons
+            // Dispatch variant - vertical buttons with consistent styling
             <>
               <Button
                 variant="outline"
-                className="w-full justify-start"
+                className="w-full justify-start h-9"
                 onClick={() => onViewDetails?.() || router.push(`/bookings/${booking.id}`)}
               >
                 <Eye className="h-4 w-4 mr-2" />
                 {t("dispatch.assignments.viewFullDetails")}
               </Button>
               <Button
-                className="w-full justify-start"
+                variant="outline"
+                className="w-full justify-start h-9"
                 onClick={onReassign}
               >
                 <UserIcon className="h-4 w-4 mr-2" />
@@ -395,7 +396,7 @@ export function BookingDetailsSidebar({
         </h2>
         <div className="flex items-center justify-between">
           <h3 className="text-base font-medium text-foreground">
-            Booking Details #{booking.wp_id || booking.id.substring(0, 8)}
+            #{booking.wp_id || booking.id.substring(0, 8)}
           </h3>
           <Badge className={cn("text-sm", getDispatchStatusBadgeClasses(status))}>
             {t(`bookings.status.${status.toLowerCase()}` as any, { defaultValue: status.replace("_", " ") })}
@@ -409,10 +410,14 @@ export function BookingDetailsSidebar({
       </div>
 
       {/* Content Sections - Order based on configuration */}
-      {showCustomerInfoFirst ? <CustomerInfoSection /> : <ServiceDetailsSection />}
-      {!showCustomerInfoFirst ? <CustomerInfoSection /> : <ServiceDetailsSection />}
-      <AssignmentStatusSection />
-      {showNotes && <NotesSection />}
+      <div className="space-y-6">
+        {showCustomerInfoFirst ? <CustomerInfoSection /> : <ServiceDetailsSection />}
+        {!showCustomerInfoFirst ? <CustomerInfoSection /> : <ServiceDetailsSection />}
+        <AssignmentStatusSection />
+        {showNotes && <NotesSection />}
+      </div>
+
+      {/* Actions Section */}
       {getDefaultActions()}
     </div>
   );

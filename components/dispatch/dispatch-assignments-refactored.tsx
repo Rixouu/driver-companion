@@ -69,7 +69,7 @@ import { DispatchStatus } from "@/types/dispatch";
 import SidePanelDetails from "./side-panel-details";
 import SmartAssignmentModal from '@/components/shared/smart-assignment-modal';
 import { AssignmentFilter, AssignmentFilterOptions } from "./assignment-filter";
-import { DispatchDetailsPanel } from "./dispatch-details-panel";
+import { BookingDetailsSidebar } from '@/components/shared/booking-details-sidebar';
 
 // Import custom hooks
 import { useAssignmentData } from "@/lib/hooks/use-assignment-data";
@@ -359,9 +359,17 @@ export default function DispatchAssignments() {
             <SheetTitle>{t("dispatch.assignments.bookingDetails")}</SheetTitle>
           </SheetHeader>
           {selectedBooking && (
-            <DispatchDetailsPanel
+            <BookingDetailsSidebar
               booking={selectedBooking}
-              onUnassign={handleUnassign}
+              variant="assignment"
+              showDateInHeader={true}
+              showNotes={true}
+              showCustomerInfoFirst={true}
+              onUnassign={() => handleUnassign(selectedBooking.id)}
+              onViewDetails={() => {
+                // Add view details functionality
+                console.log('View details for booking:', selectedBooking.id);
+              }}
             />
           )}
         </SheetContent>

@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSharedDispatchState } from "@/lib/hooks/use-shared-dispatch-state";
-import SidePanelDetails from "./side-panel-details";
+import { BookingDetailsSidebar } from '@/components/shared/booking-details-sidebar';
 
 interface DispatchBoardViewProps {
   entries: DispatchEntryWithRelations[];
@@ -599,9 +599,17 @@ export default function DispatchBoardView({
           </SheetHeader>
           {selectedEntry && (
             <div className="mt-6">
-              <SidePanelDetails
+              <BookingDetailsSidebar
                 entry={selectedEntry}
+                variant="dispatch"
+                showDateInHeader={true}
+                showNotes={true}
+                showCustomerInfoFirst={false}
                 onUnassign={() => onUnassignVehicle?.(selectedEntry.id)}
+                onReassign={() => {
+                  // Add reassign functionality
+                  console.log('Reassign driver for entry:', selectedEntry.id);
+                }}
               />
             </div>
           )}

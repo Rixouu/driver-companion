@@ -424,12 +424,10 @@ export const ja: TranslationValue = {
       of: "/ {total}"
     },
     errors: {
-      loadFailed: {
-        title: "ドライバーを読み込めませんでした",
-        description: "ドライバーID {driverId} の詳細を取得できませんでした。再試行するか、問題が解決しない場合はサポートにお問い合わせください。"
-      },
+      loadFailed: "ドライバーの詳細を読み込めませんでした。再試行するか、問題が解決しない場合はサポートにお問い合わせください。",
       consoleDriverIdError: "サーバーコンポーネントでドライバーIDが見つからないか、無効です。",
-      consoleLoadError: "サーバーコンポーネントでID {driverId} のドライバーデータの読み込み中にエラーが発生しました："
+      consoleLoadError: "サーバーコンポーネントでID {driverId} のドライバーデータの読み込み中にエラーが発生しました：",
+      noDriversAvailable: "利用可能なドライバーがありません"
     },
     messages: {
       createSuccess: "ドライバーが正常に作成されました",
@@ -2926,6 +2924,37 @@ export const ja: TranslationValue = {
       created: "シフトが正常に作成されました",
       updated: "シフトが正常に更新されました",
       deleted: "シフトが正常に削除されました"
+    },
+    modal: {
+      createTask: "タスクを作成",
+      createTaskDescription: "選択した日付範囲でドライバーに新しいタスクを割り当てます",
+      taskNumber: "タスク番号",
+      taskType: "タスクタイプ",
+      driver: "ドライバー",
+      selectDriver: "ドライバーを選択",
+      title: "タイトル",
+      titlePlaceholder: "タスクのタイトルを入力",
+      description: "説明",
+      descriptionPlaceholder: "タスクの説明を入力",
+      multiDayTask: "複数日タスク",
+      startDate: "開始日",
+      endDate: "終了日",
+      selectDate: "日付を選択",
+      startTime: "開始時間",
+      endTime: "終了時間",
+      hoursPerDay: "1日の時間数",
+      customerInfo: "顧客情報",
+      customerName: "顧客名",
+      customerNamePlaceholder: "顧客名を入力",
+      customerPhone: "顧客電話番号",
+      customerPhonePlaceholder: "顧客の電話番号を入力",
+      location: "場所",
+      locationPlaceholder: "場所を入力",
+      notes: "メモ",
+      notesPlaceholder: "追加のメモを入力",
+      summary: "タスク概要",
+      totalDays: "総日数",
+      totalHours: "総時間数",
     }
   },
   settings: {

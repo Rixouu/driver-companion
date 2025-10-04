@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/page-header";
 import { CrewTaskCalendarGrid } from "@/components/shifts/crew-task-calendar-grid";
 import { ShiftFilters } from "@/components/shifts/shift-filters";
@@ -10,12 +10,14 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ShiftTabsList } from "@/components/shifts/shift-tabs-list";
 import { useCrewTasks } from "@/lib/hooks/use-crew-tasks";
-import { CrewTask } from "@/types/crew-tasks";
+import { CrewTask, CreateCrewTaskRequest } from "@/types/crew-tasks";
 import { format, startOfWeek, endOfWeek, addDays, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CalendarDays } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
+import { TaskAssignmentModal } from "@/components/shifts/task-assignment-modal";
+import { createClient } from "@/lib/supabase";
 
 type ViewType = "week" | "2weeks" | "month";
 
@@ -25,6 +27,13 @@ export default function ShiftsPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedDriverIds, setSelectedDriverIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("schedule");
+  
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalDriverId, setModalDriverId] = useState<string | undefined>();
+  const [modalDate, setModalDate] = useState<string | undefined>();
+  const [modalTaskNumber, setModalTaskNumber] = useState<number | undefined>();
+  const [drivers, setDrivers] = useState<Array<{ id: string; first_name: string; last_name: string }>>([]);
 
   // Calculate date range based on view type
   const getDateRange = () => {
@@ -59,13 +68,36 @@ export default function ShiftsPage() {
   }).map((date) => format(date, "yyyy-MM-dd"));
 
   // Fetch crew task schedule data
-  const { data, meta, isLoading, error, refetch } = useCrewTasks({
+  const { data, meta, isLoading, error, refetch, createTask } = useCrewTasks({
     startDate: dateRange.start,
     endDate: dateRange.end,
     driverIds: selectedDriverIds.length > 0 ? selectedDriverIds : undefined,
     autoRefetch: true,
     refetchInterval: 120000, // 2 minutes
   });
+
+  // Load drivers for modal
+  useEffect(() => {
+    const loadDrivers = async () => {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("drivers")
+          .select("id, first_name, last_name")
+          .order("first_name");
+        
+        if (error) {
+          console.error("Error loading drivers:", error);
+        } else {
+          setDrivers(data || []);
+        }
+      } catch (err) {
+        console.error("Error loading drivers:", err);
+      }
+    };
+    
+    loadDrivers();
+  }, []);
 
   const handleTaskClick = (task: CrewTask) => {
     // If task is linked to booking, navigate to booking details
@@ -78,8 +110,28 @@ export default function ShiftsPage() {
   };
 
   const handleCellClick = (driverId: string, date: string) => {
-    // Open task creation modal (TODO: implement)
-    console.log("Cell clicked:", driverId, date);
+    // Open task creation modal
+    setModalDriverId(driverId);
+    setModalDate(date);
+    setModalTaskNumber(undefined); // Let user choose
+    setIsModalOpen(true);
+  };
+
+  const handleTaskCreate = async (task: CreateCrewTaskRequest) => {
+    try {
+      await createTask(task);
+      // Modal will close automatically on success
+    } catch (error) {
+      console.error("Error creating task:", error);
+      // Error handling is done in the modal
+    }
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setModalDriverId(undefined);
+    setModalDate(undefined);
+    setModalTaskNumber(undefined);
   };
 
   const handleDriverClick = (driverId: string) => {
@@ -179,6 +231,18 @@ export default function ShiftsPage() {
           </TabsContent>
         </div>
       </Tabs>
+
+      {/* Task Assignment Modal */}
+      <TaskAssignmentModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onSave={handleTaskCreate}
+        selectedDriverId={modalDriverId}
+        selectedDate={modalDate}
+        selectedTaskNumber={modalTaskNumber}
+        drivers={drivers}
+        isLoading={isLoading}
+      />
     </div>
   );
 }

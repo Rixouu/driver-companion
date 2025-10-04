@@ -431,12 +431,10 @@ export const en: TranslationValue = {
       of: "of {total}"
     },
     errors: {
-      loadFailed: {
-        title: "Could Not Load Driver",
-        description: "We couldn\'t retrieve the details for driver ID {driverId}. Please try again or contact support if the issue persists."
-      },
+      loadFailed: "Could not load driver details. Please try again or contact support if the issue persists.",
       consoleDriverIdError: "Driver ID is missing or invalid in server component.",
-      consoleLoadError: "Error loading driver data for ID {driverId} in server component:"
+      consoleLoadError: "Error loading driver data for ID {driverId} in server component:",
+      noDriversAvailable: "No drivers available"
     },
     messages: {
       createSuccess: "Driver created successfully",
@@ -2969,6 +2967,37 @@ export const en: TranslationValue = {
       created: "Shift created successfully",
       updated: "Shift updated successfully",
       deleted: "Shift deleted successfully"
+    },
+    modal: {
+      createTask: "Create Task",
+      createTaskDescription: "Assign a new task to a driver for the selected date range",
+      taskNumber: "Task Number",
+      taskType: "Task Type",
+      driver: "Driver",
+      selectDriver: "Select a driver",
+      title: "Title",
+      titlePlaceholder: "Enter task title",
+      description: "Description",
+      descriptionPlaceholder: "Enter task description",
+      multiDayTask: "Multi-day task",
+      startDate: "Start Date",
+      endDate: "End Date",
+      selectDate: "Select date",
+      startTime: "Start Time",
+      endTime: "End Time",
+      hoursPerDay: "Hours per Day",
+      customerInfo: "Customer Information",
+      customerName: "Customer Name",
+      customerNamePlaceholder: "Enter customer name",
+      customerPhone: "Customer Phone",
+      customerPhonePlaceholder: "Enter customer phone",
+      location: "Location",
+      locationPlaceholder: "Enter location",
+      notes: "Notes",
+      notesPlaceholder: "Enter additional notes",
+      summary: "Task Summary",
+      totalDays: "Total Days",
+      totalHours: "Total Hours",
     }
   },
   settings: {

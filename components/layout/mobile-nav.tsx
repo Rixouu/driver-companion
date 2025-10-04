@@ -127,6 +127,7 @@ export function MobileNav() {
       { id: 'dashboard', title: t("navigation.dashboard"), icon: LayoutDashboard, href: '/dashboard' },
       { id: 'dispatch', title: t("navigation.dispatchBoard"), icon: LayoutDashboard, href: '/dispatch' },
       { id: 'bookings', title: t("navigation.bookings"), icon: Calendar, href: '/bookings' },
+      { id: 'shifts', title: t("navigation.shifts"), icon: Calendar, href: '/shifts' },
       { id: 'assignments', title: t("navigation.assignments"), icon: ClipboardCheck, href: '/assignments' }
     ],
     fleet: [

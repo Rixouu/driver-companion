@@ -53,6 +53,7 @@ interface MenuSettings {
   vehicles: { desktop: boolean; mobile: boolean };
   drivers: { desktop: boolean; mobile: boolean };
   bookings: { desktop: boolean; mobile: boolean };
+  shifts: { desktop: boolean; mobile: boolean };
   paylinks: { desktop: boolean; mobile: boolean };
   quotations: { desktop: boolean; mobile: boolean };
   customers: { desktop: boolean; mobile: boolean };
@@ -72,6 +73,7 @@ const defaultMenuSettings: MenuSettings = {
   vehicles: { desktop: true, mobile: true },
   drivers: { desktop: true, mobile: true },
   bookings: { desktop: true, mobile: true },
+  shifts: { desktop: true, mobile: true },
   paylinks: { desktop: true, mobile: true },
   quotations: { desktop: true, mobile: true },
   customers: { desktop: true, mobile: true },
@@ -179,6 +181,7 @@ export function Sidebar() {
         { icon: LayoutDashboard, label: t("navigation.dashboard"), href: "/dashboard", key: "dashboard" } as MenuItem,
         { icon: Grid3x3, label: t("navigation.dispatchBoard"), href: "/dispatch", key: "dispatch" } as MenuItem,
         { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" } as MenuItem,
+        { icon: Calendar, label: t("navigation.shifts"), href: "/shifts", key: "shifts" } as MenuItem,
         { icon: ClipboardCheck, label: t("navigation.assignments"), href: "/assignments", key: "assignments" } as MenuItem
       ]
     },

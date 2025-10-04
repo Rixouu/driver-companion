@@ -114,7 +114,7 @@ BEGIN
   SELECT 
     d.id AS driver_id,
     d.first_name || ' ' || d.last_name AS driver_name,
-    dates.date AS shift_date,
+    dates.date::DATE AS shift_date,
     COALESCE(
       json_agg(
         json_build_object(

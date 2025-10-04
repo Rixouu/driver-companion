@@ -3,6 +3,14 @@
 import { useState, useEffect, useRef } from "react";
 import type { InspectionType } from "@/types/inspections";
 
+interface VehicleGroup {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  vehicle_count?: number;
+}
+
 interface Vehicle {
   id: string;
   name: string;
@@ -11,14 +19,32 @@ interface Vehicle {
   model?: string;
   image_url?: string | null;
   year?: string;
+  vehicle_group_id?: string;
+  vehicle_group?: VehicleGroup;
+}
+
+type TranslationObject = { [key: string]: string };
+
+interface InspectionItemType {
+  id: string;
+  name_translations: TranslationObject;
+  description_translations: TranslationObject;
+  title: string;
+  description?: string;
+  requires_photo: boolean;
+  requires_notes: boolean;
+  status: 'pass' | 'fail' | null;
+  notes: string;
+  photos: string[];
 }
 
 interface InspectionSection {
   id: string;
-  name_translations: { [key: string]: string };
+  name_translations: TranslationObject;
+  description_translations: TranslationObject;
   title: string;
   description?: string;
-  items: any[];
+  items: InspectionItemType[];
 }
 
 interface UseInspectionStateProps {
@@ -59,17 +85,39 @@ export function useInspectionState({ vehicleId, inspectionId, isResuming = false
 
   // Debug component mount
   useEffect(() => {
+    console.log(`[INSPECTION_FORM] Component mounted. Vehicle ID: ${vehicleId}, Inspection ID: ${inspectionId}`);
     return () => {
+      console.log(`[INSPECTION_FORM] Component unmounting`);
       // Reset flags on unmount
       autoTemplateToastShownRef.current = false;
       isAutoStartingRef.current = false;
     };
-  }, []);
+  }, [vehicleId, inspectionId]);
 
   // Debug sections changes
   useEffect(() => {
-    // Sections updated
+    console.log(`[INSPECTION_FORM] Sections changed:`, sections);
   }, [sections]);
+  
+  // Calculate and update the time remaining
+  useEffect(() => {
+    if (startTime && sections.length > 0) {
+      const timePerSection = 10; // base time in minutes
+      const completedSectionCount = Object.values(completedSections).filter(Boolean).length;
+      const remainingSections = sections.length - completedSectionCount;
+      const elapsed = (Date.now() - startTime.getTime()) / (1000 * 60); // minutes
+      
+      const estimatedRemaining = Math.max(1, Math.round(remainingSections * timePerSection - elapsed));
+      setEstimatedTimeRemaining(estimatedRemaining);
+    }
+  }, [completedSections, sections, startTime]);
+  
+  // Initialize start time when vehicle is selected
+  useEffect(() => {
+    if (selectedVehicle && !startTime) {
+      setStartTime(new Date());
+    }
+  }, [selectedVehicle, startTime]);
 
   // Calculate overall progress
   const getOverallProgress = () => {
@@ -102,6 +150,60 @@ export function useInspectionState({ vehicleId, inspectionId, isResuming = false
     if (currentSectionIndex < sections.length - 1) {
       setCurrentSectionIndex(currentSectionIndex + 1);
     }
+  };
+
+  // Handle item status change
+  const handleItemStatus = (sectionId: string, itemId: string, status: "pass" | "fail") => {
+    console.log(`[INSPECTION_FORM] Setting item status: sectionId=${sectionId}, itemId=${itemId}, status=${status}`);
+    
+    setSections(prevSections => {
+      console.log(`[INSPECTION_FORM] Previous sections before status update:`, prevSections);
+      
+      let itemFound = false;
+      const newSections = prevSections.map(section => {
+        if (section.id === sectionId) {
+          return {
+            ...section,
+            items: section.items.map(item => {
+              if (item.id === itemId) {
+                itemFound = true;
+                console.log(`[INSPECTION_FORM] Item found, updating status from ${item.status} to ${status}`);
+                return {
+                  ...item,
+                  status: status
+                };
+              }
+              return item;
+            })
+          };
+        }
+        return section;
+      });
+      
+      if (!itemFound) {
+        console.error(`[INSPECTION_FORM] Item not found! sectionId=${sectionId}, itemId=${itemId}`);
+        console.log(`[INSPECTION_FORM] Available sections:`, prevSections.map(s => ({ id: s.id, items: s.items.map(i => ({ id: i.id, title: i.title })) })));
+      }
+      
+      console.log(`[INSPECTION_FORM] Updated sections:`, newSections);
+      return newSections;
+    });
+    
+    // Check if section is complete
+    checkSectionCompletion(sectionId);
+  };
+  
+  // Check if a section is complete (all items have status)
+  const checkSectionCompletion = (sectionId: string) => {
+    const section = sections.find(s => s.id === sectionId);
+    if (!section) return;
+    
+    const isComplete = section.items.every(item => item.status !== null);
+    
+    setCompletedSections(prev => ({
+      ...prev,
+      [sectionId]: isComplete
+    }));
   };
 
   // Handle notes change
@@ -157,19 +259,32 @@ export function useInspectionState({ vehicleId, inspectionId, isResuming = false
     });
   };
 
-  const handlePhotoCapture = async (photoUrl: string, currentPhotoItem: { sectionId: string; itemId: string } | null) => {
-    if (!currentPhotoItem) return;
+  const handlePhotoCapture = async (photoUrl: string) => {
+    console.log(`[INSPECTION_FORM] Photo captured: ${photoUrl}`);
+    console.log(`[INSPECTION_FORM] Current photo item:`, currentPhotoItem);
     
+    if (!currentPhotoItem) {
+      console.error(`[INSPECTION_FORM] No current photo item set!`);
+      return;
+    }
+
     setSections(prevSections => {
-      return prevSections.map(section => {
+      console.log(`[INSPECTION_FORM] Previous sections before photo capture:`, prevSections);
+      
+      let itemFound = false;
+      const newSections = prevSections.map(section => {
         if (section.id === currentPhotoItem.sectionId) {
           return {
             ...section,
             items: section.items.map(item => {
               if (item.id === currentPhotoItem.itemId) {
+                itemFound = true;
+                console.log(`[INSPECTION_FORM] Adding photo to item, current photos:`, item.photos);
+                const newPhotos = [...item.photos, photoUrl];
+                console.log(`[INSPECTION_FORM] New photos array:`, newPhotos);
                 return {
                   ...item,
-                  photos: [...item.photos, photoUrl]
+                  photos: newPhotos
                 };
               }
               return item;
@@ -178,7 +293,18 @@ export function useInspectionState({ vehicleId, inspectionId, isResuming = false
         }
         return section;
       });
+      
+      if (!itemFound) {
+        console.error(`[INSPECTION_FORM] Photo item not found! sectionId=${currentPhotoItem.sectionId}, itemId=${currentPhotoItem.itemId}`);
+        console.log(`[INSPECTION_FORM] Available sections:`, prevSections.map(s => ({ id: s.id, items: s.items.map(i => ({ id: i.id, title: i.title })) })));
+      }
+      
+      console.log(`[INSPECTION_FORM] Updated sections after photo capture:`, newSections);
+      return newSections;
     });
+    
+    setIsCameraOpen(false);
+    setCurrentPhotoItem(null);
   };
 
   return {
@@ -229,9 +355,11 @@ export function useInspectionState({ vehicleId, inspectionId, isResuming = false
     handleTypeChange,
     handlePreviousSection,
     handleNextSection,
+    handleItemStatus,
     handleNotesChange,
     handleCameraClick,
     handleDeletePhoto,
     handlePhotoCapture,
+    checkSectionCompletion,
   };
 }

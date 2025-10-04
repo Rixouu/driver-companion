@@ -3,6 +3,14 @@
 import { useState, useMemo, useEffect } from "react";
 import { useIsMobile } from "@/lib/hooks/use-mobile";
 
+interface VehicleGroup {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  vehicle_count?: number;
+}
+
 interface Vehicle {
   id: string;
   name: string;
@@ -11,11 +19,8 @@ interface Vehicle {
   model?: string;
   image_url?: string | null;
   year?: string;
-  group_id?: string;
-  group?: {
-    id: string;
-    name: string;
-  };
+  vehicle_group_id?: string;
+  vehicle_group?: VehicleGroup;
 }
 
 interface UseVehicleFilteringProps {
@@ -74,49 +79,41 @@ export function useVehicleFiltering({ vehicles }: UseVehicleFilteringProps) {
     return Array.from(uniqueModels).sort();
   }, [vehicles, brandFilter]);
 
-  // Get unique groups
-  const groupOptions = useMemo(() => {
-    const uniqueGroups = new Set<string>();
+  // Get unique vehicle groups
+  const vehicleGroups = useMemo(() => {
+    const uniqueGroups = new Set<VehicleGroup>();
     vehicles.forEach(vehicle => {
-      if (vehicle.group?.name) {
-        uniqueGroups.add(vehicle.group.name);
+      if (vehicle.vehicle_group) {
+        uniqueGroups.add(vehicle.vehicle_group);
       }
     });
-    return Array.from(uniqueGroups).sort();
+    return Array.from(uniqueGroups).sort((a, b) => a.name.localeCompare(b.name));
   }, [vehicles]);
 
   // Filter vehicles based on search and filters
   const filteredVehicles = useMemo(() => {
-    return vehicles.filter(vehicle => {
-      // Search query filter
-      if (searchQuery) {
-        const searchLower = searchQuery.toLowerCase();
-        const matchesSearch = 
-          vehicle.name.toLowerCase().includes(searchLower) ||
-          vehicle.plate_number.toLowerCase().includes(searchLower) ||
-          vehicle.brand?.toLowerCase().includes(searchLower) ||
-          vehicle.model?.toLowerCase().includes(searchLower);
-        if (!matchesSearch) return false;
-      }
-
-      // Brand filter
-      if (brandFilter !== "all") {
-        if (normalizeBrand(vehicle.brand) !== brandFilter) return false;
-      }
-
-      // Model filter
-      if (modelFilter !== "all") {
-        if (vehicle.model !== modelFilter) return false;
-      }
-
-      // Group filter
-      if (groupFilter !== "all") {
-        if (vehicle.group?.name !== groupFilter) return false;
-      }
-
-      return true;
+    // If no filters and no search query, return all vehicles
+    if (brandFilter === 'all' && modelFilter === 'all' && groupFilter === 'all' && !searchQuery) {
+      return vehicles;
+    }
+    
+    return vehicles.filter((vehicle) => {
+      const matchesBrand = brandFilter === 'all' || normalizeBrand(vehicle.brand) === brandFilter;
+      const matchesModel = modelFilter === 'all' || vehicle.model === modelFilter;
+      const matchesGroup = groupFilter === 'all' || vehicle.vehicle_group?.id === groupFilter;
+      
+      // Search query match against name, model, brand, plate number, or group name
+      const matchesSearch = !searchQuery || (
+        (vehicle.name && vehicle.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (vehicle.model && vehicle.model.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (vehicle.brand && vehicle.brand.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (vehicle.plate_number && vehicle.plate_number.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (vehicle.vehicle_group?.name && vehicle.vehicle_group.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      
+      return matchesBrand && matchesModel && matchesGroup && matchesSearch;
     });
-  }, [vehicles, searchQuery, brandFilter, modelFilter, groupFilter]);
+  }, [vehicles, brandFilter, modelFilter, groupFilter, searchQuery]);
 
   // Pagination
   const totalPages = Math.ceil(filteredVehicles.length / vehiclesPerPage);
@@ -129,6 +126,15 @@ export function useVehicleFiltering({ vehicles }: UseVehicleFilteringProps) {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, brandFilter, modelFilter, groupFilter]);
+
+  // Reset filters function
+  const resetFilters = () => {
+    setSearchQuery('');
+    setBrandFilter('all');
+    setModelFilter('all');
+    setGroupFilter('all');
+    setCurrentPage(1);
+  };
 
   return {
     // State
@@ -147,11 +153,15 @@ export function useVehicleFiltering({ vehicles }: UseVehicleFilteringProps) {
     
     // Computed values
     brandOptions,
-    modelOptions,
-    groupOptions,
+    models: modelOptions,
+    vehicleGroups,
     filteredVehicles,
     paginatedVehicles,
     totalPages,
     vehiclesPerPage,
+    normalizeBrand,
+    
+    // Actions
+    resetFilters,
   };
 }

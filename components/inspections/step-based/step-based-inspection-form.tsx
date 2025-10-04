@@ -31,6 +31,8 @@ import { Database } from "@/types/supabase"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
+import { useVehicleFiltering } from "./hooks/use-vehicle-filtering"
+import { useInspectionState } from "./hooks/use-inspection-state"
 
 // Type to capture translation field structure from inspection service
 type TranslationObject = { [key: string]: string };
@@ -104,155 +106,61 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   const isMobile = useIsMobile();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [selectedType, setSelectedType] = useState<InspectionType>('routine');
-  const [sections, setSections] = useState<InspectionSection[]>([]);
-  const [inspectionDate, setInspectionDate] = useState<Date | undefined>(new Date());
-  const [isBackdatingEnabled, setIsBackdatingEnabled] = useState(false);
-  const [isSearchFiltersExpanded, setIsSearchFiltersExpanded] = useState(false);
   
-  // Step handling
-  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-  const [currentStepIndex, setCurrentStepIndex] = useState(vehicleId ? 0 : -1); // -1 for vehicle selection, 0+ for sections
-  const [completedSections, setCompletedSections] = useState<Record<string, boolean>>({});
-  const [availableTemplateTypes, setAvailableTemplateTypes] = useState<InspectionType[]>([]); // NEW: Track available types for selected vehicle
+  // Use vehicle filtering hook
+  const vehicleFiltering = useVehicleFiltering({ vehicles });
   
-  // Debug component mount
-  useEffect(() => {
-    console.log(`[INSPECTION_FORM] Component mounted. Vehicle ID: ${vehicleId}, Inspection ID: ${inspectionId}`);
-    return () => {
-      console.log(`[INSPECTION_FORM] Component unmounting`);
-      // Reset flags on unmount
-      autoTemplateToastShownRef.current = false;
-      isAutoStartingRef.current = false;
-    };
-  }, []);
+  // Use inspection state hook
+  const inspectionState = useInspectionState({ vehicleId, inspectionId, isResuming });
   
-  // Debug sections changes
-  useEffect(() => {
-    console.log(`[INSPECTION_FORM] Sections changed:`, sections);
-  }, [sections]);
+  // Destructure for easier access
+  const {
+    selectedVehicle, setSelectedVehicle,
+    selectedType, setSelectedType,
+    sections, setSections,
+    inspectionDate, setInspectionDate,
+    isBackdatingEnabled, setIsBackdatingEnabled,
+    availableTemplateTypes, setAvailableTemplateTypes,
+    currentSectionIndex, setCurrentSectionIndex,
+    currentStepIndex, setCurrentStepIndex,
+    completedSections, setCompletedSections,
+    isCameraOpen, setIsCameraOpen,
+    currentPhotoItem, setCurrentPhotoItem,
+    notes, setNotes,
+    estimatedTimeRemaining, setEstimatedTimeRemaining,
+    startTime, setStartTime,
+    autoTemplateToastShownRef,
+    isAutoStartingRef,
+    getOverallProgress,
+    handleTypeChange,
+    handlePreviousSection,
+    handleNextSection,
+    handleItemStatus,
+    handleNotesChange,
+    handleCameraClick,
+    handleDeletePhoto,
+    handlePhotoCapture,
+    checkSectionCompletion,
+  } = inspectionState;
   
-  // Camera handling
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [currentPhotoItem, setCurrentPhotoItem] = useState<{
-    sectionId: string;
-    itemId: string;
-  } | null>(null);
-  
-  // Notes
-  const [notes, setNotes] = useState<string>('');
-  
-  // Estimated time
-  const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(10); // in minutes
-  const [startTime, setStartTime] = useState<Date | null>(null);
-  
-  // Vehicle selection filtering and pagination
-  const [searchQuery, setSearchQuery] = useState("");
-  const [brandFilter, setBrandFilter] = useState<string>("all");
-  const [modelFilter, setModelFilter] = useState<string>("all");
-  const [groupFilter, setGroupFilter] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const vehiclesPerPage = 10;
-  
-  // Prevent duplicate toast notifications when auto-selecting templates
-  const autoTemplateToastShownRef = useRef(false);
-  const isAutoStartingRef = useRef(false);
+  const {
+    searchQuery, setSearchQuery,
+    brandFilter, setBrandFilter,
+    modelFilter, setModelFilter,
+    groupFilter, setGroupFilter,
+    currentPage, setCurrentPage,
+    isSearchFiltersExpanded, setIsSearchFiltersExpanded,
+    brandOptions,
+    models,
+    vehicleGroups,
+    filteredVehicles,
+    paginatedVehicles,
+    totalPages,
+    vehiclesPerPage,
+    normalizeBrand,
+    resetFilters,
+  } = vehicleFiltering;
 
-  // Auto-expand search filters on mobile when filters become active
-  useEffect(() => {
-    const hasActiveFilters = searchQuery || brandFilter !== "all" || modelFilter !== "all" || groupFilter !== "all";
-    if (hasActiveFilters && isMobile && !isSearchFiltersExpanded) {
-      setIsSearchFiltersExpanded(true);
-    }
-  }, [searchQuery, brandFilter, modelFilter, groupFilter, isMobile, isSearchFiltersExpanded]);
-  
-  // Helpers for brand normalization (avoid duplicates like 'Toyota' vs 'toyota')
-  const normalizeBrand = (b?: string | null) => (b || '').trim().toLowerCase();
-
-  // Extract unique brands from vehicles and produce canonical options
-  const brandOptions = useMemo(() => {
-    const groups = new Map<string, string>();
-    vehicles.forEach(v => {
-      if (!v.brand) return;
-      const key = normalizeBrand(v.brand);
-      if (!key) return;
-      if (!groups.has(key)) groups.set(key, v.brand.trim());
-    });
-    return Array.from(groups.entries())
-      .map(([value, label]) => ({ value, label }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [vehicles]);
-  
-  // Get unique models based on selected brand
-  const models = useMemo(() => {
-    const uniqueModels = new Set<string>();
-    const key = brandFilter === 'all' ? null : brandFilter;
-    vehicles.forEach(vehicle => {
-      if (vehicle.model) {
-        if (!key || normalizeBrand(vehicle.brand) === key) {
-          uniqueModels.add(vehicle.model);
-        }
-      }
-    });
-    return Array.from(uniqueModels).sort();
-  }, [vehicles, brandFilter]);
-
-  // Get unique vehicle groups
-  const vehicleGroups = useMemo(() => {
-    const uniqueGroups = new Set<VehicleGroup>();
-    vehicles.forEach(vehicle => {
-      if (vehicle.vehicle_group) {
-        uniqueGroups.add(vehicle.vehicle_group);
-      }
-    });
-    return Array.from(uniqueGroups).sort((a, b) => a.name.localeCompare(b.name));
-  }, [vehicles]);
-  
-  // Filter Vehicle selection
-  const filteredVehicles = useMemo(() => {
-    // If no filters and no search query, return all vehicles
-    if (brandFilter === 'all' && modelFilter === 'all' && groupFilter === 'all' && !searchQuery) {
-      return vehicles;
-    }
-    
-    return vehicles.filter((vehicle) => {
-      const matchesBrand = brandFilter === 'all' || normalizeBrand(vehicle.brand) === brandFilter;
-      const matchesModel = modelFilter === 'all' || vehicle.model === modelFilter;
-      const matchesGroup = groupFilter === 'all' || vehicle.vehicle_group?.id === groupFilter;
-      
-      // Search query match against name, model, brand, plate number, or group name
-      const matchesSearch = !searchQuery || (
-        (vehicle.name && vehicle.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (vehicle.model && vehicle.model.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (vehicle.brand && vehicle.brand.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (vehicle.plate_number && vehicle.plate_number.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (vehicle.vehicle_group?.name && vehicle.vehicle_group.name.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-      
-      return matchesBrand && matchesModel && matchesGroup && matchesSearch;
-    });
-  }, [vehicles, brandFilter, modelFilter, groupFilter, searchQuery]);
-  
-  // Pagination for vehicle selection
-  const paginatedVehicles = useMemo(() => {
-    const startIndex = (currentPage - 1) * vehiclesPerPage;
-    return filteredVehicles.slice(startIndex, startIndex + vehiclesPerPage);
-  }, [filteredVehicles, currentPage, vehiclesPerPage]);
-  
-  // Reset filters function
-  const resetFilters = () => {
-    setSearchQuery('');
-    setBrandFilter('all');
-    setModelFilter('all');
-    setGroupFilter('all');
-    setCurrentPage(1);
-  };
-  
-  // Update current page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, brandFilter, modelFilter, groupFilter]);
   
   const methods = useForm<InspectionFormData>({
     resolver: zodResolver(inspectionSchema),
@@ -263,26 +171,6 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     },
   });
   
-  // Calculate and update the time remaining
-  useEffect(() => {
-    if (startTime && sections.length > 0) {
-      const timePerSection = 10; // base time in minutes
-      const completedSectionCount = Object.values(completedSections).filter(Boolean).length;
-      const remainingSections = sections.length - completedSectionCount;
-      const elapsed = (Date.now() - startTime.getTime()) / (1000 * 60); // minutes
-      
-      const estimatedRemaining = Math.max(1, Math.round(remainingSections * timePerSection - elapsed));
-      setEstimatedTimeRemaining(estimatedRemaining);
-    }
-  }, [completedSections, sections, startTime]);
-  
-  // Initialize start time when vehicle is selected
-  useEffect(() => {
-    if (selectedVehicle && !startTime) {
-      setStartTime(new Date());
-    }
-  }, [selectedVehicle, startTime]);
-
   // Load vehicle data when vehicleId changes
   useEffect(() => {
     if (vehicleId) {
@@ -343,14 +231,14 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         
         // Format the sections with their items
         const sectionsWithItems: InspectionSection[] = categories.map((category: any) => {
-          return {
+              return {
             id: category.id,
             name_translations: category.name_translations,
             description_translations: category.description_translations,
             title: category.name_translations[locale] || 'Unknown Section',
             description: category.description_translations[locale] || '',
             items: category.inspection_item_templates.map((item: any) => ({
-              id: item.id,
+                id: item.id,
               name_translations: item.name_translations,
               description_translations: item.description_translations,
               title: item.name_translations[locale] || 'Unknown Item',
@@ -358,7 +246,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
               requires_photo: Boolean(item.requires_photo),
               requires_notes: Boolean(item.requires_notes),
               status: null as 'pass' | 'fail' | null,
-              notes: '',
+                notes: '',
               photos: [] as string[]
             }))
           };
@@ -454,7 +342,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
             }
             
             if (!alreadyNotified) {
-              toast({
+      toast({
                 title: "Template Auto-Selected",
                 description: `Using ${autoType} inspection template for this vehicle`
               });
@@ -517,28 +405,6 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     // setCurrentStepIndex(0);
   }
   
-  // Handle type change
-  const handleTypeChange = (type: InspectionType) => {
-    setSelectedType(type);
-    // Reset section data when type changes
-    setCompletedSections({});
-    setCurrentSectionIndex(0);
-  };
-  
-  // Move to the next section
-  const handleNextSection = () => {
-    if (currentSectionIndex < sections.length - 1) {
-      setCurrentSectionIndex(currentSectionIndex + 1);
-    }
-  };
-  
-  // Move to the previous section
-  const handlePreviousSection = () => {
-    if (currentSectionIndex > 0) {
-      setCurrentSectionIndex(currentSectionIndex - 1);
-    }
-  };
-  
   // Start inspection (after selecting vehicle and type)
   const handleStartInspection = async () => {
     if (!selectedVehicle) {
@@ -598,14 +464,14 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           toast({
             title: "Driver Not Found",
             description: "Your email is not associated with a driver account. Please contact an administrator.",
-            variant: "destructive",
-          });
-          return;
-        }
+        variant: "destructive",
+      });
+      return;
+    }
 
         // Show confirmation toast with driver info (only if not auto-starting)
         if (!isAutoStartingRef.current) {
-          toast({
+      toast({
             title: "Driver Confirmed",
             description: `Inspection will be performed by: ${user.email}`,
             variant: "default",
@@ -643,7 +509,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         toast({
           title: "Failed to Start Inspection",
           description: error.message || "Could not create the inspection. Please try again.",
-          variant: "destructive",
+        variant: "destructive",
         })
       } finally {
         setIsSubmitting(false)
@@ -656,171 +522,6 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     setCurrentStepIndex(1)
   }
   
-  // Handle item status change
-  const handleItemStatus = (sectionId: string, itemId: string, status: "pass" | "fail") => {
-    console.log(`[INSPECTION_FORM] Setting item status: sectionId=${sectionId}, itemId=${itemId}, status=${status}`);
-    
-    setSections(prevSections => {
-      console.log(`[INSPECTION_FORM] Previous sections before status update:`, prevSections);
-      
-      let itemFound = false;
-      const newSections = prevSections.map(section => {
-        if (section.id === sectionId) {
-          return {
-            ...section,
-            items: section.items.map(item => {
-              if (item.id === itemId) {
-                itemFound = true;
-                console.log(`[INSPECTION_FORM] Item found, updating status from ${item.status} to ${status}`);
-                return {
-                  ...item,
-                  status: status
-                };
-              }
-              return item;
-            })
-          };
-        }
-        return section;
-      });
-      
-      if (!itemFound) {
-        console.error(`[INSPECTION_FORM] Item not found! sectionId=${sectionId}, itemId=${itemId}`);
-        console.log(`[INSPECTION_FORM] Available sections:`, prevSections.map(s => ({ id: s.id, items: s.items.map(i => ({ id: i.id, title: i.title })) })));
-      }
-      
-      console.log(`[INSPECTION_FORM] Updated sections:`, newSections);
-      return newSections;
-    });
-    
-    // Check if section is complete
-    checkSectionCompletion(sectionId);
-  };
-  
-  // Check if a section is complete (all items have status)
-  const checkSectionCompletion = (sectionId: string) => {
-    const section = sections.find(s => s.id === sectionId);
-    if (!section) return;
-    
-    const isComplete = section.items.every(item => item.status !== null);
-    
-    setCompletedSections(prev => ({
-      ...prev,
-      [sectionId]: isComplete
-    }));
-  };
-  
-  // Handle notes change
-  const handleNotesChange = (sectionId: string, itemId: string, notesValue: string) => {
-    setSections(prevSections => {
-      return prevSections.map(section => {
-        if (section.id === sectionId) {
-          return {
-            ...section,
-            items: section.items.map(item => {
-              if (item.id === itemId) {
-                return {
-                  ...item,
-                  notes: notesValue
-                };
-              }
-              return item;
-            })
-          };
-        }
-        return section;
-      });
-    });
-  };
-  
-  // Handle camera click
-  const handleCameraClick = (sectionId: string, itemId: string) => {
-    console.log(`[INSPECTION_FORM] Camera click: sectionId=${sectionId}, itemId=${itemId}`);
-    setCurrentPhotoItem({ sectionId, itemId });
-    setIsCameraOpen(true);
-  };
-  
-  // Handle photo capture
-  const handlePhotoCapture = async (photoUrl: string) => {
-    console.log(`[INSPECTION_FORM] Photo captured: ${photoUrl}`);
-    console.log(`[INSPECTION_FORM] Current photo item:`, currentPhotoItem);
-    
-    if (!currentPhotoItem) {
-      console.error(`[INSPECTION_FORM] No current photo item set!`);
-      return;
-    }
-    
-    setSections(prevSections => {
-      console.log(`[INSPECTION_FORM] Previous sections before photo capture:`, prevSections);
-      
-      let itemFound = false;
-      const newSections = prevSections.map(section => {
-        if (section.id === currentPhotoItem.sectionId) {
-          return {
-            ...section,
-            items: section.items.map(item => {
-              if (item.id === currentPhotoItem.itemId) {
-                itemFound = true;
-                console.log(`[INSPECTION_FORM] Adding photo to item, current photos:`, item.photos);
-                const newPhotos = [...item.photos, photoUrl];
-                console.log(`[INSPECTION_FORM] New photos array:`, newPhotos);
-                return {
-                  ...item,
-                  photos: newPhotos
-                };
-              }
-              return item;
-            })
-          };
-        }
-        return section;
-      });
-      
-      if (!itemFound) {
-        console.error(`[INSPECTION_FORM] Photo item not found! sectionId=${currentPhotoItem.sectionId}, itemId=${currentPhotoItem.itemId}`);
-        console.log(`[INSPECTION_FORM] Available sections:`, prevSections.map(s => ({ id: s.id, items: s.items.map(i => ({ id: i.id, title: i.title })) })));
-      }
-      
-      console.log(`[INSPECTION_FORM] Updated sections after photo capture:`, newSections);
-      return newSections;
-    });
-    
-    setIsCameraOpen(false);
-    setCurrentPhotoItem(null);
-  };
-  
-  // Handle photo deletion
-  const handleDeletePhoto = (sectionId: string, itemId: string, photoIndex: number) => {
-    setSections(prevSections =>
-      prevSections.map(section =>
-        section.id === sectionId
-          ? {
-              ...section,
-              items: section.items.map(item =>
-                item.id === itemId
-                  ? {
-                      ...item,
-                      photos: item.photos.filter((_, index) => index !== photoIndex),
-                    }
-                  : item
-              ),
-            }
-          : section
-      )
-    );
-  };
-  
-  // Calculate overall progress
-  const getOverallProgress = () => {
-    if (sections.length === 0) return 0;
-    
-    const totalItems = sections.reduce((total, section) => total + section.items.length, 0);
-    const completedItems = sections.reduce((total, section) => {
-      return total + section.items.filter(item => item.status !== null).length;
-    }, 0);
-    
-    return Math.round((completedItems / totalItems) * 100);
-  };
   
   // Submit the inspection
   const handleSubmit = async () => {
@@ -1131,7 +832,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           }
           toast({ title: t("inspections.errors.failedToSavePhotos"), description: t("inspections.errors.permissionOrInvalidDataPhotos"), variant: "destructive" });
           setIsSubmitting(false);
-          return;
+      return;
         }
       }
       
@@ -1564,7 +1265,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     <div className="space-y-8">
       <h2 className="text-xl font-semibold">{t("inspections.steps.selectType")}</h2>
 
-      <FormProvider {...methods}>
+    <FormProvider {...methods}>
         <InspectionTypeSelector
           control={methods.control}
           onTypeChange={handleTypeChange}
@@ -1941,15 +1642,15 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       {currentStepIndex === -1 && renderVehicleSelection()}
       {currentStepIndex === 0 && renderTypeSelection()}
       {currentStepIndex === 1 && renderSectionItems()}
-      
-      {/* Camera modal */}
+        
+        {/* Camera modal */}
       {isCameraOpen && (
-        <CameraModal
+          <CameraModal
           isOpen={isCameraOpen}
           onClose={() => setIsCameraOpen(false)}
           onCapture={handlePhotoCapture}
-        />
-      )}
-    </div>
+          />
+        )}
+      </div>
   );
-} 
+}

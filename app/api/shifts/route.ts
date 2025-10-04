@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 // GET - List shifts with filters
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = await getSupabaseServerClient();
     
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 // POST - Create a new shift
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = await getSupabaseServerClient();
     
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();

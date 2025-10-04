@@ -13,7 +13,7 @@ import {
   Clock,
   CheckCircle2
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase";
 
 interface ShiftStatisticsProps {
   startDate: string;

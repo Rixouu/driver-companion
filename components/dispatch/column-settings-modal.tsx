@@ -18,6 +18,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { DispatchStatus } from '@/types/dispatch';
+import { getDispatchStatusDotColor } from '@/lib/utils/styles';
 
 interface ColumnSettingsModalProps {
   open: boolean;
@@ -113,7 +114,10 @@ export function ColumnSettingsModal({
                 {columnOrder.map((status) => (
                   <div key={status} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full bg-current" />
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: getDispatchStatusDotColor(status) }}
+                      />
                       <span className="text-sm">{columnConfig[status].title}</span>
                     </div>
                     <Button
@@ -167,7 +171,10 @@ export function ColumnSettingsModal({
                     className="flex items-center gap-3 p-2 border rounded-lg cursor-move hover:bg-muted/50 transition-colors"
                   >
                     <GripVertical className="h-4 w-4 text-muted-foreground" />
-                    <div className="w-3 h-3 rounded-full bg-current" />
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: getDispatchStatusDotColor(status) }}
+                    />
                     <span className="text-sm flex-1">{columnConfig[status].title}</span>
                     <Badge variant="outline" className="text-xs">
                       {index + 1}

@@ -334,51 +334,53 @@ export function BookingDetailsSidebar({
   const getDefaultActions = () => {
     if (customActions) return customActions;
 
-    if (variant === 'assignment') {
-      return (
-        <div className="flex gap-2 pt-4 border-t">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onUnassign?.()}
-            className="flex-1"
-          >
-            <XIcon className="h-4 w-4 mr-2" />
-            {t("dispatch.assignments.unassignAll")}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onViewDetails?.() || router.push(`/bookings/${booking.id}`)}
-            className="flex-1"
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            {t("dispatch.assignments.viewDetails")}
-          </Button>
-        </div>
-      );
-    }
-
-    // Dispatch variant
+    // Both variants now use consistent layout with Actions heading and divider
     return (
-      <div className="space-y-3">
+      <div className="space-y-3 pt-4 border-t">
         <h3 className="font-medium text-sm text-foreground">{t("dispatch.assignments.actions")}</h3>
         <div className="space-y-2">
-          <Button
-            variant="outline"
-            className="w-full justify-start"
-            onClick={() => onViewDetails?.() || router.push(`/bookings/${booking.id}`)}
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            {t("dispatch.assignments.viewFullDetails")}
-          </Button>
-          <Button
-            className="w-full justify-start"
-            onClick={onReassign}
-          >
-            <UserIcon className="h-4 w-4 mr-2" />
-            {t("dispatch.assignments.reassignDriver", { defaultValue: "Reassign Driver" })}
-          </Button>
+          {variant === 'assignment' ? (
+            // Assignment variant - horizontal buttons
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onUnassign?.()}
+                className="flex-1"
+              >
+                <XIcon className="h-4 w-4 mr-2" />
+                {t("dispatch.assignments.unassignAll")}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onViewDetails?.() || router.push(`/bookings/${booking.id}`)}
+                className="flex-1"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                {t("dispatch.assignments.viewDetails")}
+              </Button>
+            </div>
+          ) : (
+            // Dispatch variant - vertical buttons
+            <>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => onViewDetails?.() || router.push(`/bookings/${booking.id}`)}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                {t("dispatch.assignments.viewFullDetails")}
+              </Button>
+              <Button
+                className="w-full justify-start"
+                onClick={onReassign}
+              >
+                <UserIcon className="h-4 w-4 mr-2" />
+                {t("dispatch.assignments.reassignDriver", { defaultValue: "Reassign Driver" })}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -388,10 +390,13 @@ export function BookingDetailsSidebar({
     <div className="space-y-6">
       {/* Header */}
       <div className="space-y-2">
+        <h2 className="text-lg font-semibold text-foreground">
+          Booking Details
+        </h2>
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">
+          <h3 className="text-base font-medium text-foreground">
             Booking Details #{booking.wp_id || booking.id.substring(0, 8)}
-          </h2>
+          </h3>
           <Badge className={cn("text-sm", getDispatchStatusBadgeClasses(status))}>
             {t(`bookings.status.${status.toLowerCase()}` as any, { defaultValue: status.replace("_", " ") })}
           </Badge>

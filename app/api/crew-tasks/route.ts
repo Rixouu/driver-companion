@@ -33,13 +33,24 @@ export async function GET(request: NextRequest) {
       ? taskNumbersParam.split(",").map(Number).filter(n => !isNaN(n))
       : null;
 
-    // Call the database function
-    const { data, error } = await supabase.rpc("get_crew_task_schedule", {
-      p_start_date: startDate,
-      p_end_date: endDate,
-      p_driver_ids: driverIds,
-      p_task_numbers: taskNumbers,
-    });
+    // Fetch tasks from crew_task_schedule_view
+    // Filter by date range (tasks that overlap with the date range)
+    let query = supabase
+      .from("crew_task_schedule_view")
+      .select("*")
+      .or(`start_date.lte.${endDate},end_date.gte.${startDate}`);
+    
+    // Apply driver filter if provided
+    if (driverIds && driverIds.length > 0) {
+      query = query.in("driver_id", driverIds);
+    }
+    
+    // Apply task number filter if provided
+    if (taskNumbers && taskNumbers.length > 0) {
+      query = query.in("task_number", taskNumbers);
+    }
+    
+    const { data: tasksData, error } = await query;
 
     if (error) {
       console.error("Error fetching crew task schedule:", error);
@@ -49,24 +60,59 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Transform the data into a more usable format
+    // Process and expand multi-day tasks
     const schedule: Record<string, any> = {};
+    const expandedTasks: any[] = [];
     
-    if (data && Array.isArray(data)) {
-      data.forEach((row: any) => {
-        const driverId = row.driver_id;
+    if (tasksData && Array.isArray(tasksData)) {
+      // Expand multi-day tasks into individual days
+      tasksData.forEach((task: any) => {
+        const taskStart = new Date(task.start_date);
+        const taskEnd = new Date(task.end_date);
+        const totalDays = Math.ceil((taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        
+        // Generate tasks for each day
+        for (let dayOffset = 0; dayOffset < totalDays; dayOffset++) {
+          const currentDate = new Date(taskStart);
+          currentDate.setDate(currentDate.getDate() + dayOffset);
+          const dateStr = currentDate.toISOString().split('T')[0];
+          
+          // Check if date is within requested range
+          if (dateStr >= startDate && dateStr <= endDate) {
+            expandedTasks.push({
+              ...task,
+              current_day: dayOffset + 1,
+              task_date: dateStr,
+              is_multi_day: totalDays > 1,
+              is_first_day: dayOffset === 0,
+              is_last_day: dayOffset === totalDays - 1,
+            });
+          }
+        }
+      });
+      
+      // Group by driver and date
+      expandedTasks.forEach((task: any) => {
+        const driverId = task.driver_id;
+        const dateStr = task.task_date;
+        
         if (!schedule[driverId]) {
           schedule[driverId] = {
-            driver_id: row.driver_id,
-            driver_name: row.driver_name,
+            driver_id: task.driver_id,
+            driver_name: task.driver_name,
             dates: {},
           };
         }
         
-        schedule[driverId].dates[row.task_date] = {
-          tasks: Array.isArray(row.tasks) ? row.tasks : JSON.parse(row.tasks || "[]"),
-          task_count: Array.isArray(row.tasks) ? row.tasks.length : JSON.parse(row.tasks || "[]").length,
-        };
+        if (!schedule[driverId].dates[dateStr]) {
+          schedule[driverId].dates[dateStr] = {
+            tasks: [],
+            task_count: 0,
+          };
+        }
+        
+        schedule[driverId].dates[dateStr].tasks.push(task);
+        schedule[driverId].dates[dateStr].task_count++;
       });
     }
 
@@ -77,6 +123,7 @@ export async function GET(request: NextRequest) {
         start_date: startDate,
         end_date: endDate,
         driver_count: Object.keys(schedule).length,
+        total_tasks: expandedTasks.length,
       },
     });
   } catch (error: any) {
@@ -129,15 +176,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for conflicts
-    const { data: conflicts } = await supabase.rpc("check_driver_task_conflicts", {
-      p_driver_id: driver_id,
-      p_start_date: start_date,
-      p_end_date: end_date,
-      p_start_time: start_time || null,
-      p_end_time: end_time || null,
-      p_exclude_task_id: null,
-    });
+    // Check for conflicts manually (since .rpc() not available)
+    const { data: conflicts } = await supabase
+      .from("crew_tasks")
+      .select("id, task_number, title, start_date, end_date, start_time, end_time")
+      .eq("driver_id", driver_id)
+      .not("task_status", "in", "(cancelled,completed)")
+      .or(`start_date.lte.${end_date},end_date.gte.${start_date}`);
 
     if (conflicts && conflicts.length > 0) {
       return NextResponse.json(

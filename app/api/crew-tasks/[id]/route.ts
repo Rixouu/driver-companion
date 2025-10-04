@@ -77,14 +77,18 @@ export async function PATCH(
         .single();
 
       if (currentTask) {
-        const { data: conflicts } = await supabase.rpc("check_driver_task_conflicts", {
-          p_driver_id: body.driver_id || currentTask.driver_id,
-          p_start_date: body.start_date || currentTask.start_date,
-          p_end_date: body.end_date || currentTask.end_date,
-          p_start_time: body.start_time !== undefined ? body.start_time : currentTask.start_time,
-          p_end_time: body.end_time !== undefined ? body.end_time : currentTask.end_time,
-          p_exclude_task_id: id,
-        });
+        // Check for conflicts manually (since .rpc() not available)
+        const checkDriverId = body.driver_id || currentTask.driver_id;
+        const checkStartDate = body.start_date || currentTask.start_date;
+        const checkEndDate = body.end_date || currentTask.end_date;
+        
+        const { data: conflicts } = await supabase
+          .from("crew_tasks")
+          .select("id, task_number, title, start_date, end_date, start_time, end_time")
+          .eq("driver_id", checkDriverId)
+          .neq("id", id)
+          .not("task_status", "in", "(cancelled,completed)")
+          .or(`start_date.lte.${checkEndDate},end_date.gte.${checkStartDate}`);
 
         if (conflicts && conflicts.length > 0) {
           return NextResponse.json(

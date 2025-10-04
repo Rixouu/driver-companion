@@ -2,16 +2,16 @@
 
 import { useState } from "react";
 import { PageHeader } from "@/components/page-header";
-import { ShiftCalendarGrid } from "@/components/shifts/shift-calendar-grid";
+import { CrewTaskCalendarGrid } from "@/components/shifts/crew-task-calendar-grid";
 import { ShiftFilters } from "@/components/shifts/shift-filters";
 import { ShiftStatistics } from "@/components/shifts/shift-statistics";
 import { UnassignedBookings } from "@/components/shifts/unassigned-bookings";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ShiftTabsList } from "@/components/shifts/shift-tabs-list";
-import { useShiftSchedule } from "@/lib/hooks/use-shift-schedule";
-import { ShiftBooking } from "@/types/shifts";
-import { format, startOfWeek, endOfWeek, addDays, startOfMonth, endOfMonth } from "date-fns";
+import { useCrewTasks } from "@/lib/hooks/use-crew-tasks";
+import { CrewTask } from "@/types/crew-tasks";
+import { format, startOfWeek, endOfWeek, addDays, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CalendarDays } from "lucide-react";
@@ -52,8 +52,14 @@ export default function ShiftsPage() {
 
   const dateRange = getDateRange();
 
-  // Fetch shift schedule data
-  const { data, meta, isLoading, error, refetch } = useShiftSchedule({
+  // Generate array of dates for the range
+  const dates = eachDayOfInterval({
+    start: new Date(dateRange.start),
+    end: new Date(dateRange.end),
+  }).map((date) => format(date, "yyyy-MM-dd"));
+
+  // Fetch crew task schedule data
+  const { data, meta, isLoading, error, refetch } = useCrewTasks({
     startDate: dateRange.start,
     endDate: dateRange.end,
     driverIds: selectedDriverIds.length > 0 ? selectedDriverIds : undefined,
@@ -61,14 +67,24 @@ export default function ShiftsPage() {
     refetchInterval: 120000, // 2 minutes
   });
 
-  const handleBookingClick = (booking: ShiftBooking) => {
-    // Navigate to booking details
-    window.location.href = `/bookings/${booking.booking_id}`;
+  const handleTaskClick = (task: CrewTask) => {
+    // If task is linked to booking, navigate to booking details
+    if (task.booking_id) {
+      window.location.href = `/bookings/${task.booking_id}`;
+    } else {
+      // Otherwise, open task details modal (TODO: implement)
+      console.log("Task clicked:", task);
+    }
+  };
+
+  const handleCellClick = (driverId: string, date: string) => {
+    // Open task creation modal (TODO: implement)
+    console.log("Cell clicked:", driverId, date);
   };
 
   const handleDriverClick = (driverId: string) => {
-    // Navigate to driver details or open modal
-    console.log("Driver clicked:", driverId);
+    // Navigate to driver details
+    window.location.href = `/drivers/${driverId}`;
   };
 
   return (
@@ -123,12 +139,14 @@ export default function ShiftsPage() {
                 </div>
               </Card>
             ) : data ? (
-              <ShiftCalendarGrid
-                schedule={data}
-                onBookingClick={handleBookingClick}
-                onDriverClick={handleDriverClick}
-              />
-            ) : (
+            <CrewTaskCalendarGrid
+              schedule={data}
+              dates={dates}
+              onTaskClick={handleTaskClick}
+              onCellClick={handleCellClick}
+              onDriverClick={handleDriverClick}
+            />
+          ) : (
               <Card className="p-12">
                 <div className="text-center text-muted-foreground">
                   <CalendarDays className="h-12 w-12 mx-auto mb-4 opacity-50" />

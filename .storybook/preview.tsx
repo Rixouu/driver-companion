@@ -31,27 +31,28 @@ const preview: Preview = {
     },
 
     backgrounds: {
-      default: 'light',
-      values: [
-        {
+      options: {
+        light: {
           name: 'light',
           value: '#ffffff',
         },
-        {
+
+        dark: {
           name: 'dark',
           value: '#0a0a0a',
         },
-        {
+
+        gray: {
           name: 'gray',
           value: '#f5f5f5',
         },
-        {
+
+        blue: {
           name: 'blue',
           value: '#f0f9ff',
-        },
-      ],
+        }
+      }
     },
-
 
     docs: {
       toc: true,
@@ -61,15 +62,6 @@ const preview: Preview = {
     },
 
     layout: 'centered',
-    
-    // Mock Next.js router
-    nextjs: {
-      appDirectory: true,
-      navigation: {
-        pathname: '/',
-        query: {},
-      },
-    },
   },
 
   decorators: [
@@ -79,6 +71,12 @@ const preview: Preview = {
       </div>
     ),
   ],
+
+  initialGlobals: {
+    backgrounds: {
+      value: 'light'
+    }
+  }
 };
 
 export default preview;

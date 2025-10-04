@@ -11,6 +11,11 @@ import {
 } from "@/components/ui/popover";
 import { Clock, MapPin, User, DollarSign, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { 
+  getBookingStatusDotColor, 
+  getBookingStatusBadgeClasses,
+  getDispatchStatusBorderColor 
+} from "@/lib/utils/styles";
 
 interface BookingCellProps {
   driverId: string;
@@ -20,29 +25,14 @@ interface BookingCellProps {
   onCellClick?: (driverId: string, date: string) => void;
 }
 
-// Color mapping for booking status
+// Get status color (uses consistent colors from styles.ts)
 const getStatusColor = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    confirmed: "bg-green-500",
-    pending: "bg-yellow-500",
-    in_progress: "bg-blue-500",
-    completed: "bg-emerald-600",
-    cancelled: "bg-gray-400",
-    no_show: "bg-red-500",
-  };
-  return statusMap[status.toLowerCase()] || "bg-gray-300";
+  return getBookingStatusDotColor(status);
 };
 
+// Get status badge class (uses consistent badge styles from styles.ts)
 const getStatusBadgeClass = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    confirmed: "bg-green-100 text-green-800 hover:bg-green-200",
-    pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
-    in_progress: "bg-blue-100 text-blue-800 hover:bg-blue-200",
-    completed: "bg-emerald-100 text-emerald-800 hover:bg-emerald-200",
-    cancelled: "bg-gray-100 text-gray-800 hover:bg-gray-200",
-    no_show: "bg-red-100 text-red-800 hover:bg-red-200",
-  };
-  return statusMap[status.toLowerCase()] || "bg-gray-100 text-gray-800";
+  return getBookingStatusBadgeClasses(status);
 };
 
 export function BookingCell({
@@ -92,14 +82,14 @@ export function BookingCell({
             }}
           >
             <div className="space-y-1">
-              <div className="text-xs font-medium truncate">
+              <div className="text-xs font-semibold truncate text-foreground dark:text-foreground">
                 {booking.customer_name}
               </div>
-              <div className="text-[10px] text-muted-foreground truncate">
+              <div className="text-[10px] truncate text-gray-700 dark:text-gray-300">
                 {booking.time} • {booking.service_name}
               </div>
               {booking.price_formatted && (
-                <div className="text-[10px] font-medium text-primary">
+                <div className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
                   {booking.price_formatted}
                 </div>
               )}
@@ -142,15 +132,15 @@ export function BookingCell({
                 />
               ))}
               {bookings.length > 3 && (
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300">
                   +{bookings.length - 3}
                 </span>
               )}
             </div>
-            <div className="text-xs font-medium">
+            <div className="text-xs font-semibold text-foreground dark:text-foreground">
               {booking_count} {booking_count === 1 ? "booking" : "bookings"}
             </div>
-            <div className="text-[10px] text-muted-foreground">
+            <div className="text-[10px] font-medium text-gray-700 dark:text-gray-300">
               {total_hours}h • ¥{total_revenue.toLocaleString()}
             </div>
           </div>

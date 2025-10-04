@@ -196,6 +196,7 @@ export const en: TranslationValue = {
     vehicles: "Vehicles",
     drivers: "Drivers",
     bookings: "Bookings",
+    shifts: "Shifts",
     paylinks: "Payment Links",
     quotations: "Quotations",
     customers: "Customers",
@@ -2876,6 +2877,98 @@ export const en: TranslationValue = {
       alerts: "Tracking Alerts",
       history: "Location History",
       playback: "Route Playback"
+    }
+  },
+  shifts: {
+    title: "Driver Shift Schedule",
+    description: "Manage driver shifts, view assignments, and optimize scheduling",
+    addShift: "Add Shift",
+    createShift: "Create Shift",
+    editShift: "Edit Shift",
+    deleteShift: "Delete Shift",
+    viewType: {
+      week: "Week View",
+      twoWeeks: "2 Weeks",
+      month: "Month View"
+    },
+    filters: {
+      today: "Today",
+      previous: "Previous",
+      next: "Next",
+      refresh: "Refresh"
+    },
+    tabs: {
+      schedule: "Schedule",
+      unassigned: "Unassigned",
+      statistics: "Statistics"
+    },
+    table: {
+      driver: "Driver",
+      drivers: "drivers",
+      days: "days"
+    },
+    legend: {
+      confirmed: "Confirmed",
+      pending: "Pending",
+      inProgress: "In Progress",
+      cancelled: "Cancelled"
+    },
+    stats: {
+      totalBookings: "Total Bookings",
+      activeDrivers: "Active Drivers",
+      totalHours: "Total Hours",
+      totalRevenue: "Total Revenue",
+      assignmentRate: "Assignment Rate",
+      completionRate: "Completion Rate",
+      assigned: "Assigned",
+      unassigned: "Unassigned",
+      completed: "Completed",
+      of: "of"
+    },
+    unassigned: {
+      title: "Unassigned Bookings",
+      description: "Bookings that need driver assignment",
+      noBookings: "No unassigned bookings found",
+      allAssigned: "All bookings in this period have been assigned",
+      assignDriver: "Assign Driver",
+      from: "From",
+      to: "To"
+    },
+    booking: {
+      bookings: "bookings",
+      hours: "hours",
+      viewDetails: "View Details",
+      addBooking: "Add Booking",
+      noBookings: "No bookings",
+      multipleBookings: "{count} bookings"
+    },
+    cell: {
+      empty: "Click to add shift or booking",
+      addShift: "Add Shift"
+    },
+    status: {
+      scheduled: "Scheduled",
+      active: "Active",
+      completed: "Completed",
+      cancelled: "Cancelled"
+    },
+    shiftType: {
+      regular: "Regular",
+      overtime: "Overtime",
+      onCall: "On Call",
+      split: "Split Shift",
+      special: "Special"
+    },
+    errors: {
+      loadFailed: "Failed to load shift schedule",
+      createFailed: "Failed to create shift",
+      updateFailed: "Failed to update shift",
+      deleteFailed: "Failed to delete shift"
+    },
+    success: {
+      created: "Shift created successfully",
+      updated: "Shift updated successfully",
+      deleted: "Shift deleted successfully"
     }
   },
   settings: {

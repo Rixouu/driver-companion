@@ -193,6 +193,7 @@ export const ja: TranslationValue = {
     vehicles: "車両",
     drivers: "ドライバー",
     bookings: "予約",
+    shifts: "シフト",
     paylinks: "支払いリンク",
     quotations: "見積",
     customers: "顧客",
@@ -2833,6 +2834,98 @@ export const ja: TranslationValue = {
       alerts: "追跡アラート",
       history: "位置履歴",
       playback: "ルート再生"
+    }
+  },
+  shifts: {
+    title: "ドライバーシフト表",
+    description: "ドライバーのシフト管理、割り当て表示、スケジュール最適化",
+    addShift: "シフト追加",
+    createShift: "シフト作成",
+    editShift: "シフト編集",
+    deleteShift: "シフト削除",
+    viewType: {
+      week: "週表示",
+      twoWeeks: "2週間",
+      month: "月表示"
+    },
+    filters: {
+      today: "今日",
+      previous: "前へ",
+      next: "次へ",
+      refresh: "更新"
+    },
+    tabs: {
+      schedule: "スケジュール",
+      unassigned: "未割り当て",
+      statistics: "統計"
+    },
+    table: {
+      driver: "ドライバー",
+      drivers: "ドライバー",
+      days: "日"
+    },
+    legend: {
+      confirmed: "確定",
+      pending: "保留中",
+      inProgress: "進行中",
+      cancelled: "キャンセル"
+    },
+    stats: {
+      totalBookings: "予約総数",
+      activeDrivers: "稼働中のドライバー",
+      totalHours: "合計時間",
+      totalRevenue: "総売上",
+      assignmentRate: "割り当て率",
+      completionRate: "完了率",
+      assigned: "割り当て済",
+      unassigned: "未割り当て",
+      completed: "完了",
+      of: "/"
+    },
+    unassigned: {
+      title: "未割り当て予約",
+      description: "ドライバー割り当てが必要な予約",
+      noBookings: "未割り当ての予約はありません",
+      allAssigned: "この期間の全予約が割り当て済みです",
+      assignDriver: "ドライバー割り当て",
+      from: "出発",
+      to: "到着"
+    },
+    booking: {
+      bookings: "予約",
+      hours: "時間",
+      viewDetails: "詳細を見る",
+      addBooking: "予約追加",
+      noBookings: "予約なし",
+      multipleBookings: "{count}件の予約"
+    },
+    cell: {
+      empty: "クリックしてシフトまたは予約を追加",
+      addShift: "シフト追加"
+    },
+    status: {
+      scheduled: "予定",
+      active: "稼働中",
+      completed: "完了",
+      cancelled: "キャンセル"
+    },
+    shiftType: {
+      regular: "通常",
+      overtime: "残業",
+      onCall: "オンコール",
+      split: "分割シフト",
+      special: "特別"
+    },
+    errors: {
+      loadFailed: "シフト表の読み込みに失敗しました",
+      createFailed: "シフトの作成に失敗しました",
+      updateFailed: "シフトの更新に失敗しました",
+      deleteFailed: "シフトの削除に失敗しました"
+    },
+    success: {
+      created: "シフトが正常に作成されました",
+      updated: "シフトが正常に更新されました",
+      deleted: "シフトが正常に削除されました"
     }
   },
   settings: {

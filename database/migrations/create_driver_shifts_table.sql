@@ -239,9 +239,9 @@ CREATE POLICY "Admins can manage driver shifts"
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role IN ('admin', 'super_admin')
+      SELECT 1 FROM admin_users
+      WHERE admin_users.id = auth.uid()
+      AND admin_users.role IN ('admin', 'super_admin', 'dispatcher')
     )
   );
 

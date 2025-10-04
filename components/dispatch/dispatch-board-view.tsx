@@ -605,6 +605,7 @@ export default function DispatchBoardView({
                 showDateInHeader={true}
                 showNotes={true}
                 showCustomerInfoFirst={false}
+                notesType="customer"
                 onUnassign={() => onUnassignVehicle?.(selectedEntry.id)}
                 onReassign={() => {
                   // Add reassign functionality

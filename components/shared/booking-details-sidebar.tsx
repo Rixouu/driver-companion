@@ -44,6 +44,9 @@ interface BookingLike {
   driver?: Partial<Driver> | null;
   vehicle?: Partial<Vehicle> | null;
   notes?: string;
+  customer_notes?: string;
+  general_notes?: string;
+  merchant_notes?: string;
 }
 
 interface BookingDetailsSidebarProps {
@@ -56,6 +59,7 @@ interface BookingDetailsSidebarProps {
   showDateInHeader?: boolean;
   showNotes?: boolean;
   showCustomerInfoFirst?: boolean;
+  notesType?: 'customer' | 'general' | 'all';
   
   /** Action handlers */
   onAssign?: () => void;
@@ -74,6 +78,7 @@ export function BookingDetailsSidebar({
   showDateInHeader = true,
   showNotes = true,
   showCustomerInfoFirst = false,
+  notesType = 'customer',
   onAssign,
   onUnassign,
   onReassign,
@@ -270,18 +275,60 @@ export function BookingDetailsSidebar({
     </div>
   );
 
-  // Notes Section
-  const NotesSection = () => (
-    booking.notes && (
+  // Notes Section - Configurable notes display
+  const NotesSection = () => {
+    const customerNotes = booking.customer_notes;
+    const generalNotes = booking.general_notes;
+    const merchantNotes = booking.merchant_notes;
+    const fallbackNotes = booking.notes;
+    
+    let displayNotes = '';
+    let notesTitle = '';
+    let showMerchantNotes = false;
+    
+    switch (notesType) {
+      case 'customer':
+        displayNotes = customerNotes || '';
+        notesTitle = 'Customer Notes';
+        showMerchantNotes = false;
+        break;
+      case 'general':
+        displayNotes = generalNotes || fallbackNotes || '';
+        notesTitle = t("dispatch.assignments.notes");
+        showMerchantNotes = false;
+        break;
+      case 'all':
+        // Show customer notes first, then general notes
+        displayNotes = customerNotes || generalNotes || fallbackNotes || '';
+        notesTitle = customerNotes ? 'Customer Notes' : t("dispatch.assignments.notes");
+        showMerchantNotes = true;
+        break;
+      default:
+        displayNotes = customerNotes || generalNotes || fallbackNotes || '';
+        notesTitle = customerNotes ? 'Customer Notes' : t("dispatch.assignments.notes");
+        showMerchantNotes = false;
+    }
+    
+    if (!displayNotes) return null;
+    
+    return (
       <div className="space-y-3">
-        <h3 className="font-medium text-sm text-foreground">{t("dispatch.assignments.notes")}</h3>
+        <h3 className="font-medium text-sm text-foreground">{notesTitle}</h3>
         <div className="flex items-start gap-2">
           <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5" />
-          <p className="text-sm text-foreground">{booking.notes}</p>
+          <div className="flex-1">
+            <p className="text-sm text-foreground">{displayNotes}</p>
+            {showMerchantNotes && merchantNotes && (
+              <div className="mt-2 p-2 bg-muted/50 rounded-md">
+                <p className="text-xs text-muted-foreground font-medium mb-1">Internal Notes:</p>
+                <p className="text-xs text-muted-foreground">{merchantNotes}</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    )
-  );
+    );
+  };
 
   // Default Actions based on variant
   const getDefaultActions = () => {
@@ -306,7 +353,7 @@ export function BookingDetailsSidebar({
             className="flex-1"
           >
             <Eye className="h-4 w-4 mr-2" />
-            {t("dispatch.assignments.viewBooking")}
+            {t("dispatch.assignments.viewDetails")}
           </Button>
         </div>
       );

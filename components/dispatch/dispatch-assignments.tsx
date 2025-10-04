@@ -365,6 +365,7 @@ export default function DispatchAssignments() {
               showDateInHeader={true}
               showNotes={true}
               showCustomerInfoFirst={true}
+              notesType="customer"
               onUnassign={() => handleUnassign(selectedBooking.id)}
               onViewDetails={() => {
                 // Add view details functionality

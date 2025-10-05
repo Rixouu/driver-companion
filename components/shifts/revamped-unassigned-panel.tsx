@@ -116,6 +116,13 @@ export function RevampedUnassignedPanel({
       filtered = filtered.filter(task => task.priority === priority);
     }
 
+    // Sort by date (start_date) - earliest first
+    filtered = filtered.sort((a, b) => {
+      const dateA = new Date(a.start_date);
+      const dateB = new Date(b.start_date);
+      return dateA.getTime() - dateB.getTime();
+    });
+
     setFilteredTasks(filtered);
   }, [tasks, searchQuery, selectedType, selectedPriority]);
 

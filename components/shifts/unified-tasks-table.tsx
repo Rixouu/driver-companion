@@ -89,6 +89,13 @@ export function UnifiedTasksTable({
       filtered = filtered.filter(task => task.task_type === filterType);
     }
 
+    // Sort by date (start_date) - earliest first
+    filtered = filtered.sort((a, b) => {
+      const dateA = new Date(a.start_date);
+      const dateB = new Date(b.start_date);
+      return dateA.getTime() - dateB.getTime();
+    });
+
     return filtered;
   }, [tasks, activeTab, searchTerm, filterType]);
 

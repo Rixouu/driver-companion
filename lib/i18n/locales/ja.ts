@@ -195,7 +195,6 @@ export const ja: TranslationValue = {
     vehicles: "車両",
     drivers: "ドライバー",
     bookings: "予約",
-    shifts: "シフト",
     paylinks: "支払いリンク",
     quotations: "見積",
     customers: "顧客",
@@ -2891,7 +2890,6 @@ export const ja: TranslationValue = {
       hours: "時間",
       capacity: "容量",
       tasks: "タスク",
-      thisWeek: "今週",
       total: "合計"
     },
     tasksHours: {
@@ -2919,6 +2917,12 @@ export const ja: TranslationValue = {
       dateFormat: "MMM dd",
       timeFormat: "HH:mm:ss",
       duration: "期間"
+    },
+    taskSummary: {
+      tasks: "タスク",
+      task: "タスク",
+      total: "合計",
+      hours: "時間"
     },
     buttons: {
       createTask: "タスク作成",

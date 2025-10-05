@@ -198,7 +198,6 @@ export const en: TranslationValue = {
     vehicles: "Vehicles",
     drivers: "Drivers",
     bookings: "Bookings",
-    shifts: "Shifts",
     paylinks: "Payment Links",
     quotations: "Quotations",
     customers: "Customers",
@@ -2934,7 +2933,6 @@ export const en: TranslationValue = {
       hours: "Hours",
       capacity: "Capacity",
       tasks: "tasks",
-      thisWeek: "This Week",
       total: "total"
     },
     tasksHours: {
@@ -2962,6 +2960,12 @@ export const en: TranslationValue = {
       dateFormat: "MMM dd",
       timeFormat: "HH:mm:ss",
       duration: "duration"
+    },
+    taskSummary: {
+      tasks: "tasks",
+      task: "task",
+      total: "total",
+      hours: "h"
     },
     buttons: {
       createTask: "Create Task",

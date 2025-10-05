@@ -257,7 +257,7 @@ export async function GET(
 
             // Generate HTML using the template configuration
             if (templateType === 'quotation') {
-              htmlContent = generateQuotationHtml(
+              htmlContent = await generateQuotationHtml(
                 sampleQuotationData, 
                 language as 'en' | 'ja', 
                 null, 

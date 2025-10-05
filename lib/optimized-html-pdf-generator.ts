@@ -358,7 +358,7 @@ export async function generateOptimizedQuotationPDF(
     // Import the HTML generator
     const { generateQuotationHtml } = await import('./quotation-html-generator');
     
-    const htmlContent = generateQuotationHtml(
+    const htmlContent = await generateQuotationHtml(
       quotation, 
       language as 'en' | 'ja', 
       selectedPackage, 

@@ -56,11 +56,18 @@ export function UnifiedTasksTable({
     let filtered = tasks;
 
     // Filter by assignment status
-    const unassignedDriverId = '00000000-0000-0000-0000-000000000000';
     if (activeTab === "assigned") {
-      filtered = filtered.filter(task => task.driver_id && task.driver_id !== unassignedDriverId);
+      filtered = filtered.filter(task => 
+        task.driver_id && 
+        task.driver_id !== null && 
+        task.driver_id !== '00000000-0000-0000-0000-000000000000'
+      );
     } else if (activeTab === "unassigned") {
-      filtered = filtered.filter(task => !task.driver_id || task.driver_id === unassignedDriverId);
+      filtered = filtered.filter(task => 
+        !task.driver_id || 
+        task.driver_id === null || 
+        task.driver_id === '00000000-0000-0000-0000-000000000000'
+      );
     }
 
     // Filter by search term
@@ -94,17 +101,32 @@ export function UnifiedTasksTable({
   }, [activeTab, searchTerm, filterType]);
 
   // Count tasks by status
-  const unassignedDriverId = '00000000-0000-0000-0000-000000000000';
-  const assignedCount = tasks.filter(t => t.driver_id && t.driver_id !== unassignedDriverId).length;
-  const unassignedCount = tasks.filter(t => !t.driver_id || t.driver_id === unassignedDriverId).length;
+  const assignedCount = tasks.filter(t => 
+    t.driver_id && 
+    t.driver_id !== null && 
+    t.driver_id !== '00000000-0000-0000-0000-000000000000'
+  ).length;
+  const unassignedCount = tasks.filter(t => 
+    !t.driver_id || 
+    t.driver_id === null || 
+    t.driver_id === '00000000-0000-0000-0000-000000000000'
+  ).length;
 
   const handleDragStart = (e: React.DragEvent, task: CrewTask) => {
+    e.stopPropagation();
     setDraggedTask(task);
+    
+    // Set drag data
     e.dataTransfer.setData("application/json", JSON.stringify(task));
     e.dataTransfer.effectAllowed = "move";
+    
+    // Store task in localStorage as backup for cross-component drag
     if (typeof window !== "undefined") {
       localStorage.setItem("draggedTask", JSON.stringify(task));
     }
+    
+    // Add visual feedback class to body
+    document.body.classList.add("dragging-task");
   };
 
   const handleDragEnd = () => {
@@ -112,6 +134,9 @@ export function UnifiedTasksTable({
     if (typeof window !== "undefined") {
       localStorage.removeItem("draggedTask");
     }
+    
+    // Remove visual feedback class from body
+    document.body.classList.remove("dragging-task");
   };
 
   const handleAssignClick = (task: CrewTask) => {
@@ -311,7 +336,7 @@ export function UnifiedTasksTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      {task.driver_id && task.driver_id !== '00000000-0000-0000-0000-000000000000' ? (
+                      {task.driver_id && task.driver_id !== null && task.driver_id !== '00000000-0000-0000-0000-000000000000' ? (
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">
@@ -366,7 +391,7 @@ export function UnifiedTasksTable({
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1">
-                        {(!task.driver_id || task.driver_id === '00000000-0000-0000-0000-000000000000') && (
+                        {(!task.driver_id || task.driver_id === null || task.driver_id === '00000000-0000-0000-0000-000000000000') && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -419,7 +444,16 @@ export function UnifiedTasksTable({
             </div>
           ) : (
             paginatedTasks.map((task) => (
-              <Card key={task.id} className="p-4">
+              <Card 
+                key={task.id} 
+                className={cn(
+                  "p-4 cursor-grab active:cursor-grabbing transition-all duration-200",
+                  draggedTask?.id === task.id && "opacity-50 scale-95"
+                )}
+                draggable
+                onDragStart={(e) => handleDragStart(e, task)}
+                onDragEnd={handleDragEnd}
+              >
                 <div className="space-y-3">
                   {/* Task Header */}
                   <div className="flex items-start justify-between mb-3">
@@ -430,7 +464,7 @@ export function UnifiedTasksTable({
                       )}
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-shrink-0">
-                      {(!task.driver_id || task.driver_id === '00000000-0000-0000-0000-000000000000') && (
+                      {(!task.driver_id || task.driver_id === null || task.driver_id === '00000000-0000-0000-0000-000000000000') && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -468,7 +502,7 @@ export function UnifiedTasksTable({
                         <User className="h-4 w-4 text-muted-foreground" />
                         <span className="text-muted-foreground text-sm">Driver:</span>
                         <span className="font-medium text-sm">
-                          {task.driver_id && task.driver_id !== '00000000-0000-0000-0000-000000000000' 
+                          {task.driver_id && task.driver_id !== null && task.driver_id !== '00000000-0000-0000-0000-000000000000' 
                             ? drivers.find(d => d.id === task.driver_id)?.first_name + ' ' + drivers.find(d => d.id === task.driver_id)?.last_name
                             : 'Unassigned'
                           }

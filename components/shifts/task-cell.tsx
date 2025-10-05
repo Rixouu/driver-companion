@@ -125,26 +125,66 @@ export function TaskCell({
 
   // Handle drag over
   const [isDragOverLocal, setIsDragOverLocal] = useState(false);
+  const [isValidDropZone, setIsValidDropZone] = useState(true);
+
+  // Check if the drop date is valid for the task
+  const validateDropDate = (taskStartDate: string, dropDate: string): boolean => {
+    // Cannot drop task on a date before its current start date
+    // Also check if the task is being moved to a different driver (same date is always valid)
+    return dropDate >= taskStartDate;
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    
+    // Get the dragged task from localStorage to validate
+    if (typeof window !== "undefined") {
+      const draggedTaskStr = localStorage.getItem("draggedTask");
+      if (draggedTaskStr) {
+        try {
+          const draggedTask = JSON.parse(draggedTaskStr);
+          const isValid = validateDropDate(draggedTask.start_date, date);
+          setIsValidDropZone(isValid);
+          e.dataTransfer.dropEffect = isValid ? "move" : "none";
+        } catch (error) {
+          console.error("Error parsing dragged task:", error);
+          setIsValidDropZone(false);
+          e.dataTransfer.dropEffect = "none";
+        }
+      } else {
+        setIsValidDropZone(false);
+        e.dataTransfer.dropEffect = "none";
+      }
+    } else {
+      setIsValidDropZone(false);
+      e.dataTransfer.dropEffect = "none";
+    }
+    
     setIsDragOverLocal(true);
   };
 
   const handleDragLeave = () => {
     setIsDragOverLocal(false);
+    setIsValidDropZone(true); // Reset validation state
   };
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOverLocal(false);
-    setIsDropped(true);
 
     // Get dragged task from storage
     if (typeof window !== "undefined") {
       const draggedTaskStr = localStorage.getItem("draggedTask");
       if (draggedTaskStr) {
         const draggedTask = JSON.parse(draggedTaskStr);
+        
+        // Validate drop date before processing
+        if (!validateDropDate(draggedTask.start_date, date)) {
+          alert(`Cannot move task to ${date}. Tasks cannot be moved to dates before their start date (${draggedTask.start_date}).`);
+          return;
+        }
+        
+        setIsDropped(true);
         
         try {
           // Use the callback function if provided, otherwise fall back to direct API call
@@ -195,8 +235,10 @@ export function TaskCell({
     return (
       <div 
         className={cn(
-          "h-full min-h-[120px] p-2 flex items-center justify-center cursor-pointer transition-all border border-border/50",
-          isDragOver ? "bg-primary/20 border-primary border-2" : "hover:bg-muted/50"
+          "h-full min-h-[120px] p-2 flex items-center justify-center cursor-pointer transition-all duration-200 border border-border/50",
+          (isDragOver || isDragOverLocal) && isValidDropZone && "bg-green-100 dark:bg-green-900/20 border-green-500 border-2 border-dashed shadow-lg scale-105",
+          (isDragOver || isDragOverLocal) && !isValidDropZone && "bg-red-100 dark:bg-red-900/20 border-red-500 border-2 border-dashed cursor-not-allowed",
+          !isDragOver && !isDragOverLocal && "hover:bg-muted/50"
         )}
         onClick={() => onCellClick?.(driverId, date)}
         onDragOver={handleDragOver}
@@ -221,7 +263,8 @@ export function TaskCell({
       <div 
         className={cn(
           "h-full min-h-[120px] p-1 space-y-1 overflow-y-auto transition-all duration-200",
-          (isDragOver || isDragOverLocal) && "bg-primary/20 border-2 border-primary border-dashed scale-105 shadow-lg",
+          (isDragOver || isDragOverLocal) && isValidDropZone && "bg-green-100 dark:bg-green-900/20 border-2 border-green-500 border-dashed scale-105 shadow-lg",
+          (isDragOver || isDragOverLocal) && !isValidDropZone && "bg-red-100 dark:bg-red-900/20 border-2 border-red-500 border-dashed",
           isDropped && "bg-green-100 border-green-500 border-2 border-dashed animate-pulse"
         )}
       onDragOver={handleDragOver}

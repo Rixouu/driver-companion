@@ -160,6 +160,7 @@ export function TaskCreationSheet({
     selectedDriverId ? [selectedDriverId] : []
   );
   const [selectAllDrivers, setSelectAllDrivers] = useState(false);
+  const [dateValidationError, setDateValidationError] = useState<string | null>(null);
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -204,6 +205,12 @@ export function TaskCreationSheet({
     e.preventDefault();
     if (isSubmitting) return;
 
+    // Validate dates before submission
+    if (formData.start_date && formData.end_date && formData.start_date > formData.end_date) {
+      setDateValidationError("Start date cannot be after end date. Please correct the dates.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const driversToApply = selectAllDrivers 
@@ -223,10 +230,41 @@ export function TaskCreationSheet({
   };
 
   const handleInputChange = (field: keyof CreateCrewTaskRequest, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [field]: value,
+      };
+      
+      // If start_date is changed and it's not a multi-day task, update end_date to match
+      if (field === "start_date" && !isMultiDay) {
+        newData.end_date = value;
+      }
+      
+      // If end_date is changed and it's not a multi-day task, update start_date to match
+      if (field === "end_date" && !isMultiDay) {
+        newData.start_date = value;
+      }
+      
+      // For multi-day tasks, ensure end_date is not before start_date
+      if (isMultiDay && field === "end_date" && newData.start_date && value < newData.start_date) {
+        newData.end_date = newData.start_date;
+        setDateValidationError("End date cannot be before start date. It has been adjusted.");
+      }
+      
+      // For multi-day tasks, ensure start_date is not after end_date
+      if (isMultiDay && field === "start_date" && newData.end_date && value > newData.end_date) {
+        newData.end_date = value;
+        setDateValidationError("Start date cannot be after end date. End date has been adjusted.");
+      }
+      
+      // Clear validation error if dates are valid
+      if (newData.start_date && newData.end_date && newData.start_date <= newData.end_date) {
+        setDateValidationError(null);
+      }
+      
+      return newData;
+    });
   };
 
   const handleMultiDayToggle = (checked: boolean) => {
@@ -556,6 +594,16 @@ export function TaskCreationSheet({
                 </div>
               </div>
             </div>
+
+            {/* Date Validation Alert */}
+            {dateValidationError && (
+              <Alert className="border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20">
+                <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+                  {dateValidationError}
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Time and Hours (conditional based on task type) */}
             {!["day_off", "special"].includes(formData.task_type) && (

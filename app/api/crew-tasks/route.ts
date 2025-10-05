@@ -101,13 +101,13 @@ export async function GET(request: NextRequest) {
       
       // Group by driver and date
       expandedTasks.forEach((task: any) => {
-        const driverId = task.driver_id;
+        const driverId = task.driver_id || 'unassigned'; // Use 'unassigned' as key for null driver_id
         const dateStr = task.task_date;
         
         if (!schedule[driverId]) {
           schedule[driverId] = {
             driver_id: task.driver_id,
-            driver_name: task.drivers ? `${task.drivers.first_name} ${task.drivers.last_name}` : 'Unknown Driver',
+            driver_name: task.drivers ? `${task.drivers.first_name} ${task.drivers.last_name}` : 'Unassigned',
             dates: {},
           };
         }

@@ -218,6 +218,12 @@ export function UnifiedCalendar({
   // Drop handlers for drag and drop functionality
   const [dragOverCell, setDragOverCell] = useState<{driverId: string, date: string} | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [dragValidation, setDragValidation] = useState<{isValid: boolean, draggedTask: any} | null>(null);
+
+  // Check if a column should be highlighted
+  const isColumnHighlighted = (dateStr: string) => {
+    return dragOverCell?.date === dateStr && dragValidation;
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -230,6 +236,26 @@ export function UnifiedCalendar({
     e.stopPropagation();
     setDragOverCell({ driverId, date });
     setIsDragging(true);
+    
+    // Validate the drop
+    if (typeof window !== "undefined") {
+      const draggedTaskStr = localStorage.getItem("draggedTask");
+      if (draggedTaskStr) {
+        try {
+          const draggedTask = JSON.parse(draggedTaskStr);
+          const isValid = date >= draggedTask.start_date;
+          setDragValidation({ isValid, draggedTask });
+          e.dataTransfer.dropEffect = isValid ? "move" : "none";
+        } catch (error) {
+          console.error("Error parsing dragged task:", error);
+          setDragValidation({ isValid: false, draggedTask: null });
+          e.dataTransfer.dropEffect = "none";
+        }
+      } else {
+        setDragValidation({ isValid: false, draggedTask: null });
+        e.dataTransfer.dropEffect = "none";
+      }
+    }
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
@@ -238,6 +264,7 @@ export function UnifiedCalendar({
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setDragOverCell(null);
       setIsDragging(false);
+      setDragValidation(null);
     }
   };
 
@@ -246,6 +273,13 @@ export function UnifiedCalendar({
     e.stopPropagation();
     setDragOverCell(null);
     setIsDragging(false);
+    
+    // Check validation before dropping
+    if (dragValidation && !dragValidation.isValid) {
+      alert(`Cannot move task to ${date}. Tasks cannot be moved to dates before their start date (${dragValidation.draggedTask?.start_date}).`);
+      setDragValidation(null);
+      return;
+    }
     
     try {
       const draggedTaskData = e.dataTransfer.getData("application/json");
@@ -258,6 +292,8 @@ export function UnifiedCalendar({
     } catch (error) {
       console.error("Error handling drop:", error);
     }
+    
+    setDragValidation(null);
   };
 
   // Grid view component
@@ -342,9 +378,19 @@ export function UnifiedCalendar({
                               "flex-1 min-w-[40px] sm:min-w-[60px] lg:min-w-[100px] border-r p-1 transition-all duration-200",
                               viewMode === "month" && !isCurrentMonth && "bg-muted/10",
                               isTodayDate && "bg-primary/5",
+                              // Column highlighting for whole column
+                              isColumnHighlighted(dateStr) && dragValidation?.isValid && "bg-green-50 dark:bg-green-900/10",
+                              isColumnHighlighted(dateStr) && dragValidation && !dragValidation.isValid && "bg-red-50 dark:bg-red-900/10",
+                              // Cell-specific highlighting
                               dragOverCell?.driverId === driverSchedule.driver_id && 
                               dragOverCell?.date === dateStr && 
-                              "bg-primary/20 border-2 border-primary border-dashed scale-105 shadow-lg"
+                              dragValidation?.isValid &&
+                              "bg-green-100 dark:bg-green-900/20 border-2 border-green-500 border-dashed scale-105 shadow-lg",
+                              // Invalid drop zone (red)
+                              dragOverCell?.driverId === driverSchedule.driver_id && 
+                              dragOverCell?.date === dateStr && 
+                              dragValidation && !dragValidation.isValid &&
+                              "bg-red-100 dark:bg-red-900/20 border-2 border-red-500 border-dashed cursor-not-allowed"
                             )}
                             onDragOver={handleDragOver}
                             onDragEnter={(e) => handleDragEnter(e, driverSchedule.driver_id, dateStr)}

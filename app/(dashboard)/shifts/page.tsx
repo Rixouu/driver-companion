@@ -105,6 +105,9 @@ export default function ShiftsPage() {
     data.forEach((driverSchedule: any) => {
       if (driverSchedule.driver_id) {
         scheduleMap.set(driverSchedule.driver_id, driverSchedule);
+      } else if (driverSchedule.driver_id === null) {
+        // Handle unassigned tasks
+        scheduleMap.set('unassigned', driverSchedule);
       }
     });
 
@@ -122,6 +125,12 @@ export default function ShiftsPage() {
         dates: {}
       };
     });
+
+    // Add unassigned tasks if they exist
+    const unassignedSchedule = scheduleMap.get('unassigned');
+    if (unassignedSchedule) {
+      allDriverSchedules.push(unassignedSchedule);
+    }
 
     return allDriverSchedules;
   }, [data, drivers]);

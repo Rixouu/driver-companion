@@ -193,7 +193,7 @@ export async function GET(
 
     // Generate HTML based on template type
     if (templateType === 'quotation') {
-      htmlContent = await generateQuotationHtml(sampleQuotationData, language as 'en' | 'ja', null, null, true)
+      htmlContent = generateQuotationHtml(sampleQuotationData, language as 'en' | 'ja', null, null, true)
       filename = `quotation-${status}.pdf`
     } else if (templateType === 'invoice') {
       htmlContent = await generateInvoiceHtml(sampleInvoiceData, language as 'en' | 'ja')

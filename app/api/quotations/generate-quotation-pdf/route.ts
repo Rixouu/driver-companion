@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     console.log('Generating quotation PDF with quotation data:', JSON.stringify(quotation, null, 2));
     
     // Generate HTML content with signature support
-    const htmlContent = await generateQuotationHtml(
+    const htmlContent = generateQuotationHtml(
       quotation, 
       language as 'en' | 'ja', 
       selectedPackage, 

@@ -328,14 +328,14 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
  * @param language Language code ('en' or 'ja')
  * @returns HTML content string
  */
-export async function generateQuotationHtml(
+export function generateQuotationHtml(
   quotation: any, 
   language: 'en' | 'ja' = 'en',
   selectedPackage: PricingPackage | null = null,
   selectedPromotion: PricingPromotion | null = null,
   showTeamInfo: boolean = true,
   statusConfigs: { [status: string]: { showSignature: boolean; showStatusBadge: boolean; statusBadgeColor: string; statusBadgeName: string } } = {}
-): Promise<string> {
+): string {
   // Quotation translations for different languages (same as client-side)
   const quotationTranslations = {
     en: {

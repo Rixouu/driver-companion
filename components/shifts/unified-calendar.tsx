@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { ChevronLeft, ChevronRight, Calendar, Grid3X3, List, Clock, Eye, EyeOff, ChevronDown, ChevronUp } from "lucide-react";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, isToday, addMonths, subMonths, addDays, subDays } from "date-fns";
-import { ja } from "date-fns/locale";
+import { ja, enUS } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
 import { TaskCell } from "./task-cell";
@@ -53,8 +53,13 @@ export function UnifiedCalendar({
   onCalendarViewModeChange,
   driverCapacities = []
 }: UnifiedCalendarProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [currentDate, setCurrentDate] = useState(selectedDate);
+  
+  // Get the appropriate locale for date formatting
+  const getDateLocale = () => {
+    return locale === 'ja' ? ja : enUS;
+  };
 
   // Calculate date range based on view mode
   const getDateRange = () => {
@@ -326,7 +331,7 @@ export function UnifiedCalendar({
                         viewMode === "month" && !isSameMonth(date, selectedDate) && "text-muted-foreground bg-muted/20"
                       )}
                     >
-                      <div className="text-xs sm:text-sm">{format(date, "EEE", { locale: ja })}</div>
+                      <div className="text-xs sm:text-sm">{format(date, "EEE", { locale: getDateLocale() })}</div>
                       <div className="text-xs sm:text-sm lg:text-lg">{format(date, "d")}</div>
                     </div>
                   );
@@ -502,9 +507,9 @@ export function UnifiedCalendar({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold">
-            {viewMode === "day" ? format(selectedDate, "EEEE, MMMM d, yyyy", { locale: ja }) :
-             viewMode === "week" ? `${format(dateRange.start, "MMM d", { locale: ja })} - ${format(dateRange.end, "MMM d, yyyy", { locale: ja })}` :
-             format(selectedDate, "MMMM yyyy", { locale: ja })}
+            {viewMode === "day" ? format(selectedDate, "EEEE, MMMM d, yyyy", { locale: getDateLocale() }) :
+             viewMode === "week" ? `${format(dateRange.start, "MMM d", { locale: getDateLocale() })} - ${format(dateRange.end, "MMM d, yyyy", { locale: getDateLocale() })}` :
+             format(selectedDate, "MMMM yyyy", { locale: getDateLocale() })}
           </h2>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handlePrevious}>

@@ -38,7 +38,7 @@ import {
   Calendar as CalendarCheck,
 } from "lucide-react";
 import { format } from "date-fns";
-import { ja } from "date-fns/locale";
+import { ja, enUS } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -134,7 +134,12 @@ export function TaskCreationSheet({
   isLoading = false,
   editingTask,
 }: TaskCreationSheetProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  
+  // Get the appropriate locale for date formatting
+  const getDateLocale = () => {
+    return locale === 'ja' ? ja : enUS;
+  };
   const [currentStep, setCurrentStep] = useState<"type" | "details">("type");
   const [formData, setFormData] = useState<CreateCrewTaskRequest>({
     task_number: 1,
@@ -543,7 +548,7 @@ export function TaskCreationSheet({
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.start_date ? format(new Date(formData.start_date), "PPP", { locale: ja }) : "Select date"}
+                        {formData.start_date ? format(new Date(formData.start_date), "PPP", { locale: getDateLocale() }) : "Select date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -575,7 +580,7 @@ export function TaskCreationSheet({
                         disabled={!isMultiDay}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.end_date ? format(new Date(formData.end_date), "PPP", { locale: ja }) : "Select date"}
+                        {formData.end_date ? format(new Date(formData.end_date), "PPP", { locale: getDateLocale() }) : "Select date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">

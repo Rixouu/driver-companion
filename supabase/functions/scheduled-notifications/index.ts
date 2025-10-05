@@ -931,50 +931,51 @@ japandriver.com
 }
 
 /**
- * Create admin notification
+ * Create admin notification for ALL admin users
  */
 async function createAdminNotification(supabase: any, notificationData: NotificationData): Promise<void> {
   try {
-    // Get the actual admin user ID from the profiles table
-    let adminUserId = notificationData.user_id
-    
-    if (!adminUserId) {
-      // Try to get the admin user ID from profiles table
-      const { data: adminProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', 'admin.rixou@gmail.com')
-        .single()
-      
-      if (adminProfile) {
-        adminUserId = adminProfile.id
-      } else {
-        // Fallback to the hardcoded ID if profile not found
-        adminUserId = '6e91dac5-1eb1-4357-8b08-8f8ef8803c9b' // Updated admin user ID
-        console.warn('Using fallback admin user ID for notification')
-      }
+    // Get ALL admin users from the admin_users table
+    const { data: adminUsers, error: adminError } = await supabase
+      .from('admin_users')
+      .select('id, email, role')
+      .in('role', ['ADMIN', 'admin'])
+
+    if (adminError) {
+      console.error('Error fetching admin users:', adminError)
+      throw adminError
     }
+
+    if (!adminUsers || adminUsers.length === 0) {
+      console.warn('No admin users found, skipping notification creation')
+      return
+    }
+
+    console.log(`[Notification] Found ${adminUsers.length} admin users, creating notifications for all`)
+
+    // Create notifications for ALL admin users
+    const notifications = adminUsers.map(admin => ({
+      type: notificationData.type,
+      related_id: notificationData.related_id,
+      title: notificationData.title,
+      message: notificationData.message,
+      user_id: admin.id,
+      is_read: false,
+      created_at: new Date().toISOString()
+    }))
 
     const { error } = await supabase
       .from('notifications')
-      .insert({
-        type: notificationData.type,
-        related_id: notificationData.related_id,
-        title: notificationData.title,
-        message: notificationData.message,
-        user_id: adminUserId,
-        is_read: false,
-        created_at: new Date().toISOString()
-      })
+      .insert(notifications)
 
     if (error) {
-      console.error('Failed to create notification:', error)
+      console.error('Failed to create notifications:', error)
       throw error
     }
 
-    console.log(`✅ [Notification] Created admin notification for user ${adminUserId}`)
+    console.log(`✅ [Notification] Created admin notifications for ${adminUsers.length} admin users`)
   } catch (error) {
-    console.error('Error creating admin notification:', error)
+    console.error('Error creating admin notifications:', error)
     throw error
   }
 }

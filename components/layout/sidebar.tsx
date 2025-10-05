@@ -23,7 +23,10 @@ import {
   ClipboardList,
   FileText,
   DollarSign,
-  Link
+  Link,
+  CalendarDays,
+  Clock,
+  TrendingUp
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useI18n } from "@/lib/i18n/context"
@@ -178,8 +181,8 @@ export function Sidebar() {
       items: [
         { icon: LayoutDashboard, label: t("navigation.dashboard"), href: "/dashboard", key: "dashboard" } as MenuItem,
         { icon: Grid3x3, label: t("navigation.dispatchBoard"), href: "/dispatch", key: "dispatch" } as MenuItem,
-        { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" } as MenuItem,
-        { icon: Calendar, label: t("navigation.shifts"), href: "/shifts", key: "shifts" } as MenuItem,
+        { icon: CalendarDays, label: t("navigation.bookings"), href: "/bookings", key: "bookings" } as MenuItem,
+        { icon: Clock, label: t("navigation.shifts"), href: "/shifts", key: "shifts" } as MenuItem,
       ]
     },
     {
@@ -189,7 +192,7 @@ export function Sidebar() {
         { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations", key: "quotations" } as MenuItem,
         { icon: Users, label: t("navigation.customers"), href: "/customers", key: "customers" } as MenuItem,
         // Only show sales calendar to organization members
-        ...(isOrganizationMember ? ([{ icon: Calendar, label: t("navigation.salesCalendar"), href: "/sales/calendar", key: "quotations" } as MenuItem]) : [])
+        ...(isOrganizationMember ? ([{ icon: TrendingUp, label: t("navigation.salesCalendar"), href: "/sales/calendar", key: "quotations" } as MenuItem]) : [])
       ]
     },
     {

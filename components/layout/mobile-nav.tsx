@@ -5,7 +5,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { useI18n } from "@/lib/i18n/context"
 import { cn } from "@/lib/utils/styles"
-import { Home, Car, Wrench, ClipboardCheck, BarChart, Settings,  User, Users, Calendar, ChevronUp, Clipboard, FileText, LayoutDashboard, Tag, Link as LinkIcon } from "lucide-react"
+import { Home, Car, Wrench, ClipboardCheck, BarChart, Settings,  User, Users, Calendar, ChevronUp, Clipboard, FileText, LayoutDashboard, Tag, Link as LinkIcon, CalendarDays, Clock, TrendingUp } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
@@ -125,8 +125,8 @@ export function MobileNav() {
     operations: [
       { id: 'dashboard', title: t("navigation.dashboard"), icon: LayoutDashboard, href: '/dashboard' },
       { id: 'dispatch', title: t("navigation.dispatchBoard"), icon: LayoutDashboard, href: '/dispatch' },
-      { id: 'bookings', title: t("navigation.bookings"), icon: Calendar, href: '/bookings' },
-      { id: 'shifts', title: t("navigation.shifts"), icon: Calendar, href: '/shifts' },
+      { id: 'bookings', title: t("navigation.bookings"), icon: CalendarDays, href: '/bookings' },
+      { id: 'shifts', title: t("navigation.shifts"), icon: Clock, href: '/shifts' },
     ],
     fleet: [
       { id: 'vehicles', title: t("navigation.vehicles"), icon: Car, href: '/vehicles' },
@@ -137,7 +137,7 @@ export function MobileNav() {
     sales: [
       { id: 'quotations', title: t("navigation.quotations"), icon: FileText, href: '/quotations' },
       { id: 'customers', title: t("navigation.customers"), icon: Users, href: '/customers' },
-      ...(isOrganizationMember ? ([{ id: 'sales-calendar', title: t("navigation.salesCalendar"), icon: Calendar, href: '/sales/calendar' }] as MenuItem[]) : [])
+      ...(isOrganizationMember ? ([{ id: 'sales-calendar', title: t("navigation.salesCalendar"), icon: TrendingUp, href: '/sales/calendar' }] as MenuItem[]) : [])
     ],
     management: [
       { id: 'reporting', title: t("navigation.reporting"), icon: BarChart, href: '/reporting' },

@@ -5,6 +5,8 @@ export const ja: TranslationValue = {
     confidential: "非公開",
     active: "有効",
     inactive: "無効",
+    show: "表示",
+    hide: "非表示",
     status: {
       inProgress: "進行中",
       upcoming: "今後",
@@ -664,7 +666,6 @@ export const ja: TranslationValue = {
       inactive: "非稼働",
       maintenance: "メンテナンス中"
     },
-    noImage: "画像なし",
     detailsPage: {
       titleFallback: "車両詳細",
       descriptionFallback: "車両詳細の表示"
@@ -2850,17 +2851,176 @@ export const ja: TranslationValue = {
       today: "今日",
       previous: "前へ",
       next: "次へ",
-      refresh: "更新"
+      refresh: "更新",
+      searchPlaceholder: "タスク、ドライバー、場所を検索...",
+      allTypes: "すべてのタイプ"
     },
     tabs: {
       schedule: "スケジュール",
       unassigned: "未割り当て",
-      statistics: "統計"
+      statistics: "統計",
+      allTasks: "すべてのタスク",
+      assigned: "割り当て済み"
     },
     table: {
       driver: "ドライバー",
       drivers: "ドライバー",
       days: "日"
+    },
+    driverHours: {
+      title: "ドライバー時間 - 今週",
+      subtitle: "ドライバーのスケジュールと時間を管理・追跡"
+    },
+    tasksHours: {
+      title: "タスクと時間 - 今週",
+      subtitle: "すべてのスケジュールされたタスクを管理・追跡"
+    },
+    buttons: {
+      createTask: "タスク作成",
+      driverCapacity: "ドライバー容量",
+      allDrivers: "すべてのドライバー",
+      refresh: "更新"
+    },
+    driverCapacityModal: {
+      title: "ドライバー容量設定",
+      description: "各ドライバーの勤務時間、可用性、容量制限を設定します",
+      driversList: {
+        title: "ドライバー",
+        count: "{count}名のドライバー",
+        active: "アクティブ",
+        status: "{total}名中{active}名のドライバーがアクティブ",
+        hoursPerDay: "{hours}時間/日",
+        daysPerWeek: "{days}日",
+        workSchedule: "{hours}時間/日 • {days}日"
+      },
+      driverSettings: {
+        configure: "勤務時間と可用性を設定",
+        workingHours: "勤務時間",
+        maxHoursPerDay: "1日の最大時間",
+        maxHoursPerWeek: "1週間の最大時間",
+        maxHoursPerMonth: "1ヶ月の最大時間",
+        preferredTimes: "希望勤務時間",
+        preferredStartTime: "希望開始時間",
+        preferredEndTime: "希望終了時間",
+        workingDays: "勤務日",
+        monday: "月曜日",
+        tuesday: "火曜日",
+        wednesday: "水曜日",
+        thursday: "木曜日",
+        friday: "金曜日",
+        saturday: "土曜日",
+        sunday: "日曜日"
+      },
+      configurationStatus: {
+        title: "設定ステータス",
+        valid: "設定は有効です",
+        invalid: "設定にエラーがあります"
+      },
+      buttons: {
+        cancel: "キャンセル",
+        saveChanges: "変更を保存"
+      },
+      status: {
+        active: "アクティブ",
+        inactive: "非アクティブ"
+      }
+    },
+    modal: {
+      selectTaskType: "タスクタイプを選択",
+      selectTaskTypeDescription: "作成するタスクの種類を選択してください",
+      createTask: "タスク作成",
+      editTask: "タスク編集",
+      createTaskDescription: "チームの新しいタスクを作成",
+      assignTo: "割り当て先",
+      reassignDriver: "ドライバー再割り当て",
+      applyToMultipleDrivers: "複数のドライバーに適用",
+      selectDriver: "ドライバーを選択",
+      taskNumber: "タスク番号",
+      title: "タイトル",
+      description: "説明",
+      descriptionPlaceholder: "タスクの説明を入力...",
+      multiDayTask: "複数日タスク",
+      startDate: "開始日",
+      endDate: "終了日",
+      startTime: "開始時間",
+      endTime: "終了時間",
+      hoursPerDay: "1日の時間数",
+      location: "場所",
+      locationPlaceholder: "場所を入力...",
+      customerInfo: "顧客情報",
+      customerName: "顧客名",
+      customerNamePlaceholder: "顧客名を入力...",
+      customerPhone: "顧客電話番号",
+      customerPhonePlaceholder: "電話番号を入力...",
+      notes: "メモ",
+      notesPlaceholder: "追加のメモを入力...",
+      taskTypes: {
+        charter: {
+          title: "チャーターサービス",
+          description: "チャーターブッキングまたは特別サービス"
+        },
+        regular: {
+          title: "定期サービス",
+          description: "定期スケジュールサービス"
+        },
+        training: {
+          title: "研修",
+          description: "研修セッションまたはワークショップ"
+        },
+        day_off: {
+          title: "休日",
+          description: "予定された休日または休暇"
+        },
+        maintenance: {
+          title: "メンテナンス",
+          description: "車両または機器のメンテナンス"
+        },
+        meeting: {
+          title: "会議",
+          description: "チーム会議またはブリーフィング"
+        },
+        standby: {
+          title: "待機",
+          description: "潜在的な割り当てのための待機"
+        },
+        special_event: {
+          title: "特別イベント",
+          description: "誕生日、会社イベント、または特別な機会"
+        }
+      }
+    },
+    schedule: {
+      driver: "ドライバー",
+      days: {
+        monday: "月",
+        tuesday: "火",
+        wednesday: "水",
+        thursday: "木",
+        friday: "金",
+        saturday: "土",
+        sunday: "日"
+      }
+    },
+    viewModes: {
+      today: "今日",
+      thisWeek: "今週",
+      thisMonth: "今月"
+    },
+    taskSummary: {
+      tasks: "タスク",
+      task: "タスク",
+      total: "合計",
+      hours: "時間"
+    },
+    tableHeaders: {
+      task: "タスク",
+      driver: "ドライバー",
+      type: "タイプ",
+      date: "日付",
+      time: "時間",
+      hours: "時間",
+      location: "場所",
+      actions: "アクション"
     },
     legend: {
       confirmed: "確定",
@@ -2903,16 +3063,24 @@ export const ja: TranslationValue = {
     },
     status: {
       scheduled: "予定",
-      active: "稼働中",
+      confirmed: "確定",
+      in_progress: "進行中",
       completed: "完了",
-      cancelled: "キャンセル"
+      cancelled: "キャンセル",
+      active: "稼働中"
     },
     shiftType: {
+      charter: "チャーター",
       regular: "通常",
+      training: "研修",
+      day_off: "休日",
+      maintenance: "メンテナンス",
+      meeting: "会議",
+      standby: "待機",
+      special: "特別",
       overtime: "残業",
       onCall: "オンコール",
-      split: "分割シフト",
-      special: "特別"
+      split: "分割シフト"
     },
     errors: {
       loadFailed: "シフト表の読み込みに失敗しました",
@@ -2924,37 +3092,6 @@ export const ja: TranslationValue = {
       created: "シフトが正常に作成されました",
       updated: "シフトが正常に更新されました",
       deleted: "シフトが正常に削除されました"
-    },
-    modal: {
-      createTask: "タスクを作成",
-      createTaskDescription: "選択した日付範囲でドライバーに新しいタスクを割り当てます",
-      taskNumber: "タスク番号",
-      taskType: "タスクタイプ",
-      driver: "ドライバー",
-      selectDriver: "ドライバーを選択",
-      title: "タイトル",
-      titlePlaceholder: "タスクのタイトルを入力",
-      description: "説明",
-      descriptionPlaceholder: "タスクの説明を入力",
-      multiDayTask: "複数日タスク",
-      startDate: "開始日",
-      endDate: "終了日",
-      selectDate: "日付を選択",
-      startTime: "開始時間",
-      endTime: "終了時間",
-      hoursPerDay: "1日の時間数",
-      customerInfo: "顧客情報",
-      customerName: "顧客名",
-      customerNamePlaceholder: "顧客名を入力",
-      customerPhone: "顧客電話番号",
-      customerPhonePlaceholder: "顧客の電話番号を入力",
-      location: "場所",
-      locationPlaceholder: "場所を入力",
-      notes: "メモ",
-      notesPlaceholder: "追加のメモを入力",
-      summary: "タスク概要",
-      totalDays: "総日数",
-      totalHours: "総時間数",
     }
   },
   settings: {

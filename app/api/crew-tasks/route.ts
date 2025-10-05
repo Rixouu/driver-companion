@@ -175,31 +175,33 @@ export async function POST(request: NextRequest) {
       notes,
     } = body;
 
-    if (!task_number || !driver_id || !start_date || !end_date) {
+    if (!task_number || !start_date || !end_date) {
       return NextResponse.json(
         {
-          error: "task_number, driver_id, start_date, and end_date are required",
+          error: "task_number, start_date, and end_date are required",
         },
         { status: 400 }
       );
     }
 
-    // Check for conflicts manually (since .rpc() not available)
-    const { data: conflicts } = await supabase
-      .from("crew_tasks")
-      .select("id, task_number, title, start_date, end_date, start_time, end_time")
-      .eq("driver_id", driver_id)
-      .not("task_status", "in", "(cancelled,completed)")
-      .or(`start_date.lte.${end_date},end_date.gte.${start_date}`);
+    // Check for conflicts only if driver_id is provided
+    if (driver_id) {
+      const { data: conflicts } = await supabase
+        .from("crew_tasks")
+        .select("id, task_number, title, start_date, end_date, start_time, end_time")
+        .eq("driver_id", driver_id)
+        .not("task_status", "in", "(cancelled,completed)")
+        .or(`start_date.lte.${end_date},end_date.gte.${start_date}`);
 
-    if (conflicts && conflicts.length > 0) {
-      return NextResponse.json(
-        {
-          error: "Driver has conflicting tasks in this date/time range",
-          conflicts,
-        },
-        { status: 409 }
-      );
+      if (conflicts && conflicts.length > 0) {
+        return NextResponse.json(
+          {
+            error: "Driver has conflicting tasks in this date/time range",
+            conflicts,
+          },
+          { status: 409 }
+        );
+      }
     }
 
     // Get current user for created_by

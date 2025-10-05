@@ -63,7 +63,6 @@ export function MobileNav() {
     } else if (
       pathname.startsWith('/bookings') || 
       pathname.startsWith('/dispatch') || 
-      pathname.startsWith('/assignments') ||
       pathname.startsWith('/reporting') ||
       pathname.startsWith('/templates') ||
       pathname.startsWith('/admin') ||
@@ -128,7 +127,6 @@ export function MobileNav() {
       { id: 'dispatch', title: t("navigation.dispatchBoard"), icon: LayoutDashboard, href: '/dispatch' },
       { id: 'bookings', title: t("navigation.bookings"), icon: Calendar, href: '/bookings' },
       { id: 'shifts', title: t("navigation.shifts"), icon: Calendar, href: '/shifts' },
-      { id: 'assignments', title: t("navigation.assignments"), icon: ClipboardCheck, href: '/assignments' }
     ],
     fleet: [
       { id: 'vehicles', title: t("navigation.vehicles"), icon: Car, href: '/vehicles' },

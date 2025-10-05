@@ -266,3 +266,11 @@ COMMENT ON COLUMN driver_shifts.status IS 'Status: scheduled, active, completed,
 COMMENT ON FUNCTION get_shift_schedule IS 'Returns shift schedule with bookings for a date range';
 COMMENT ON FUNCTION check_driver_availability IS 'Checks if a driver is available for a booking at specified time';
 
+context.tsx:87 Translation key "navigation.shifts" returned an object instead of a string
+
+context.tsx:87 Translation key "navigation.shifts" returned an object instead of a string
+context.tsx:87 Translation key "navigation.shifts" returned an object instead of a string
+context.tsx:87 Translation key "navigation.shifts" returned an object instead of a string
+context.tsx:87 Translation key "navigation.shifts" returned an object instead of a string
+context.tsx:87 Translation key "navigation.shifts" returned an object instead of a string
+console.js:44 [Fast Refresh] done in 2457ms

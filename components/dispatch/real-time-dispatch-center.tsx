@@ -24,6 +24,7 @@ import {
   RefreshCwIcon,
   FilterIcon,
   SettingsIcon,
+  UsersIcon,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { toast } from '@/components/ui/use-toast';
@@ -34,6 +35,7 @@ import DispatchBoardView from './dispatch-board-view';
 import DispatchTimetable from './dispatch-timetable';
 import { MapViewWithSidebar } from './map-view-with-sidebar';
 import { ColumnSettingsModal } from './column-settings-modal';
+import DispatchAssignments from './dispatch-assignments';
 
 // Import custom hooks
 import { useDispatchData } from '@/lib/hooks/use-dispatch-data';
@@ -43,7 +45,7 @@ import { useDispatchStatus } from '@/lib/hooks/use-dispatch-status';
 
 export default function RealTimeDispatchCenter() {
   const { t } = useI18n();
-  const [activeView, setActiveView] = useState<'board' | 'map' | 'timetable'>('board');
+  const [activeView, setActiveView] = useState<'board' | 'map' | 'timetable' | 'assignments'>('board');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const { lastUpdate } = useSharedDispatchState();
 
@@ -195,7 +197,7 @@ export default function RealTimeDispatchCenter() {
       </div>
 
       {/* Tabs - Modern style like pricing page */}
-      <Tabs value={activeView} onValueChange={(value) => setActiveView(value as 'board' | 'map' | 'timetable')} className="w-full">
+      <Tabs value={activeView} onValueChange={(value) => setActiveView(value as 'board' | 'map' | 'timetable' | 'assignments')} className="w-full">
         <div className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <TabsList className="flex flex-wrap h-auto min-h-12 items-center justify-start rounded-none border-0 bg-transparent p-0 text-muted-foreground">
             <TabsTrigger 
@@ -218,6 +220,13 @@ export default function RealTimeDispatchCenter() {
             >
               <CalendarIcon className="w-4 h-4 mr-2" />
               Timetable
+            </TabsTrigger>
+            <TabsTrigger 
+              value="assignments" 
+              className="relative h-12 px-6 rounded-none border-b-2 border-transparent bg-transparent text-sm font-medium transition-all hover:text-foreground hover:bg-muted/50 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-muted/20 data-[state=active]:shadow-sm"
+            >
+              <UsersIcon className="w-4 h-4 mr-2" />
+              Assignments
             </TabsTrigger>
           </TabsList>
         </div>
@@ -258,6 +267,10 @@ export default function RealTimeDispatchCenter() {
             entries={filteredAssignments}
             onStatusChange={handleUpdateStatus}
           />
+        </TabsContent>
+
+        <TabsContent value="assignments" className="mt-6">
+          <DispatchAssignments />
         </TabsContent>
       </Tabs>
 

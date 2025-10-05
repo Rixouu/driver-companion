@@ -11,21 +11,21 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
-import { format, addWeeks, subWeeks, addMonths, subMonths } from "date-fns";
+import { CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, Clock, Eye, EyeOff } from "lucide-react";
+import { format, addWeeks, subWeeks, addMonths, subMonths, addDays, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
 
-type ViewType = "week" | "2weeks" | "month";
+type ViewType = "day" | "week" | "month";
 
 interface ShiftFiltersProps {
   viewType: ViewType;
   onViewTypeChange: (view: ViewType) => void;
   selectedDate: Date;
   onDateChange: (date: Date) => void;
-  selectedDriverIds: string[];
-  onDriverIdsChange: (ids: string[]) => void;
   onRefresh: () => void;
+  showDriverHours?: boolean;
+  onToggleDriverHours?: (show: boolean) => void;
 }
 
 export function ShiftFilters({
@@ -34,13 +34,18 @@ export function ShiftFilters({
   selectedDate,
   onDateChange,
   onRefresh,
+  showDriverHours = true,
+  onToggleDriverHours,
 }: ShiftFiltersProps) {
   const { t } = useI18n();
   
+  
   const handlePrevious = () => {
     switch (viewType) {
+      case "day":
+        onDateChange(subDays(selectedDate, 1));
+        break;
       case "week":
-      case "2weeks":
         onDateChange(subWeeks(selectedDate, 1));
         break;
       case "month":
@@ -51,8 +56,10 @@ export function ShiftFilters({
 
   const handleNext = () => {
     switch (viewType) {
+      case "day":
+        onDateChange(addDays(selectedDate, 1));
+        break;
       case "week":
-      case "2weeks":
         onDateChange(addWeeks(selectedDate, 1));
         break;
       case "month":
@@ -130,11 +137,12 @@ export function ShiftFilters({
               <SelectValue placeholder={t('common.view')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="week">{t('shifts.viewType.week')}</SelectItem>
-              <SelectItem value="2weeks">{t('shifts.viewType.twoWeeks')}</SelectItem>
-              <SelectItem value="month">{t('shifts.viewType.month')}</SelectItem>
+              <SelectItem value="day">{t('shifts.viewModes.today')}</SelectItem>
+              <SelectItem value="week">{t('shifts.viewModes.thisWeek')}</SelectItem>
+              <SelectItem value="month">{t('shifts.viewModes.thisMonth')}</SelectItem>
             </SelectContent>
           </Select>
+
 
           <Button
             variant="outline"

@@ -11,37 +11,7 @@ import {
 import { Clock, MapPin, User, Calendar, Plus, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
-
-// Task Type Definition
-export interface CrewTask {
-  id: string;
-  task_number: number;
-  task_type: 'charter' | 'regular' | 'training' | 'day_off' | 'maintenance' | 'meeting' | 'standby' | 'special';
-  task_status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
-  start_date: string;
-  end_date: string;
-  start_time?: string;
-  end_time?: string;
-  total_days: number;
-  current_day: number; // Which day of the multi-day task (1, 2, 3...)
-  hours_per_day?: number;
-  total_hours?: number;
-  title?: string;
-  description?: string;
-  location?: string;
-  customer_name?: string;
-  customer_phone?: string;
-  color_override?: string;
-  priority?: number;
-  notes?: string;
-  booking_id?: string;
-  booking_wp_id?: string;
-  booking_service_name?: string;
-  booking_price?: string;
-  is_multi_day: boolean;
-  is_first_day: boolean;
-  is_last_day: boolean;
-}
+import { CrewTask } from "@/types/crew-tasks";
 
 export interface DayTaskData {
   tasks: CrewTask[];
@@ -147,12 +117,70 @@ export function TaskCell({
   const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
 
-  // Empty cell - show "+" button
+  // Handle drag over
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+
+    // Get dragged task from storage
+    if (typeof window !== "undefined") {
+      const draggedTaskStr = localStorage.getItem("draggedTask");
+      if (draggedTaskStr) {
+        const draggedTask = JSON.parse(draggedTaskStr);
+        
+        try {
+          // Update task with new driver and date
+          const response = await fetch(`/api/crew-tasks/${draggedTask.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              driver_id: driverId,
+              start_date: date,
+              end_date: date, // Single day assignment
+            }),
+          });
+          
+          if (response.ok) {
+            console.log("Task assigned successfully");
+            // Trigger refresh by calling parent handler
+            window.location.reload(); // Simple refresh for now
+          } else {
+            const error = await response.json();
+            alert(`Failed to assign task: ${error.error || "Unknown error"}`);
+          }
+        } catch (error) {
+          console.error("Error assigning task:", error);
+          alert("Failed to assign task");
+        } finally {
+          localStorage.removeItem("draggedTask");
+        }
+      }
+    }
+  };
+
+  // Empty cell - show "+" button with drag-drop support
   if (!data || !data.tasks || data.tasks.length === 0) {
     return (
       <div 
-        className="h-full min-h-[80px] p-2 flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors border border-border/50"
+        className={cn(
+          "h-full min-h-[120px] p-2 flex items-center justify-center cursor-pointer transition-all border border-border/50",
+          isDragOver ? "bg-primary/20 border-primary border-2" : "hover:bg-muted/50"
+        )}
         onClick={() => onCellClick?.(driverId, date)}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         <Button
           variant="ghost"
@@ -167,153 +195,90 @@ export function TaskCell({
 
   const { tasks } = data;
 
-  // Single task - show inline with task number prominent
-  if (tasks.length === 1) {
-    const task = tasks[0];
-    const colors = getTaskTypeColor(task.task_type, task.color_override);
-    
-    return (
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger asChild>
-          <div 
-            className={cn(
-              "h-full min-h-[80px] p-2 cursor-pointer hover:shadow-md transition-all border-l-4",
-              colors.bg,
-              colors.border
-            )}
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsOpen(true);
-            }}
-          >
-            <div className="space-y-1">
-              {/* Task Number - Large and Prominent */}
-              <div className="flex items-start justify-between gap-2">
-                <div className={cn(
-                  "text-2xl font-bold leading-none",
-                  colors.text
-                )}>
-                  {task.task_number}
-                </div>
-                {task.is_multi_day && (
-                  <Badge variant="outline" className={cn("text-[10px] px-1 py-0", colors.badge)}>
-                    {task.current_day}/{task.total_days}
-                  </Badge>
-                )}
-              </div>
-              
-              {/* Title / Service Name */}
-              <div className={cn(
-                "text-xs font-semibold truncate leading-tight",
-                colors.text
-              )}>
-                {task.title || task.booking_service_name || t(`shifts.shiftType.${task.task_type}`)}
-              </div>
-              
-              {/* Time & Hours */}
-              {(task.start_time || task.hours_per_day) && (
-                <div className={cn(
-                  "text-[10px] font-medium truncate",
-                  colors.text,
-                  "opacity-90"
-                )}>
-                  {task.start_time && `${task.start_time}`}
-                  {task.hours_per_day && ` • ${task.hours_per_day}h`}
-                  {task.is_multi_day && `/day`}
-                </div>
-              )}
-              
-              {/* Customer Name (if charter/regular with customer) */}
-              {task.customer_name && (
-                <div className={cn(
-                  "text-[10px] truncate",
-                  colors.text,
-                  "opacity-80"
-                )}>
-                  {task.customer_name}
-                </div>
-              )}
-            </div>
-          </div>
-        </PopoverTrigger>
-        <PopoverContent className="w-80" align="start">
-          <TaskDetails 
-            task={task} 
-            onViewClick={() => {
-              setIsOpen(false);
-              onTaskClick?.(task);
-            }}
-          />
-        </PopoverContent>
-      </Popover>
-    );
-  }
-
-  // Multiple tasks - show compact list with task numbers
+  // Multiple tasks - show stacked vertically
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <div 
-          className="h-full min-h-[80px] p-2 cursor-pointer hover:bg-muted/50 transition-colors border border-border/50"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsOpen(true);
-          }}
-        >
-          <div className="space-y-1">
-            {/* Task Numbers */}
-            <div className="flex items-center gap-1 flex-wrap">
-              {tasks.slice(0, 5).map((task) => {
-                const colors = getTaskTypeColor(task.task_type, task.color_override);
-                return (
-                  <div
-                    key={task.id}
-                    className={cn(
-                      "w-8 h-8 rounded flex items-center justify-center text-sm font-bold border-2",
-                      colors.bg,
-                      colors.text,
-                      colors.border
+    <div 
+      className={cn(
+        "h-full min-h-[120px] p-1 space-y-1 overflow-y-auto transition-all",
+        isDragOver && "bg-primary/20 border-2 border-primary"
+      )}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {tasks.map((task) => {
+        const colors = getTaskTypeColor(task.task_type, task.color_override);
+        
+        return (
+          <Popover key={task.id}>
+            <PopoverTrigger asChild>
+              <div 
+                className={cn(
+                  "p-1.5 cursor-pointer hover:shadow-sm transition-all border-l-3 rounded",
+                  colors.bg,
+                  colors.border
+                )}
+              >
+                <div className="space-y-0.5">
+                  {/* Task Number and Title */}
+                  <div className="flex items-start gap-1.5">
+                    <div className={cn(
+                      "text-lg font-bold leading-none flex-shrink-0",
+                      colors.text
+                    )}>
+                      {task.task_number}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className={cn(
+                        "text-[11px] font-semibold truncate leading-tight",
+                        colors.text
+                      )}>
+                        {task.title || task.booking_service_name || t(`shifts.shiftType.${task.task_type}`)}
+                      </div>
+                      {/* Time */}
+                      {task.start_time && (
+                        <div className={cn(
+                          "text-[9px] font-medium truncate",
+                          colors.text,
+                          "opacity-80"
+                        )}>
+                          {task.start_time}
+                          {task.hours_per_day && ` • ${task.hours_per_day}h`}
+                        </div>
+                      )}
+                    </div>
+                    {task.is_multi_day && (
+                      <Badge variant="outline" className={cn("text-[8px] px-0.5 py-0 h-4", colors.badge)}>
+                        {task.current_day}/{task.total_days}
+                      </Badge>
                     )}
-                  >
-                    {task.task_number}
                   </div>
-                );
-              })}
-              {tasks.length > 5 && (
-                <span className="text-xs font-semibold text-foreground dark:text-foreground">
-                  +{tasks.length - 5}
-                </span>
-              )}
-            </div>
-            
-            {/* Summary */}
-            <div className="text-xs font-semibold text-foreground dark:text-foreground">
-              {tasks.length} {t('shifts.booking.bookings')}
-            </div>
-          </div>
-        </div>
-      </PopoverTrigger>
-      <PopoverContent className="w-80" align="start">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between border-b pb-2">
-            <h4 className="font-semibold text-foreground">{t('shifts.booking.bookings')} ({tasks.length})</h4>
-          </div>
-          <div className="space-y-2 max-h-[400px] overflow-y-auto">
-            {tasks.map((task) => (
+                </div>
+              </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="start">
               <TaskDetails 
-                key={task.id}
                 task={task} 
-                compact
                 onViewClick={() => {
-                  setIsOpen(false);
                   onTaskClick?.(task);
                 }}
               />
-            ))}
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
+            </PopoverContent>
+          </Popover>
+        );
+      })}
+      
+      {/* Add More Button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => onCellClick?.(driverId, date)}
+        className="w-full h-6 text-[10px] text-muted-foreground hover:text-foreground"
+      >
+        <Plus className="h-3 w-3 mr-1" />
+        Add Task
+      </Button>
+    </div>
   );
 }
 

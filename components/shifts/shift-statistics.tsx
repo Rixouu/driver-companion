@@ -197,8 +197,8 @@ export function ShiftStatistics({
             </div>
             <div className="w-full bg-secondary rounded-full h-2">
               <div
-                className="bg-green-600 h-2 rounded-full transition-all"
-                style={{ width: `${stats.assignment_rate}%` }}
+                className="h-full bg-primary transition-all duration-300 rounded-full"
+                style={{ width: `${Math.min(stats.assignment_rate, 100)}%` }}
               />
             </div>
           </div>
@@ -221,8 +221,8 @@ export function ShiftStatistics({
             </div>
             <div className="w-full bg-secondary rounded-full h-2">
               <div
-                className="bg-blue-600 h-2 rounded-full transition-all"
-                style={{ width: `${stats.completion_rate}%` }}
+                className="h-full bg-primary transition-all duration-300 rounded-full"
+                style={{ width: `${Math.min(stats.completion_rate, 100)}%` }}
               />
             </div>
           </div>

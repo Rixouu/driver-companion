@@ -41,8 +41,7 @@ export function DriverShiftRow({
 
   return (
     <div 
-      className="grid hover:bg-muted/30 transition-colors"
-      style={{ gridTemplateColumns: `200px repeat(${dates.length}, minmax(120px, 1fr))` }}
+      className="grid grid-cols-[200px_repeat(auto-fit,minmax(120px,1fr))] hover:bg-muted/30 transition-colors"
     >
       {/* Driver Info Column */}
       <div className="p-4 border-r flex items-center gap-3 sticky left-0 bg-background z-10">

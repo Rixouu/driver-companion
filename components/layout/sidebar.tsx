@@ -36,7 +36,7 @@ import { useAuth } from "@/lib/hooks/use-auth"
 const ORGANIZATION_DOMAIN = 'japandriver.com'
 
 // Type for menu item keys
-type MenuItemKey = 'dashboard' | 'vehicles' | 'drivers' | 'bookings' | 'paylinks' | 'quotations' | 'pricing' | 'dispatch' | 'assignments' | 'maintenance' | 'inspections' | 'templates' | 'reporting' | 'settings' | 'customers'
+type MenuItemKey = 'dashboard' | 'vehicles' | 'drivers' | 'bookings' | 'paylinks' | 'quotations' | 'pricing' | 'dispatch' | 'maintenance' | 'inspections' | 'templates' | 'reporting' | 'settings' | 'customers'
 
 // Interface for menu items
 interface MenuItem {
@@ -59,7 +59,6 @@ interface MenuSettings {
   customers: { desktop: boolean; mobile: boolean };
   pricing: { desktop: boolean; mobile: boolean };
   dispatch: { desktop: boolean; mobile: boolean };
-  assignments: { desktop: boolean; mobile: boolean };
   maintenance: { desktop: boolean; mobile: boolean };
   inspections: { desktop: boolean; mobile: boolean };
   templates: { desktop: boolean; mobile: boolean };
@@ -79,7 +78,6 @@ const defaultMenuSettings: MenuSettings = {
   customers: { desktop: true, mobile: true },
   pricing: { desktop: true, mobile: true },
   dispatch: { desktop: true, mobile: true },
-  assignments: { desktop: true, mobile: true },
   maintenance: { desktop: true, mobile: true },
   inspections: { desktop: true, mobile: true },
   templates: { desktop: true, mobile: true },
@@ -182,7 +180,6 @@ export function Sidebar() {
         { icon: Grid3x3, label: t("navigation.dispatchBoard"), href: "/dispatch", key: "dispatch" } as MenuItem,
         { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" } as MenuItem,
         { icon: Calendar, label: t("navigation.shifts"), href: "/shifts", key: "shifts" } as MenuItem,
-        { icon: ClipboardCheck, label: t("navigation.assignments"), href: "/assignments", key: "assignments" } as MenuItem
       ]
     },
     {
@@ -306,7 +303,7 @@ export function Sidebar() {
                     </div>
                   )}
                   {visibleItems.map((item) => {
-                    const isActive = pathname ? (pathname === item.href || (item.href !== "/dashboard" && item.href !== "/dispatch" && item.href !== "/assignments" && pathname.startsWith(item.href))) : false;
+                    const isActive = pathname ? (pathname === item.href || (item.href !== "/dashboard" && item.href !== "/dispatch" && pathname.startsWith(item.href))) : false;
                     
                     const menuItem = (
                       <Button

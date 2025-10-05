@@ -38,7 +38,7 @@ export function ShiftCalendarGrid({
         <div className="min-w-full">
           {/* Header Row - Dates */}
           <div className="sticky top-0 z-20 bg-background border-b">
-            <div className="grid" style={{ gridTemplateColumns: `200px repeat(${dates.length}, minmax(120px, 1fr))` }}>
+            <div className="grid grid-cols-[200px_repeat(auto-fit,minmax(120px,1fr))]">
               {/* Driver Column Header */}
               <div className="p-4 border-r bg-muted/50 font-semibold">
                 Driver

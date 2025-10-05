@@ -41,7 +41,7 @@ export function CrewTaskCalendarGrid({
         <div className="min-w-full">
           {/* Header Row - Dates */}
           <div className="sticky top-0 z-20 bg-background border-b">
-            <div className="grid" style={{ gridTemplateColumns: `200px repeat(${dates.length}, minmax(150px, 1fr))` }}>
+            <div className="grid grid-cols-[200px_repeat(auto-fit,minmax(150px,1fr))]">
               {/* Driver Column Header */}
               <div className="p-4 border-r bg-muted/50 font-semibold text-foreground">
                 {t('shifts.table.driver')}
@@ -91,8 +91,7 @@ export function CrewTaskCalendarGrid({
             {schedule.map((driver) => (
               <div
                 key={driver.driver_id}
-                className="grid hover:bg-muted/20 transition-colors"
-                style={{ gridTemplateColumns: `200px repeat(${dates.length}, minmax(150px, 1fr))` }}
+                className="grid grid-cols-[200px_repeat(auto-fit,minmax(150px,1fr))] hover:bg-muted/20 transition-colors"
               >
                 {/* Driver Name Cell */}
                 <div

@@ -308,8 +308,22 @@ export type Database = {
             foreignKeyName: "bookings_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
+            referencedRelation: "driver_shift_schedule"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "bookings_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_shift_overview"
+            referencedColumns: ["driver_id"]
           },
           {
             foreignKeyName: "bookings_vehicle_id_fkey"
@@ -355,6 +369,133 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      crew_tasks: {
+        Row: {
+          booking_id: string | null
+          color_override: string | null
+          created_at: string | null
+          created_by: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          description: string | null
+          driver_id: string
+          end_date: string
+          end_time: string | null
+          hours_per_day: number | null
+          id: string
+          location: string | null
+          notes: string | null
+          priority: number | null
+          start_date: string
+          start_time: string | null
+          task_number: number
+          task_status: Database["public"]["Enums"]["task_status_enum"]
+          task_type: Database["public"]["Enums"]["task_type_enum"]
+          title: string | null
+          total_days: number | null
+          total_hours: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          color_override?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          description?: string | null
+          driver_id: string
+          end_date: string
+          end_time?: string | null
+          hours_per_day?: number | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          priority?: number | null
+          start_date: string
+          start_time?: string | null
+          task_number: number
+          task_status?: Database["public"]["Enums"]["task_status_enum"]
+          task_type?: Database["public"]["Enums"]["task_type_enum"]
+          title?: string | null
+          total_days?: number | null
+          total_hours?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          color_override?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          description?: string | null
+          driver_id?: string
+          end_date?: string
+          end_time?: string | null
+          hours_per_day?: number | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          priority?: number | null
+          start_date?: string
+          start_time?: string | null
+          task_number?: number
+          task_status?: Database["public"]["Enums"]["task_status_enum"]
+          task_type?: Database["public"]["Enums"]["task_type_enum"]
+          title?: string | null
+          total_days?: number | null
+          total_hours?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_tasks_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_tasks_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "driver_shift_schedule"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "crew_tasks_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_tasks_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_shift_overview"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "crew_tasks_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customer_segments: {
         Row: {
@@ -545,8 +686,22 @@ export type Database = {
             foreignKeyName: "dispatch_assignments_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
+            referencedRelation: "driver_shift_schedule"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "dispatch_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_shift_overview"
+            referencedColumns: ["driver_id"]
           },
           {
             foreignKeyName: "dispatch_assignments_vehicle_id_fkey"
@@ -606,8 +761,22 @@ export type Database = {
             foreignKeyName: "dispatch_entries_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
+            referencedRelation: "driver_shift_schedule"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "dispatch_entries_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_entries_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_shift_overview"
+            referencedColumns: ["driver_id"]
           },
           {
             foreignKeyName: "dispatch_entries_vehicle_id_fkey"
@@ -695,7 +864,116 @@ export type Database = {
             foreignKeyName: "driver_availability_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
+            referencedRelation: "driver_shift_schedule"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "driver_availability_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
             referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_availability_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_shift_overview"
+            referencedColumns: ["driver_id"]
+          },
+        ]
+      }
+      driver_shifts: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          driver_id: string
+          id: string
+          notes: string | null
+          shift_date: string
+          shift_end_time: string
+          shift_start_time: string
+          shift_type: string | null
+          status: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          driver_id: string
+          id?: string
+          notes?: string | null
+          shift_date: string
+          shift_end_time: string
+          shift_start_time: string
+          shift_type?: string | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          driver_id?: string
+          id?: string
+          notes?: string | null
+          shift_date?: string
+          shift_end_time?: string
+          shift_start_time?: string
+          shift_type?: string | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_shifts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_shifts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_shifts_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "driver_shift_schedule"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "driver_shifts_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_shifts_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_shift_overview"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "driver_shifts_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_shifts_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1397,8 +1675,29 @@ export type Database = {
             foreignKeyName: "inspections_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
+            referencedRelation: "driver_shift_schedule"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "inspections_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspections_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_shift_overview"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "inspections_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "driver_shift_schedule"
+            referencedColumns: ["driver_id"]
           },
           {
             foreignKeyName: "inspections_inspector_id_fkey"
@@ -1406,6 +1705,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspections_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_shift_overview"
+            referencedColumns: ["driver_id"]
           },
           {
             foreignKeyName: "inspections_vehicle_id_fkey"
@@ -3369,8 +3675,22 @@ export type Database = {
             foreignKeyName: "tracking_devices_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
+            referencedRelation: "driver_shift_schedule"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "tracking_devices_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_devices_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_shift_overview"
+            referencedColumns: ["driver_id"]
           },
           {
             foreignKeyName: "tracking_devices_vehicle_id_fkey"
@@ -3582,8 +3902,22 @@ export type Database = {
             foreignKeyName: "vehicle_assignment_operations_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
+            referencedRelation: "driver_shift_schedule"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "vehicle_assignment_operations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_assignment_operations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_shift_overview"
+            referencedColumns: ["driver_id"]
           },
           {
             foreignKeyName: "vehicle_assignment_operations_new_vehicle_id_fkey"
@@ -3640,8 +3974,22 @@ export type Database = {
             foreignKeyName: "vehicle_assignments_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
+            referencedRelation: "driver_shift_schedule"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "vehicle_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_shift_overview"
+            referencedColumns: ["driver_id"]
           },
           {
             foreignKeyName: "vehicle_assignments_vehicle_id_fkey"
@@ -3743,8 +4091,22 @@ export type Database = {
             foreignKeyName: "vehicle_locations_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
+            referencedRelation: "driver_shift_schedule"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "vehicle_locations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_locations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_shift_overview"
+            referencedColumns: ["driver_id"]
           },
           {
             foreignKeyName: "vehicle_locations_vehicle_id_fkey"
@@ -3847,6 +4209,72 @@ export type Database = {
       }
     }
     Views: {
+      crew_task_schedule_view: {
+        Row: {
+          booking_dropoff_location: string | null
+          booking_id: string | null
+          booking_pickup_location: string | null
+          booking_price: string | null
+          booking_service_name: string | null
+          booking_status: string | null
+          booking_wp_id: string | null
+          color_override: string | null
+          created_at: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          description: string | null
+          driver_id: string | null
+          driver_name: string | null
+          end_date: string | null
+          end_time: string | null
+          first_name: string | null
+          hours_per_day: number | null
+          id: string | null
+          last_name: string | null
+          location: string | null
+          notes: string | null
+          priority: number | null
+          start_date: string | null
+          start_time: string | null
+          task_number: number | null
+          task_status: Database["public"]["Enums"]["task_status_enum"] | null
+          task_type: Database["public"]["Enums"]["task_type_enum"] | null
+          title: string | null
+          total_days: number | null
+          total_hours: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_tasks_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_tasks_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "driver_shift_schedule"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "crew_tasks_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_tasks_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_shift_overview"
+            referencedColumns: ["driver_id"]
+          },
+        ]
+      }
       customer_analytics: {
         Row: {
           created_at: string | null
@@ -3862,6 +4290,26 @@ export type Database = {
           total_quotation_value: number | null
           total_quotations: number | null
           total_revenue: number | null
+        }
+        Relationships: []
+      }
+      driver_shift_schedule: {
+        Row: {
+          booking_count: number | null
+          bookings: Json | null
+          driver_id: string | null
+          email: string | null
+          first_name: string | null
+          last_name: string | null
+          line_id: string | null
+          phone: string | null
+          shift_date: string | null
+          shift_end_time: string | null
+          shift_id: string | null
+          shift_notes: string | null
+          shift_start_time: string | null
+          shift_status: string | null
+          shift_type: string | null
         }
         Relationships: []
       }
@@ -3889,8 +4337,22 @@ export type Database = {
             foreignKeyName: "inspections_inspector_id_fkey"
             columns: ["inspector_id"]
             isOneToOne: false
+            referencedRelation: "driver_shift_schedule"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "inspections_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspections_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_shift_overview"
+            referencedColumns: ["driver_id"]
           },
           {
             foreignKeyName: "inspections_vehicle_id_fkey"
@@ -3900,6 +4362,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      monthly_shift_overview: {
+        Row: {
+          completed_bookings: number | null
+          completed_shifts: number | null
+          driver_id: string | null
+          driver_name: string | null
+          month: string | null
+          total_bookings: number | null
+          total_hours: number | null
+          total_revenue: number | null
+          total_shifts: number | null
+        }
+        Relationships: []
       }
       pricing_diagnostic_view: {
         Row: {
@@ -4017,6 +4493,38 @@ export type Database = {
         }
         Returns: string
       }
+      check_driver_availability: {
+        Args: {
+          p_date: string
+          p_driver_id: string
+          p_duration_hours: number
+          p_start_time: string
+        }
+        Returns: {
+          conflict_reason: string
+          conflicts: Json
+          is_available: boolean
+        }[]
+      }
+      check_driver_task_conflicts: {
+        Args: {
+          p_driver_id: string
+          p_end_date: string
+          p_end_time?: string
+          p_exclude_task_id?: string
+          p_start_date: string
+          p_start_time?: string
+        }
+        Returns: {
+          conflict_id: string
+          end_date: string
+          end_time: string
+          start_date: string
+          start_time: string
+          task_number: number
+          title: string
+        }[]
+      }
       check_quotation_encoding_issues: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -4131,6 +4639,20 @@ export type Database = {
           price: number
         }[]
       }
+      get_crew_task_schedule: {
+        Args: {
+          p_driver_ids?: string[]
+          p_end_date: string
+          p_start_date: string
+          p_task_numbers?: number[]
+        }
+        Returns: {
+          driver_id: string
+          driver_name: string
+          task_date: string
+          tasks: Json
+        }[]
+      }
       get_dashboard_metrics: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -4206,6 +4728,20 @@ export type Database = {
           status_counts: Json
           total_quotations: number
           total_revenue: number
+        }[]
+      }
+      get_shift_schedule: {
+        Args: {
+          p_driver_ids?: string[]
+          p_end_date: string
+          p_start_date: string
+        }
+        Returns: {
+          bookings: Json
+          driver_id: string
+          driver_name: string
+          shift_date: string
+          shifts: Json
         }[]
       }
       get_template_variables: {
@@ -4322,6 +4858,21 @@ export type Database = {
       }
     }
     Enums: {
+      task_status_enum:
+        | "scheduled"
+        | "confirmed"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+      task_type_enum:
+        | "charter"
+        | "regular"
+        | "training"
+        | "day_off"
+        | "maintenance"
+        | "meeting"
+        | "standby"
+        | "special"
       template_status_type: "draft" | "active" | "inactive" | "archived"
     }
     CompositeTypes: {
@@ -4453,6 +5004,23 @@ export const Constants = {
   },
   public: {
     Enums: {
+      task_status_enum: [
+        "scheduled",
+        "confirmed",
+        "in_progress",
+        "completed",
+        "cancelled",
+      ],
+      task_type_enum: [
+        "charter",
+        "regular",
+        "training",
+        "day_off",
+        "maintenance",
+        "meeting",
+        "standby",
+        "special",
+      ],
       template_status_type: ["draft", "active", "inactive", "archived"],
     },
   },

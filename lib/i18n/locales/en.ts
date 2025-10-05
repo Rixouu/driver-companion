@@ -5,6 +5,8 @@ export const en: TranslationValue = {
     confidential: "Confidential",
     active: "Active",
     inactive: "Inactive",
+    show: "Show",
+    hide: "Hide",
     status: {
       inProgress: "In Progress",
       upcoming: "Upcoming",
@@ -678,7 +680,6 @@ export const en: TranslationValue = {
       inactive: "Inactive",
       maintenance: "In Maintenance"
     },
-    noImage: "No image",
     detailsPage: { // New object for details page specific translations
       titleFallback: "Vehicle Details",
       descriptionFallback: "View vehicle details"
@@ -2893,17 +2894,176 @@ export const en: TranslationValue = {
       today: "Today",
       previous: "Previous",
       next: "Next",
-      refresh: "Refresh"
+      refresh: "Refresh",
+      searchPlaceholder: "Search tasks, drivers, or locations...",
+      allTypes: "All Types"
     },
     tabs: {
       schedule: "Schedule",
       unassigned: "Unassigned",
-      statistics: "Statistics"
+      statistics: "Statistics",
+      allTasks: "All Tasks",
+      assigned: "Assigned"
     },
     table: {
       driver: "Driver",
       drivers: "drivers",
       days: "days"
+    },
+    driverHours: {
+      title: "Driver Hours - This Week",
+      subtitle: "Manage and track driver schedules and hours"
+    },
+    tasksHours: {
+      title: "Tasks & Hours - This Week",
+      subtitle: "Manage and track all scheduled tasks"
+    },
+    buttons: {
+      createTask: "Create Task",
+      driverCapacity: "Driver Capacity",
+      allDrivers: "All Drivers",
+      refresh: "Refresh"
+    },
+    driverCapacityModal: {
+      title: "Driver Capacity Settings",
+      description: "Configure working hours, availability, and capacity limits for each driver",
+      driversList: {
+        title: "Drivers",
+        count: "{count} drivers",
+        active: "active",
+        status: "{active} of {total} drivers active",
+        hoursPerDay: "{hours}h/day",
+        daysPerWeek: "{days} days",
+        workSchedule: "{hours}h/day • {days} days"
+      },
+      driverSettings: {
+        configure: "Configure working hours and availability",
+        workingHours: "Working Hours",
+        maxHoursPerDay: "Max Hours per Day",
+        maxHoursPerWeek: "Max Hours per Week", 
+        maxHoursPerMonth: "Max Hours per Month",
+        preferredTimes: "Preferred Working Times",
+        preferredStartTime: "Preferred Start Time",
+        preferredEndTime: "Preferred End Time",
+        workingDays: "Working Days",
+        monday: "Monday",
+        tuesday: "Tuesday",
+        wednesday: "Wednesday",
+        thursday: "Thursday",
+        friday: "Friday",
+        saturday: "Saturday",
+        sunday: "Sunday"
+      },
+      configurationStatus: {
+        title: "Configuration Status",
+        valid: "Configuration is valid",
+        invalid: "Configuration has errors"
+      },
+      buttons: {
+        cancel: "Cancel",
+        saveChanges: "Save Changes"
+      },
+      status: {
+        active: "Active",
+        inactive: "Inactive"
+      }
+    },
+    modal: {
+      selectTaskType: "Select Task Type",
+      selectTaskTypeDescription: "Please select the type of task to create",
+      createTask: "Create Task",
+      editTask: "Edit Task",
+      createTaskDescription: "Create a new task for your team",
+      assignTo: "Assign to",
+      reassignDriver: "Reassign Driver",
+      applyToMultipleDrivers: "Apply to Multiple Drivers",
+      selectDriver: "Select Driver",
+      taskNumber: "Task Number",
+      title: "Title",
+      description: "Description",
+      descriptionPlaceholder: "Enter task description...",
+      multiDayTask: "Multi-day Task",
+      startDate: "Start Date",
+      endDate: "End Date",
+      startTime: "Start Time",
+      endTime: "End Time",
+      hoursPerDay: "Hours per Day",
+      location: "Location",
+      locationPlaceholder: "Enter location...",
+      customerInfo: "Customer Information",
+      customerName: "Customer Name",
+      customerNamePlaceholder: "Enter customer name...",
+      customerPhone: "Customer Phone",
+      customerPhonePlaceholder: "Enter phone number...",
+      notes: "Notes",
+      notesPlaceholder: "Add any additional notes...",
+      taskTypes: {
+        charter: {
+          title: "Charter Service",
+          description: "Charter booking or special service"
+        },
+        regular: {
+          title: "Regular Service", 
+          description: "Regular scheduled service"
+        },
+        training: {
+          title: "Training",
+          description: "Training session or workshop"
+        },
+        day_off: {
+          title: "Day Off",
+          description: "Scheduled day off or vacation"
+        },
+        maintenance: {
+          title: "Maintenance",
+          description: "Vehicle or equipment maintenance"
+        },
+        meeting: {
+          title: "Meeting",
+          description: "Team meeting or briefing"
+        },
+        standby: {
+          title: "Standby",
+          description: "On standby for potential assignments"
+        },
+        special_event: {
+          title: "Special Event",
+          description: "Birthday, company event, or special occasion"
+        }
+      }
+    },
+    schedule: {
+      driver: "Driver",
+      days: {
+        monday: "Mon",
+        tuesday: "Tue",
+        wednesday: "Wed",
+        thursday: "Thu",
+        friday: "Fri",
+        saturday: "Sat",
+        sunday: "Sun"
+      }
+    },
+    viewModes: {
+      today: "Today",
+      thisWeek: "This Week",
+      thisMonth: "This Month"
+    },
+    taskSummary: {
+      tasks: "tasks",
+      task: "task",
+      total: "total",
+      hours: "h"
+    },
+    tableHeaders: {
+      task: "Task",
+      driver: "Driver",
+      type: "Type",
+      date: "Date",
+      time: "Time",
+      hours: "Hours",
+      location: "Location",
+      actions: "Actions"
     },
     legend: {
       confirmed: "Confirmed",
@@ -2946,16 +3106,24 @@ export const en: TranslationValue = {
     },
     status: {
       scheduled: "Scheduled",
-      active: "Active",
+      confirmed: "Confirmed",
+      in_progress: "In Progress",
       completed: "Completed",
-      cancelled: "Cancelled"
+      cancelled: "Cancelled",
+      active: "Active"
     },
     shiftType: {
+      charter: "Charter",
       regular: "Regular",
+      training: "Training",
+      day_off: "Day Off",
+      maintenance: "Maintenance",
+      meeting: "Meeting",
+      standby: "Standby",
+      special: "Special",
       overtime: "Overtime",
       onCall: "On Call",
-      split: "Split Shift",
-      special: "Special"
+      split: "Split Shift"
     },
     errors: {
       loadFailed: "Failed to load shift schedule",
@@ -2967,37 +3135,6 @@ export const en: TranslationValue = {
       created: "Shift created successfully",
       updated: "Shift updated successfully",
       deleted: "Shift deleted successfully"
-    },
-    modal: {
-      createTask: "Create Task",
-      createTaskDescription: "Assign a new task to a driver for the selected date range",
-      taskNumber: "Task Number",
-      taskType: "Task Type",
-      driver: "Driver",
-      selectDriver: "Select a driver",
-      title: "Title",
-      titlePlaceholder: "Enter task title",
-      description: "Description",
-      descriptionPlaceholder: "Enter task description",
-      multiDayTask: "Multi-day task",
-      startDate: "Start Date",
-      endDate: "End Date",
-      selectDate: "Select date",
-      startTime: "Start Time",
-      endTime: "End Time",
-      hoursPerDay: "Hours per Day",
-      customerInfo: "Customer Information",
-      customerName: "Customer Name",
-      customerNamePlaceholder: "Enter customer name",
-      customerPhone: "Customer Phone",
-      customerPhonePlaceholder: "Enter customer phone",
-      location: "Location",
-      locationPlaceholder: "Enter location",
-      notes: "Notes",
-      notesPlaceholder: "Enter additional notes",
-      summary: "Task Summary",
-      totalDays: "Total Days",
-      totalHours: "Total Hours",
     }
   },
   settings: {

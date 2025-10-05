@@ -195,6 +195,7 @@ export const ja: TranslationValue = {
     vehicles: "車両",
     drivers: "ドライバー",
     bookings: "予約",
+    shifts: "シフト",
     paylinks: "支払いリンク",
     quotations: "見積",
     customers: "顧客",
@@ -2879,6 +2880,7 @@ export const ja: TranslationValue = {
       thisWeekSubtitle: "今週のドライバースケジュールと時間を管理・追跡",
       thisMonthSubtitle: "今月のドライバースケジュールと時間を管理・追跡",
       collapse: "折りたたむ",
+      expand: "展開",
       hideHours: "時間を非表示",
       showHours: "時間を表示",
       drivers: "ドライバー",
@@ -2890,7 +2892,8 @@ export const ja: TranslationValue = {
       hours: "時間",
       capacity: "容量",
       tasks: "タスク",
-      total: "合計"
+      total: "合計",
+      overCapacity: "容量超過"
     },
     tasksHours: {
       title: "タスクと時間 - 今週",
@@ -3054,12 +3057,6 @@ export const ja: TranslationValue = {
       today: "今日",
       thisWeek: "今週",
       thisMonth: "今月"
-    },
-    taskSummary: {
-      tasks: "タスク",
-      task: "タスク",
-      total: "合計",
-      hours: "時間"
     },
     tableHeaders: {
       task: "タスク",

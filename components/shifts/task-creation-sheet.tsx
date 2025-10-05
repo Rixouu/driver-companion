@@ -38,6 +38,7 @@ import {
   Calendar as CalendarCheck,
 } from "lucide-react";
 import { format } from "date-fns";
+import { ja } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -542,7 +543,7 @@ export function TaskCreationSheet({
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.start_date ? format(new Date(formData.start_date), "PPP") : "Select date"}
+                        {formData.start_date ? format(new Date(formData.start_date), "PPP", { locale: ja }) : "Select date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -574,7 +575,7 @@ export function TaskCreationSheet({
                         disabled={!isMultiDay}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.end_date ? format(new Date(formData.end_date), "PPP") : "Select date"}
+                        {formData.end_date ? format(new Date(formData.end_date), "PPP", { locale: ja }) : "Select date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">

@@ -224,12 +224,12 @@ export function DriverHoursSummary({
               {isExpanded ? (
                 <>
                   <ChevronUp className="h-4 w-4" />
-                  <span className="text-sm">Collapse</span>
+                  <span className="text-sm">{t('shifts.driverHours.collapse')}</span>
                 </>
               ) : (
                 <>
                   <ChevronDown className="h-4 w-4" />
-                  <span className="text-sm">Expand</span>
+                  <span className="text-sm">{t('shifts.driverHours.expand')}</span>
                 </>
               )}
             </Button>
@@ -241,17 +241,17 @@ export function DriverHoursSummary({
                 size="sm"
                 onClick={() => onToggleDriverHours(!showDriverHours)}
                 className="flex items-center justify-center gap-2 w-full"
-                title={showDriverHours ? "Hide hours display in calendar" : "Show hours display in calendar"}
+                title={showDriverHours ? t('shifts.driverHours.hideHours') : t('shifts.driverHours.showHours')}
               >
                 {showDriverHours ? (
                   <>
                     <ChevronUp className="h-4 w-4" />
-                    <span className="text-sm">Hide Hours</span>
+                    <span className="text-sm">{t('shifts.driverHours.hideHours')}</span>
                   </>
                 ) : (
                   <>
                     <ChevronDown className="h-4 w-4" />
-                    <span className="text-sm">Show Hours</span>
+                    <span className="text-sm">{t('shifts.driverHours.showHours')}</span>
                   </>
                 )}
               </Button>
@@ -268,8 +268,8 @@ export function DriverHoursSummary({
               <User className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="text-center sm:text-left">
-              <p className="text-xs sm:text-sm font-medium">{totalDrivers} Drivers</p>
-              <p className="text-xs text-muted-foreground">Active</p>
+              <p className="text-xs sm:text-sm font-medium">{totalDrivers} {t('shifts.driverHours.drivers')}</p>
+              <p className="text-xs text-muted-foreground">{t('shifts.driverHours.active')}</p>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-2 p-2 sm:p-3 rounded-lg bg-muted/50">
@@ -277,8 +277,8 @@ export function DriverHoursSummary({
               <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
             </div>
             <div className="text-center sm:text-left">
-              <p className="text-xs sm:text-sm font-medium">{totalHours.toFixed(1)}h Total</p>
-              <p className="text-xs text-muted-foreground">Scheduled</p>
+              <p className="text-xs sm:text-sm font-medium">{totalHours.toFixed(1)}h {t('shifts.driverHours.total')}</p>
+              <p className="text-xs text-muted-foreground">{t('shifts.driverHours.scheduled')}</p>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-2 p-2 sm:p-3 rounded-lg bg-muted/50">
@@ -286,8 +286,8 @@ export function DriverHoursSummary({
               <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
             </div>
             <div className="text-center sm:text-left">
-              <p className="text-xs sm:text-sm font-medium">{averageHours.toFixed(1)}h Avg</p>
-              <p className="text-xs text-muted-foreground">Per Driver</p>
+              <p className="text-xs sm:text-sm font-medium">{averageHours.toFixed(1)}h {t('shifts.driverHours.averageHours')}</p>
+              <p className="text-xs text-muted-foreground">{t('shifts.driverHours.perDriver')}</p>
             </div>
           </div>
         </div>
@@ -318,7 +318,7 @@ export function DriverHoursSummary({
                         {driverData.driver.first_name} {driverData.driver.last_name}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {driverData.taskCount} tasks • {getViewModeLabel()}
+                        {driverData.taskCount} {t('shifts.driverHours.tasks')} • {getViewModeLabel()}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -349,7 +349,7 @@ export function DriverHoursSummary({
                       {/* Hours Progress */}
                       <div className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Hours</span>
+                          <span className="text-muted-foreground">{t('shifts.driverHours.hours')}</span>
                           <span className={cn(
                             "font-medium",
                             getHoursColor(driverData.totalHours, driverData.maxHours)
@@ -369,7 +369,7 @@ export function DriverHoursSummary({
 
                       {/* Capacity Status */}
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Capacity</span>
+                        <span className="text-muted-foreground">{t('shifts.driverHours.capacity')}</span>
                         <span className={cn(
                           "font-medium",
                           isOverCapacity ? "text-red-600 dark:text-red-400" : "text-muted-foreground"
@@ -382,7 +382,7 @@ export function DriverHoursSummary({
                       {isOverCapacity && (
                         <div className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
                           <div className="w-2 h-2 rounded-full bg-red-500" />
-                          Over Capacity
+                          {t('shifts.driverHours.overCapacity')}
                         </div>
                       )}
                     </div>

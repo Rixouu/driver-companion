@@ -25,6 +25,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Clock, User, MapPin, Phone } from "lucide-react";
 import { format } from "date-fns";
+import { ja } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import type { CrewTaskType, CrewTaskStatus, CreateCrewTaskRequest } from "@/types/crew-tasks";
 
@@ -284,7 +285,7 @@ export function TaskAssignmentModal({
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.start_date ? format(new Date(formData.start_date), "PPP") : t("shifts.modal.selectDate")}
+                      {formData.start_date ? format(new Date(formData.start_date), "PPP", { locale: ja }) : t("shifts.modal.selectDate")}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -311,7 +312,7 @@ export function TaskAssignmentModal({
                       disabled={!isMultiDay}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.end_date ? format(new Date(formData.end_date), "PPP") : t("shifts.modal.selectDate")}
+                      {formData.end_date ? format(new Date(formData.end_date), "PPP", { locale: ja }) : t("shifts.modal.selectDate")}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">

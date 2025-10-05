@@ -608,7 +608,7 @@ export function UnifiedTasksTable({
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Rows per page:</span>
+                <span className="text-sm text-muted-foreground">{t('shifts.tasksHours.pagination.rowsPerPage')}</span>
                 <Select
                   value={itemsPerPage.toString()}
                   onValueChange={(value) => {
@@ -633,7 +633,7 @@ export function UnifiedTasksTable({
             <div className="hidden sm:flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Rows per page:</span>
+                  <span className="text-sm text-muted-foreground">{t('shifts.tasksHours.pagination.rowsPerPage')}</span>
                   <Select
                     value={itemsPerPage.toString()}
                     onValueChange={(value) => {
@@ -653,7 +653,7 @@ export function UnifiedTasksTable({
                   </Select>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} tasks
+                  {t('shifts.tasksHours.pagination.showing', { start: startIndex + 1, end: Math.min(endIndex, totalItems), total: totalItems })}
                 </div>
               </div>
               
@@ -665,7 +665,7 @@ export function UnifiedTasksTable({
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline">Previous</span>
+                  <span className="hidden sm:inline">{t('shifts.tasksHours.pagination.previous')}</span>
                 </Button>
                 
                 <div className="flex items-center gap-1">
@@ -701,7 +701,7 @@ export function UnifiedTasksTable({
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
                 >
-                  <span className="hidden sm:inline">Next</span>
+                  <span className="hidden sm:inline">{t('shifts.tasksHours.pagination.next')}</span>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>

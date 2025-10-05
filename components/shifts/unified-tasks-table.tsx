@@ -263,8 +263,8 @@ export function UnifiedTasksTable({
       </CardHeader>
 
       <CardContent>
-        {/* Tasks Table */}
-        <div className="rounded-md border">
+        {/* Tasks Table - Desktop */}
+        <div className="hidden lg:block rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -411,11 +411,154 @@ export function UnifiedTasksTable({
           </Table>
         </div>
 
+        {/* Mobile Card Layout */}
+        <div className="lg:hidden space-y-4">
+          {paginatedTasks.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No tasks found for the selected period
+            </div>
+          ) : (
+            paginatedTasks.map((task) => (
+              <Card key={task.id} className="p-4">
+                <div className="space-y-3">
+                  {/* Task Header */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-sm truncate">{task.title}</h3>
+                      {task.description && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                      {(!task.driver_id || task.driver_id === '00000000-0000-0000-0000-000000000000') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAssignClick(task)}
+                        >
+                          <UserPlus className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {onEditTask && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onEditTask(task)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {onDeleteTask && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onDeleteTask(task.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Task Details */}
+                  <div className="space-y-3">
+                    {/* Primary Info Row */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground text-sm">Driver:</span>
+                        <span className="font-medium text-sm">
+                          {task.driver_id && task.driver_id !== '00000000-0000-0000-0000-000000000000' 
+                            ? drivers.find(d => d.id === task.driver_id)?.first_name + ' ' + drivers.find(d => d.id === task.driver_id)?.last_name
+                            : 'Unassigned'
+                          }
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className={`font-medium text-sm ${getHoursColor(task.hours_per_day || 0)}`}>
+                          {task.hours_per_day || 0}h
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Secondary Info Row */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground text-sm">Date:</span>
+                        <span className="font-medium text-sm">{format(new Date(task.start_date), 'MMM d, yyyy')}</span>
+                      </div>
+                      {task.start_time && (
+                        <span className="text-xs text-muted-foreground">
+                          {task.start_time}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Location Row */}
+                    {task.location && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground text-sm">Location:</span>
+                        <span className="font-medium text-sm truncate flex-1">{task.location}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Task Type Badge */}
+                  <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                    <Badge variant="outline" className="text-xs">
+                      {task.task_type}
+                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {task.start_time && (
+                        <span className="text-xs text-muted-foreground">
+                          {task.start_time}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+
         {/* Pagination Controls */}
         {totalItems > 0 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+          <div className="px-4 sm:px-6 py-4 border-t">
+            {/* Mobile: Compact pagination */}
+            <div className="flex flex-col sm:hidden gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm font-medium px-2">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Rows per page:</span>
                 <Select
                   value={itemsPerPage.toString()}
@@ -424,7 +567,7 @@ export function UnifiedTasksTable({
                     setCurrentPage(1);
                   }}
                 >
-                  <SelectTrigger className="w-20">
+                  <SelectTrigger className="w-[80px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -435,58 +578,84 @@ export function UnifiedTasksTable({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="text-sm text-muted-foreground">
-                Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} tasks
-              </div>
             </div>
-            
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-              
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-                  
-                  return (
-                    <Button
-                      key={pageNum}
-                      variant={currentPage === pageNum ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentPage(pageNum)}
-                      className="w-8 h-8 p-0"
-                    >
-                      {pageNum}
-                    </Button>
-                  );
-                })}
+
+            {/* Desktop: Full pagination */}
+            <div className="hidden sm:flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Rows per page:</span>
+                  <Select
+                    value={itemsPerPage.toString()}
+                    onValueChange={(value) => {
+                      setItemsPerPage(Number(value));
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} tasks
+                </div>
               </div>
               
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">Previous</span>
+                </Button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  <span className="hidden sm:inline">Next</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         )}

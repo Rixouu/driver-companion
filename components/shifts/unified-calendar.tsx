@@ -248,14 +248,14 @@ export function UnifiedCalendar({
       {/* Calendar Grid */}
       <Card className="overflow-hidden">
         <ScrollArea className="w-full">
-          <div className="min-w-[1200px]">
+          <div className="min-w-[600px] sm:min-w-[800px] lg:min-w-[1200px]">
             {/* Day Headers */}
             <div className="sticky top-0 z-20 bg-background border-b">
               <div className={cn(
                 "grid",
-                viewMode === "day" ? "grid-cols-[200px_1fr]" :
-                viewMode === "week" ? "grid-cols-[200px_repeat(7,minmax(120px,1fr))]" :
-                "grid-cols-[200px_repeat(31,minmax(100px,1fr))]"
+                viewMode === "day" ? "grid-cols-[120px_1fr] sm:grid-cols-[150px_1fr] lg:grid-cols-[200px_1fr]" :
+                viewMode === "week" ? "grid-cols-[120px_repeat(7,minmax(60px,1fr))] sm:grid-cols-[150px_repeat(7,minmax(80px,1fr))] lg:grid-cols-[200px_repeat(7,minmax(120px,1fr))]" :
+                "grid-cols-[120px_repeat(31,minmax(40px,1fr))] sm:grid-cols-[150px_repeat(31,minmax(60px,1fr))] lg:grid-cols-[200px_repeat(31,minmax(100px,1fr))]"
               )}>
                 <div className="p-3 border-r bg-muted/50 font-semibold text-foreground">
                   {t('shifts.table.driver')}
@@ -266,13 +266,13 @@ export function UnifiedCalendar({
                     <div
                       key={dateStr}
                       className={cn(
-                        "p-3 border-r text-center font-medium text-sm",
+                        "p-1 sm:p-2 lg:p-3 border-r text-center font-medium text-xs sm:text-sm",
                         isToday(date) && "bg-primary/10 text-primary font-bold",
                         viewMode === "month" && !isSameMonth(date, selectedDate) && "text-muted-foreground bg-muted/20"
                       )}
                     >
-                      <div>{format(date, "EEE")}</div>
-                      <div className="text-lg">{format(date, "d")}</div>
+                      <div className="text-xs sm:text-sm">{format(date, "EEE")}</div>
+                      <div className="text-xs sm:text-sm lg:text-lg">{format(date, "d")}</div>
                     </div>
                   );
                 })}
@@ -287,12 +287,12 @@ export function UnifiedCalendar({
                 return (
                   <div key={driverSchedule.driver_id} className="flex">
                     {/* Driver Name */}
-                    <div className="w-48 min-w-[12rem] p-3 border-r bg-muted/20 hover:bg-muted/40 transition-colors">
+                    <div className="w-28 min-w-[7rem] sm:w-36 sm:min-w-[9rem] lg:w-48 lg:min-w-[12rem] p-1 sm:p-2 lg:p-3 border-r bg-muted/20 hover:bg-muted/40 transition-colors">
                       <button
                         onClick={() => onDriverClick?.(driverSchedule.driver_id)}
                         className="text-left hover:text-primary transition-colors w-full"
                       >
-                        <div className="font-medium text-sm">
+                        <div className="font-medium text-xs sm:text-sm">
                           {driverSchedule.driver_name}
                         </div>
                         {/* Hours summary for all views when showDriverHours is enabled */}
@@ -321,7 +321,7 @@ export function UnifiedCalendar({
                           <div
                             key={dateStr}
                             className={cn(
-                              "flex-1 min-w-[100px] border-r p-1",
+                              "flex-1 min-w-[40px] sm:min-w-[60px] lg:min-w-[100px] border-r p-1",
                               viewMode === "month" && !isCurrentMonth && "bg-muted/10",
                               isTodayDate && "bg-primary/5"
                             )}

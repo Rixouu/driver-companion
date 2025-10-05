@@ -168,27 +168,27 @@ export function RevampedDriverCapacityModal({
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-6xl h-[90vh] p-0">
-          <DialogHeader className="p-6 pb-4">
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="max-w-6xl h-[90vh] p-0 w-full max-w-[95vw] sm:max-w-6xl">
+          <DialogHeader className="p-4 sm:p-6 pb-4">
+            <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <Settings className="h-5 w-5" />
               {t('shifts.driverCapacityModal.title')}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               {t('shifts.driverCapacityModal.description')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 overflow-hidden">
-            <div className="flex h-full">
+            <div className="flex flex-col lg:flex-row h-full">
               {/* Driver List Sidebar */}
-              <div className="w-80 border-r bg-muted/30">
-                <div className="p-4">
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <div className="w-full lg:w-80 border-r bg-muted/30 lg:border-r-0 lg:border-b-0 border-b">
+                <div className="p-3 sm:p-4">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm sm:text-base">
                     <Users className="h-4 w-4" />
                     {t('shifts.driverCapacityModal.driversList.title')} ({drivers.length})
                   </h3>
-                  <ScrollArea className="h-[calc(100vh-200px)]">
+                  <ScrollArea className="h-[200px] lg:h-[calc(100vh-200px)]">
                     <div className="space-y-2">
                       {capacities.map((capacity) => {
                         const status = getCapacityStatus(capacity);
@@ -251,16 +251,16 @@ export function RevampedDriverCapacityModal({
               <div className="flex-1 overflow-hidden">
                 {selectedCapacity ? (
                   <ScrollArea className="h-full">
-                    <div className="p-6 space-y-6">
+                    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                       {/* Driver Header */}
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div>
-                          <h2 className="text-xl font-semibold">{selectedCapacity.driver_name}</h2>
-                          <p className="text-sm text-muted-foreground">
+                          <h2 className="text-lg sm:text-xl font-semibold">{selectedCapacity.driver_name}</h2>
+                          <p className="text-xs sm:text-sm text-muted-foreground">
                             {t('shifts.driverCapacityModal.driverSettings.configure')}
                           </p>
                         </div>
-                        <Badge variant={selectedCapacity.is_active ? "default" : "secondary"}>
+                        <Badge variant={selectedCapacity.is_active ? "default" : "secondary"} className="w-fit">
                           {selectedCapacity.is_active ? t('shifts.driverCapacityModal.status.active') : t('shifts.driverCapacityModal.status.inactive')}
                         </Badge>
                       </div>
@@ -276,7 +276,7 @@ export function RevampedDriverCapacityModal({
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div className="space-y-2">
                               <Label htmlFor="max_hours_per_day">{t('shifts.driverCapacityModal.driverSettings.maxHoursPerDay')}</Label>
                               <Input
@@ -323,7 +323,7 @@ export function RevampedDriverCapacityModal({
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label htmlFor="preferred_start_time">{t('shifts.driverCapacityModal.driverSettings.preferredStartTime')}</Label>
                               <select
@@ -365,7 +365,7 @@ export function RevampedDriverCapacityModal({
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                             {DAYS_OF_WEEK.map((day) => (
                               <div
                                 key={day.value}
@@ -440,19 +440,19 @@ export function RevampedDriverCapacityModal({
           </div>
 
           {/* Footer */}
-          <div className="border-t p-6">
-            <div className="flex items-center justify-between">
+          <div className="border-t p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-sm text-muted-foreground">
                 {t('shifts.driverCapacityModal.driversList.status', {
                   active: capacities.filter(c => c.is_active).length,
                   total: capacities.length
                 })}
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => setIsOpen(false)}>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                <Button variant="outline" onClick={() => setIsOpen(false)} className="w-full sm:w-auto">
                   {t('shifts.driverCapacityModal.buttons.cancel')}
                 </Button>
-                <Button onClick={handleSave} disabled={isLoading}>
+                <Button onClick={handleSave} disabled={isLoading} className="w-full sm:w-auto">
                   {isLoading ? (
                     <>
                       <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />

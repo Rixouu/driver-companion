@@ -376,7 +376,7 @@ export default function ShiftsPage() {
         title={t('shifts.title')}
         description={t('shifts.description')}
       >
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:items-center sm:gap-2 sm:w-auto">
           <Button
             size="sm"
             onClick={() => {
@@ -385,6 +385,7 @@ export default function ShiftsPage() {
               setEditingTask(undefined);
               setIsSheetOpen(true);
             }}
+            className="w-full"
           >
             {t('shifts.buttons.createTask')}
           </Button>
@@ -407,7 +408,7 @@ export default function ShiftsPage() {
       </div>
 
       {/* Main Content - No Tabs, Just Schedule */}
-      <div className="mt-8">
+      <div className="mt-8 space-y-6">
             {error && (
               <Alert variant="destructive" className="mb-4">
                 <AlertCircle className="h-4 w-4" />
@@ -455,15 +456,17 @@ export default function ShiftsPage() {
       </div>
 
       {/* Unified Tasks Table - Includes All Tasks and Unassigned */}
-      <UnifiedTasksTable
-        tasks={allTasks}
-        drivers={drivers}
-        viewMode={viewType}
-        selectedDate={selectedDate}
-        onEditTask={handleEditTask}
-        onDeleteTask={handleDeleteTask}
-        onAssignTask={handleAssignTask}
-      />
+      <div className="mt-6">
+        <UnifiedTasksTable
+          tasks={allTasks}
+          drivers={drivers}
+          viewMode={viewType}
+          selectedDate={selectedDate}
+          onEditTask={handleEditTask}
+          onDeleteTask={handleDeleteTask}
+          onAssignTask={handleAssignTask}
+        />
+      </div>
 
       {/* Task Creation/Edit Sheet */}
       <TaskCreationSheet

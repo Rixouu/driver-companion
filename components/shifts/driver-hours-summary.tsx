@@ -198,7 +198,7 @@ export function DriverHoursSummary({
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg">
               <Clock className="h-5 w-5 text-primary" />
@@ -212,23 +212,23 @@ export function DriverHoursSummary({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:items-center sm:gap-2">
             {/* Collapse/Expand Section */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center gap-2"
+              className="flex items-center justify-center gap-2 w-full"
             >
               {isExpanded ? (
                 <>
                   <ChevronUp className="h-4 w-4" />
-                  Collapse
+                  <span className="text-sm">Collapse</span>
                 </>
               ) : (
                 <>
                   <ChevronDown className="h-4 w-4" />
-                  Expand
+                  <span className="text-sm">Expand</span>
                 </>
               )}
             </Button>
@@ -239,18 +239,18 @@ export function DriverHoursSummary({
                 variant="ghost"
                 size="sm"
                 onClick={() => onToggleDriverHours(!showDriverHours)}
-                className="flex items-center gap-2"
+                className="flex items-center justify-center gap-2 w-full"
                 title={showDriverHours ? "Hide hours display in calendar" : "Show hours display in calendar"}
               >
                 {showDriverHours ? (
                   <>
                     <ChevronUp className="h-4 w-4" />
-                    Hide Calendar Hours
+                    <span className="text-sm">Hide Hours</span>
                   </>
                 ) : (
                   <>
                     <ChevronDown className="h-4 w-4" />
-                    Show Calendar Hours
+                    <span className="text-sm">Show Hours</span>
                   </>
                 )}
               </Button>
@@ -260,32 +260,32 @@ export function DriverHoursSummary({
       </CardHeader>
 
       {/* Summary Stats */}
-      <div className="px-6 pb-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-              <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+      <div className="px-4 sm:px-6 pb-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-2 p-2 sm:p-3 rounded-lg bg-muted/50">
+            <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+              <User className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
             </div>
-            <div>
-              <p className="text-sm font-medium">{totalDrivers} Drivers</p>
+            <div className="text-center sm:text-left">
+              <p className="text-xs sm:text-sm font-medium">{totalDrivers} Drivers</p>
               <p className="text-xs text-muted-foreground">Active</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-            <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-              <Clock className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <div className="flex flex-col sm:flex-row items-center gap-2 p-2 sm:p-3 rounded-lg bg-muted/50">
+            <div className="p-1.5 sm:p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
             </div>
-            <div>
-              <p className="text-sm font-medium">{totalHours.toFixed(1)}h Total</p>
+            <div className="text-center sm:text-left">
+              <p className="text-xs sm:text-sm font-medium">{totalHours.toFixed(1)}h Total</p>
               <p className="text-xs text-muted-foreground">Scheduled</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-            <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-              <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+          <div className="flex flex-col sm:flex-row items-center gap-2 p-2 sm:p-3 rounded-lg bg-muted/50">
+            <div className="p-1.5 sm:p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
             </div>
-            <div>
-              <p className="text-sm font-medium">{averageHours.toFixed(1)}h Avg</p>
+            <div className="text-center sm:text-left">
+              <p className="text-xs sm:text-sm font-medium">{averageHours.toFixed(1)}h Avg</p>
               <p className="text-xs text-muted-foreground">Per Driver</p>
             </div>
           </div>
@@ -297,8 +297,8 @@ export function DriverHoursSummary({
         "transition-all duration-300 ease-in-out overflow-hidden",
         isExpanded ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
       )}>
-        <CardContent className="pt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <CardContent className="pt-0 px-4 sm:px-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
             {Object.values(driverHours).map((driverData) => {
               const capacityPercentage = (driverData.totalHours / driverData.maxHours) * 100;
               const isOverCapacity = capacityPercentage > driverData.capacityPercentage;
@@ -307,7 +307,7 @@ export function DriverHoursSummary({
               
               return (
                 <div key={driverData.driver.id} className={cn(
-                  "p-4 rounded-lg border transition-colors",
+                  "p-3 sm:p-4 rounded-lg border transition-colors",
                   isVisible ? "bg-card hover:bg-muted/50" : "bg-muted/30 border-dashed opacity-60"
                 )}>
                   {/* Header with Driver Info and Toggle */}

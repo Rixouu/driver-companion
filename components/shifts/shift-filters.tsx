@@ -128,12 +128,12 @@ export function ShiftFilters({
         </div>
 
         {/* View Type & Actions */}
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:items-center sm:gap-2 sm:w-auto">
           <Select
             value={viewType}
             onValueChange={(value) => onViewTypeChange(value as ViewType)}
           >
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder={t('common.view')} />
             </SelectTrigger>
             <SelectContent>
@@ -143,15 +143,15 @@ export function ShiftFilters({
             </SelectContent>
           </Select>
 
-
           <Button
             variant="outline"
             size="sm"
             onClick={onRefresh}
-            className="h-9 w-9 p-0"
+            className="w-full sm:w-9 sm:h-9 sm:p-0"
             title={t('shifts.filters.refresh')}
           >
             <RefreshCw className="h-4 w-4" />
+            <span className="ml-2 sm:hidden">{t('shifts.filters.refresh')}</span>
           </Button>
         </div>
       </div>

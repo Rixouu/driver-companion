@@ -15,13 +15,11 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get("end_date");
     
     // Build query for unassigned tasks
-    // Tasks assigned to the special "Unassigned" driver
-    const unassignedDriverId = '00000000-0000-0000-0000-000000000000';
-    
+    // Tasks with NULL driver_id (clean approach)
     let query = supabase
       .from("crew_tasks")
       .select("*")
-      .eq("driver_id", unassignedDriverId)
+      .is("driver_id", null)
       .not("task_status", "in", "(cancelled,completed)");
     
     // Filter by date range if provided

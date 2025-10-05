@@ -143,14 +143,16 @@ export default function ShiftsPage() {
     }
   }, [processedSchedule]);
 
-  // Load drivers for modal
+  // Load drivers for modal (exclude fake unassigned driver)
   useEffect(() => {
     const loadDrivers = async () => {
       try {
         const supabase = createClient();
+        const unassignedDriverId = '00000000-0000-0000-0000-000000000000';
         const { data, error } = await supabase
           .from("drivers")
           .select("id, first_name, last_name")
+          .neq("id", unassignedDriverId) // Exclude fake unassigned driver
           .order("first_name");
         
         if (error) {

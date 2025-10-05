@@ -79,9 +79,10 @@ export function DriverHoursSummary({
       maxHours: number;
     }> = {};
 
-    // Initialize driver data
+    // Initialize driver data (exclude fake unassigned driver)
+    const unassignedDriverId = '00000000-0000-0000-0000-000000000000';
     schedule.forEach((driverSchedule) => {
-      if (driverSchedule.driver_id) {
+      if (driverSchedule.driver_id && driverSchedule.driver_id !== unassignedDriverId) {
         const capacitySetting = getDriverCapacitySetting(driverSchedule.driver_id);
         const capacity = driverCapacities.find(c => c.driver_id === driverSchedule.driver_id);
         
@@ -103,9 +104,9 @@ export function DriverHoursSummary({
       }
     });
 
-    // Calculate hours for each task
+    // Calculate hours for each task (exclude fake unassigned driver)
     schedule.forEach((driverSchedule) => {
-      if (driverSchedule.driver_id) {
+      if (driverSchedule.driver_id && driverSchedule.driver_id !== unassignedDriverId) {
         Object.entries(driverSchedule.dates).forEach(([date, dayData]: [string, any]) => {
           if (dayData.tasks && Array.isArray(dayData.tasks)) {
             const dayHours = dayData.tasks.reduce((sum: number, task: CrewTask) => 

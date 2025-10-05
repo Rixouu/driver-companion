@@ -144,11 +144,21 @@ export function UnifiedCalendar({
   };
 
   const filteredSchedule = useMemo(() => {
-    // Filter based on visibility settings
-    if (visibleDrivers.length === 0) return schedule;
-    return schedule.filter((driverSchedule) => 
-      driverSchedule.driver_id && visibleDrivers.includes(driverSchedule.driver_id)
+    const unassignedDriverId = '00000000-0000-0000-0000-000000000000';
+    
+    // First filter out the fake unassigned driver
+    let filtered = schedule.filter((driverSchedule) => 
+      driverSchedule.driver_id && driverSchedule.driver_id !== unassignedDriverId
     );
+    
+    // Then filter based on visibility settings
+    if (visibleDrivers.length > 0) {
+      filtered = filtered.filter((driverSchedule) => 
+        visibleDrivers.includes(driverSchedule.driver_id)
+      );
+    }
+    
+    return filtered;
   }, [schedule, visibleDrivers]);
 
   const getViewModeLabel = () => {

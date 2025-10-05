@@ -217,27 +217,35 @@ export function UnifiedCalendar({
 
   // Drop handlers for drag and drop functionality
   const [dragOverCell, setDragOverCell] = useState<{driverId: string, date: string} | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = "move";
   };
 
   const handleDragEnter = (e: React.DragEvent, driverId: string, date: string) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOverCell({ driverId, date });
+    setIsDragging(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setDragOverCell(null);
+      setIsDragging(false);
     }
   };
 
   const handleDrop = (e: React.DragEvent, driverId: string, date: string) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOverCell(null);
+    setIsDragging(false);
     
     try {
       const draggedTaskData = e.dataTransfer.getData("application/json");
@@ -331,9 +339,12 @@ export function UnifiedCalendar({
                           <div
                             key={dateStr}
                             className={cn(
-                              "flex-1 min-w-[40px] sm:min-w-[60px] lg:min-w-[100px] border-r p-1",
+                              "flex-1 min-w-[40px] sm:min-w-[60px] lg:min-w-[100px] border-r p-1 transition-all duration-200",
                               viewMode === "month" && !isCurrentMonth && "bg-muted/10",
-                              isTodayDate && "bg-primary/5"
+                              isTodayDate && "bg-primary/5",
+                              dragOverCell?.driverId === driverSchedule.driver_id && 
+                              dragOverCell?.date === dateStr && 
+                              "bg-primary/20 border-2 border-primary border-dashed scale-105 shadow-lg"
                             )}
                             onDragOver={handleDragOver}
                             onDragEnter={(e) => handleDragEnter(e, driverSchedule.driver_id, dateStr)}
@@ -346,6 +357,8 @@ export function UnifiedCalendar({
                               data={dayData}
                               onTaskClick={onTaskClick}
                               onCellClick={onCellClick}
+                              isDragOver={dragOverCell?.driverId === driverSchedule.driver_id && dragOverCell?.date === dateStr}
+                              onTaskDrop={onTaskDrop}
                             />
                           </div>
                         );
@@ -425,7 +438,7 @@ export function UnifiedCalendar({
   );
 
   return (
-    <div className="space-y-6">
+    <div className={cn("space-y-6", isDragging && "cursor-grabbing")}>
       {/* Driver Hours Summary - Now shows for all view modes */}
       <DriverHoursSummary
         schedule={schedule}

@@ -122,6 +122,42 @@ export async function PATCH(
       .select()
       .single();
 
+    // If this task has a booking_id and the driver_id changed, 
+    // update all other tasks from the same booking AND update the booking itself
+    if (!error && data && data.booking_id && cleanFields.driver_id) {
+      // Update all other tasks from the same booking
+      const { error: bookingUpdateError } = await supabase
+        .from("crew_tasks")
+        .update({
+          driver_id: cleanFields.driver_id,
+          updated_by: user?.id || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("booking_id", data.booking_id)
+        .neq("id", id); // Don't update the current task again
+
+      if (bookingUpdateError) {
+        console.warn('Failed to update related booking tasks:', bookingUpdateError);
+      } else {
+        console.log(`Updated all tasks for booking ${data.booking_id} to driver ${cleanFields.driver_id}`);
+      }
+
+      // Update the booking itself with the new driver
+      const { error: bookingDriverUpdateError } = await supabase
+        .from("bookings")
+        .update({
+          driver_id: cleanFields.driver_id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", data.booking_id);
+
+      if (bookingDriverUpdateError) {
+        console.warn('Failed to update booking driver:', bookingDriverUpdateError);
+      } else {
+        console.log(`Updated booking ${data.booking_id} driver to ${cleanFields.driver_id}`);
+      }
+    }
+
     if (error) {
       console.error("Error updating crew task:", error);
       return NextResponse.json(

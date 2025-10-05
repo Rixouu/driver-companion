@@ -24,6 +24,8 @@ interface TaskCellProps {
   data?: DayTaskData;
   onTaskClick?: (task: CrewTask) => void;
   onCellClick?: (driverId: string, date: string) => void;
+  isDragOver?: boolean;
+  onTaskDrop?: (taskId: string, driverId: string, date: string) => void | Promise<void>;
 }
 
 // =====================================================
@@ -113,25 +115,30 @@ export function TaskCell({
   data,
   onTaskClick,
   onCellClick,
+  isDragOver = false,
+  onTaskDrop,
 }: TaskCellProps) {
   const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isDropped, setIsDropped] = useState(false);
 
   // Handle drag over
-  const [isDragOver, setIsDragOver] = useState(false);
+  const [isDragOverLocal, setIsDragOverLocal] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragOver(true);
+    setIsDragOverLocal(true);
   };
 
   const handleDragLeave = () => {
-    setIsDragOver(false);
+    setIsDragOverLocal(false);
   };
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragOver(false);
+    setIsDragOverLocal(false);
+    setIsDropped(true);
 
     // Get dragged task from storage
     if (typeof window !== "undefined") {
@@ -140,28 +147,42 @@ export function TaskCell({
         const draggedTask = JSON.parse(draggedTaskStr);
         
         try {
-          // Update task with new driver and date
-          const response = await fetch(`/api/crew-tasks/${draggedTask.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              driver_id: driverId,
-              start_date: date,
-              end_date: date, // Single day assignment
-            }),
-          });
-          
-          if (response.ok) {
-            console.log("Task assigned successfully");
-            // Trigger refresh by calling parent handler
-            window.location.reload(); // Simple refresh for now
+          // Use the callback function if provided, otherwise fall back to direct API call
+          if (onTaskDrop) {
+            await Promise.resolve(onTaskDrop(draggedTask.id, driverId, date));
+            // Success animation - reset after animation
+            setTimeout(() => {
+              setIsDropped(false);
+            }, 300);
           } else {
-            const error = await response.json();
-            alert(`Failed to assign task: ${error.error || "Unknown error"}`);
+            // Fallback to direct API call (for backward compatibility)
+            const response = await fetch(`/api/crew-tasks/${draggedTask.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                driver_id: driverId,
+                start_date: date,
+                end_date: date, // Single day assignment
+              }),
+            });
+            
+            if (response.ok) {
+              console.log("Task assigned successfully");
+              // Success animation - reset after animation
+              setTimeout(() => {
+                setIsDropped(false);
+                window.location.reload(); // Fallback refresh
+              }, 300);
+            } else {
+              const error = await response.json();
+              alert(`Failed to assign task: ${error.error || "Unknown error"}`);
+              setIsDropped(false);
+            }
           }
         } catch (error) {
           console.error("Error assigning task:", error);
           alert("Failed to assign task");
+          setIsDropped(false);
         } finally {
           localStorage.removeItem("draggedTask");
         }
@@ -197,11 +218,12 @@ export function TaskCell({
 
   // Multiple tasks - show stacked vertically
   return (
-    <div 
-      className={cn(
-        "h-full min-h-[120px] p-1 space-y-1 overflow-y-auto transition-all",
-        isDragOver && "bg-primary/20 border-2 border-primary"
-      )}
+      <div 
+        className={cn(
+          "h-full min-h-[120px] p-1 space-y-1 overflow-y-auto transition-all duration-200",
+          (isDragOver || isDragOverLocal) && "bg-primary/20 border-2 border-primary border-dashed scale-105 shadow-lg",
+          isDropped && "bg-green-100 border-green-500 border-2 border-dashed animate-pulse"
+        )}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -213,8 +235,30 @@ export function TaskCell({
           <Popover key={task.id}>
             <PopoverTrigger asChild>
               <div 
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("application/json", JSON.stringify(task));
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.dropEffect = "move";
+                  setIsDragging(true);
+                  // Store in localStorage for drop handling
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem("draggedTask", JSON.stringify(task));
+                  }
+                  // Prevent default to avoid conflicts
+                  e.stopPropagation();
+                }}
+                onDragEnd={() => {
+                  setIsDragging(false);
+                  // Clean up localStorage
+                  if (typeof window !== "undefined") {
+                    localStorage.removeItem("draggedTask");
+                  }
+                }}
                 className={cn(
-                  "p-1.5 cursor-pointer hover:shadow-sm transition-all border-l-3 rounded",
+                  "p-1.5 cursor-move hover:shadow-lg transition-all duration-200 border-l-3 rounded transform",
+                  isDragging ? "opacity-50 scale-95 shadow-2xl" : "hover:scale-105 active:scale-95",
+                  isDropped && "animate-pulse bg-green-100 border-green-500 scale-110",
                   colors.bg,
                   colors.border
                 )}

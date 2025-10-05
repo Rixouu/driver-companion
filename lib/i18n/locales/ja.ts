@@ -4041,6 +4041,15 @@ export const ja: TranslationValue = {
       internalNotesNotVisible: "Internal notes, not visible to the customer",
       decisionRecordedNotification: "Your decision will be recorded and you will be notified of the outcome automatically."
     },
+    quotationWorkflow: {
+      sendQuotationTitle: "見積を送信",
+      sendQuotation: "見積を送信",
+      sendPaymentLinkTitle: "支払いリンクを送信",
+      sendPaymentLink: "支払いリンクを送信",
+      markAsPaidTitle: "支払い済みにする",
+      markAsPaidDescription: "この見積を支払い済みとしてマークします",
+      cancel: "キャンセル"
+    },
     status: {
       draft: "下書き",
       sent: "送信済み",
@@ -4064,6 +4073,7 @@ export const ja: TranslationValue = {
       downloadQuotation: "見積書をダウンロード",
       email: "見積をメール送信",
       emailQuote: "見積をメール送信",
+      markAsPaid: "支払い済みにする",
       emailQuotation: {
         approved: {
           subject: "あなたの見積書が承認されました"
@@ -5227,6 +5237,7 @@ export const ja: TranslationValue = {
     deleteSuccess: "通知を削除しました",
     deleteError: "通知の削除に失敗しました",
     markAllAsRead: "すべて既読にする",
+    markAllRead: "すべて既読にする",
     markAsRead: "既読にする",
     markAsReadSuccess: "通知を既読にしました",
     markAsReadError: "通知の既読処理に失敗しました",

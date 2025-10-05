@@ -4096,6 +4096,15 @@ export const en: TranslationValue = {
       internalNotesNotVisible: "Internal notes, not visible to the customer",
       decisionRecordedNotification: "Your decision will be recorded and you will be notified of the outcome automatically."
     },
+    quotationWorkflow: {
+      sendQuotationTitle: "Send Quotation",
+      sendQuotation: "Send Quotation",
+      sendPaymentLinkTitle: "Send Payment Link",
+      sendPaymentLink: "Send Payment Link",
+      markAsPaidTitle: "Mark as Paid",
+      markAsPaidDescription: "Mark this quotation as paid",
+      cancel: "Cancel"
+    },
     status: {
       draft: "Draft",
       sent: "Sent",
@@ -4119,6 +4128,7 @@ export const en: TranslationValue = {
       downloadQuotation: "Download Quotation",
       email: "Email Quotation",
       emailQuote: "Email Quotation",
+      markAsPaid: "Mark as Paid",
       emailQuotation: {
         approved: {
           subject: "Your Quotation has been Approved"
@@ -5332,6 +5342,7 @@ export const en: TranslationValue = {
     deleteSuccess: "Notification deleted",
     deleteError: "Failed to delete notification",
     markAllAsRead: "Mark all as read",
+    markAllRead: "Mark all as read",
     markAsRead: "Mark as read",
     markAsReadSuccess: "Notification marked as read",
     markAsReadError: "Failed to mark notification as read",

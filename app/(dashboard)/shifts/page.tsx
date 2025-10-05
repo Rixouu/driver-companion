@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { GoogleMapsProvider } from "@/components/providers/google-maps-provider";
 import { RevampedDriverCapacityModal } from "@/components/shifts/revamped-driver-capacity-modal";
 import { SmartAssignment } from "@/components/shifts/smart-assignment";
+import { ConflictDetectionModal } from "@/components/shifts/conflict-detection-modal";
 import type { CrewTask } from "@/types/crew-tasks";
 
 type ViewType = "day" | "week" | "month";
@@ -50,6 +51,12 @@ export default function ShiftsPage() {
   const [visibleDrivers, setVisibleDrivers] = useState<string[]>([]);
   const [showDriverHours, setShowDriverHours] = useState(true);
   const [driverCapacities, setDriverCapacities] = useState<any[]>([]);
+  
+  // Conflict detection state
+  const [conflicts, setConflicts] = useState<any[]>([]);
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [conflictTask, setConflictTask] = useState<any>(null);
+  const [conflictDrivers, setConflictDrivers] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showDriverToggle, setShowDriverToggle] = useState(false);
   
@@ -249,6 +256,39 @@ export default function ShiftsPage() {
       
       if (errors.length > 0) {
         console.error('Some tasks failed to create:', errors);
+        
+        // Check if any are conflict errors (409)
+        const conflictErrors = errors.filter(r => r.status === 409);
+        if (conflictErrors.length > 0) {
+          // Handle conflicts
+          const conflictDetails = await Promise.all(
+            conflictErrors.map(async (error, index) => {
+              try {
+                const errorData = await error.json();
+                const driverId = driversToCreate[results.indexOf(error)];
+                const driver = drivers.find(d => d.id === driverId);
+                return {
+                  driverId,
+                  driverName: driver ? `${driver.first_name} ${driver.last_name}` : 'Unknown Driver',
+                  conflicts: errorData.conflicts || []
+                };
+              } catch (e) {
+                console.error('Error parsing conflict data:', e);
+                return null;
+              }
+            })
+          );
+          
+          const validConflicts = conflictDetails.filter(Boolean);
+          if (validConflicts.length > 0) {
+            setConflicts(validConflicts);
+            setConflictTask(task);
+            setConflictDrivers(driversToCreate);
+            setShowConflictModal(true);
+            return; // Don't throw error, let user resolve conflicts
+          }
+        }
+        
         throw new Error(`Failed to create ${errors.length} task(s)`);
       }
       
@@ -268,6 +308,82 @@ export default function ShiftsPage() {
     setSheetDriverId(task.driver_id);
     setSheetDate(task.start_date);
     setIsSheetOpen(true);
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      const response = await fetch(`/api/crew-tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete task');
+      }
+
+      toast.success('Task deleted successfully');
+      await refetch();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete task');
+      throw error;
+    }
+  };
+
+  const handleConflictResolve = async (resolution: 'skip' | 'overwrite', driverIds: string[]) => {
+    try {
+      if (resolution === 'skip') {
+        // Skip creating tasks for these drivers
+        toast.info(`Skipped creating tasks for ${driverIds.length} driver(s) due to conflicts`);
+        setShowConflictModal(false);
+        return;
+      }
+
+      if (resolution === 'overwrite') {
+        // For overwrite, we need to delete existing tasks first, then create new ones
+        const driverConflicts = conflicts.filter(conflict => driverIds.includes(conflict.driverId));
+        
+        // First, delete existing conflicting tasks
+        const deletePromises = driverConflicts.flatMap(conflict => 
+          conflict.conflicts.map((conflictTask: any) => 
+            fetch(`/api/crew-tasks/${conflictTask.id}`, {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' }
+            })
+          )
+        );
+        
+        await Promise.all(deletePromises);
+        
+        // Then create new tasks for these drivers
+        const createPromises = driverIds.map(driverId =>
+          fetch("/api/crew-tasks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...conflictTask,
+              driver_id: driverId,
+            }),
+          })
+        );
+        
+        const results = await Promise.all(createPromises);
+        const errors = results.filter(r => !r.ok);
+        
+        if (errors.length > 0) {
+          throw new Error(`Failed to create ${errors.length} task(s) after overwrite`);
+        }
+        
+        toast.success(`Overwrote and created ${driverIds.length} task(s) successfully`);
+        await refetch();
+      }
+      
+      setShowConflictModal(false);
+    } catch (error) {
+      console.error('Error resolving conflicts:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to resolve conflicts');
+    }
   };
 
   const handleSmartAssign = async (assignments: Array<{ taskId: string; driverId: string }>) => {
@@ -292,22 +408,6 @@ export default function ShiftsPage() {
     }
   };
 
-  const handleDeleteTask = async (taskId: string) => {
-    try {
-      const response = await fetch(`/api/crew-tasks/${taskId}`, {
-        method: "DELETE",
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to delete task");
-      }
-      
-      await refetch();
-    } catch (error) {
-      console.error("Error deleting task:", error);
-      throw error;
-    }
-  };
 
   const handleViewTask = (task: CrewTask) => {
     // Navigate to task details or open in modal
@@ -489,6 +589,15 @@ export default function ShiftsPage() {
         drivers={drivers}
         isLoading={isLoading}
         editingTask={editingTask}
+      />
+
+      {/* Conflict Detection Modal */}
+      <ConflictDetectionModal
+        isOpen={showConflictModal}
+        onClose={() => setShowConflictModal(false)}
+        task={conflictTask}
+        driverConflicts={conflicts}
+        onResolve={handleConflictResolve}
       />
 
     </div>

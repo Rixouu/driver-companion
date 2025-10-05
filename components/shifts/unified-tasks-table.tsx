@@ -13,6 +13,8 @@ import { CrewTask } from "@/types/crew-tasks";
 import { useI18n } from "@/lib/i18n/context";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { EnhancedAssignModal } from "./enhanced-assign-modal";
+import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import {
   Dialog,
   DialogContent,
@@ -46,6 +48,8 @@ export function UnifiedTasksTable({
   const [draggedTask, setDraggedTask] = useState<CrewTask | null>(null);
   const [selectedTaskForAssign, setSelectedTaskForAssign] = useState<CrewTask | null>(null);
   const [showDriverDialog, setShowDriverDialog] = useState(false);
+  const [selectedTaskForDelete, setSelectedTaskForDelete] = useState<CrewTask | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -142,6 +146,17 @@ export function UnifiedTasksTable({
   const handleAssignClick = (task: CrewTask) => {
     setSelectedTaskForAssign(task);
     setShowDriverDialog(true);
+  };
+
+  const handleDeleteClick = (task: CrewTask) => {
+    setSelectedTaskForDelete(task);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async (taskId: string) => {
+    if (onDeleteTask) {
+      await onDeleteTask(taskId);
+    }
   };
 
   const handleQuickAssign = async (driverId: string) => {
@@ -421,7 +436,7 @@ export function UnifiedTasksTable({
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              onDeleteTask(task.id);
+                              handleDeleteClick(task);
                             }}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -486,7 +501,7 @@ export function UnifiedTasksTable({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => onDeleteTask(task.id)}
+                          onClick={() => handleDeleteClick(task)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -695,42 +710,22 @@ export function UnifiedTasksTable({
         )}
       </CardContent>
 
-      {/* Driver Assignment Dialog */}
-      <Dialog open={showDriverDialog} onOpenChange={setShowDriverDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {selectedTaskForAssign && `Assign Task: ${selectedTaskForAssign.title}`}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Select a driver to assign this task to:
-            </p>
-            <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
-              {drivers.filter(d => d.id !== '00000000-0000-0000-0000-000000000000').map((driver) => (
-                <Button
-                  key={driver.id}
-                  variant="outline"
-                  className="justify-start h-auto p-4"
-                  onClick={() => handleQuickAssign(driver.id)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-medium">
-                        {driver.first_name} {driver.last_name}
-                      </p>
-                    </div>
-                  </div>
-                </Button>
-              ))}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Enhanced Driver Assignment Modal */}
+      <EnhancedAssignModal
+        isOpen={showDriverDialog}
+        onClose={() => setShowDriverDialog(false)}
+        task={selectedTaskForAssign}
+        drivers={drivers}
+        onAssign={handleQuickAssign}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        task={selectedTaskForDelete}
+        onDelete={handleDeleteConfirm}
+      />
     </Card>
   );
 }

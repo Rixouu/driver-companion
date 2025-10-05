@@ -185,13 +185,33 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for conflicts only if driver_id is provided
+    let conflicts = null;
     if (driver_id) {
-      const { data: conflicts } = await supabase
-        .from("crew_tasks")
-        .select("id, task_number, title, start_date, end_date, start_time, end_time")
-        .eq("driver_id", driver_id)
-        .not("task_status", "in", "(cancelled,completed)")
-        .or(`start_date.lte.${end_date},end_date.gte.${start_date}`);
+      try {
+        const { data: conflictsData, error: conflictsError } = await supabase
+          .from("crew_tasks")
+          .select("id, task_number, title, start_date, end_date, start_time, end_time")
+          .eq("driver_id", driver_id)
+          .not("task_status", "in", "(cancelled,completed)")
+          .lte("start_date", end_date)
+          .gte("end_date", start_date);
+          
+        if (conflictsError) {
+          console.error('Error checking conflicts:', conflictsError);
+          return NextResponse.json(
+            { error: "Failed to check for conflicts" },
+            { status: 500 }
+          );
+        }
+          
+        conflicts = conflictsData;
+      } catch (error) {
+        console.error('Error in conflict detection:', error);
+        return NextResponse.json(
+          { error: "Failed to check for conflicts" },
+          { status: 500 }
+        );
+      }
 
       if (conflicts && conflicts.length > 0) {
         return NextResponse.json(

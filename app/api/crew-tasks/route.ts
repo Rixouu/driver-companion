@@ -59,7 +59,6 @@ export async function GET(request: NextRequest) {
     
     const { data: tasksData, error } = await query;
 
-
     if (error) {
       console.error("Error fetching crew task schedule:", error);
       return NextResponse.json(
@@ -68,13 +67,83 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Also fetch bookings that haven't been converted to crew tasks yet
+    const { data: bookingsData, error: bookingsError } = await supabase
+      .from("bookings")
+      .select(`
+        id,
+        wp_id,
+        driver_id,
+        date,
+        time,
+        service_name,
+        service_type,
+        pickup_location,
+        dropoff_location,
+        customer_name,
+        customer_phone,
+        duration_hours,
+        service_days,
+        hours_per_day,
+        status,
+        price_amount,
+        drivers!bookings_driver_id_fkey (
+          id,
+          first_name,
+          last_name
+        )
+      `)
+      .gte("date", startDate)
+      .lte("date", endDate)
+      .eq("status", "confirmed");
+
+    if (bookingsError) {
+      console.error("Error fetching bookings:", bookingsError);
+      // Continue with just crew tasks if bookings fetch fails
+    }
+
+    // Convert bookings to crew task format for display
+    const bookingTasks = bookingsData?.map((booking: any) => ({
+      id: `booking-${booking.id}`,
+      task_number: 1,
+      task_type: "charter",
+      task_status: "scheduled",
+      driver_id: booking.driver_id,
+      start_date: booking.date,
+      end_date: booking.date,
+      start_time: booking.time,
+      end_time: booking.time ? (() => {
+        const [hours, minutes] = booking.time.split(':').map(Number);
+        const durationHours = booking.duration_hours || booking.hours_per_day || 1;
+        const endHour = hours + Math.floor(durationHours);
+        const endMinute = minutes + ((durationHours % 1) * 60);
+        return `${endHour.toString().padStart(2, '0')}:${Math.floor(endMinute).toString().padStart(2, '0')}`;
+      })() : null,
+      hours_per_day: booking.duration_hours || booking.hours_per_day || 1,
+      total_hours: booking.duration_hours || booking.hours_per_day || 1,
+      booking_id: booking.id,
+      title: booking.service_name || "Booking",
+      description: `${booking.service_type} service`,
+      location: booking.pickup_location,
+      customer_name: booking.customer_name,
+      customer_phone: booking.customer_phone,
+      priority: 1,
+      notes: `From booking ${booking.wp_id}`,
+      drivers: booking.drivers,
+      is_booking: true, // Flag to identify this as a booking
+      price_amount: booking.price_amount
+    })) || [];
+
+    // Combine crew tasks and booking tasks
+    const allTasksData = [...(tasksData || []), ...bookingTasks];
+
     // Process and expand multi-day tasks
     const schedule: Record<string, any> = {};
     const expandedTasks: any[] = [];
     
-    if (tasksData && Array.isArray(tasksData)) {
+    if (allTasksData && Array.isArray(allTasksData)) {
       // Expand multi-day tasks into individual days
-      tasksData.forEach((task: any) => {
+      allTasksData.forEach((task: any) => {
         const taskStart = new Date(task.start_date);
         const taskEnd = new Date(task.end_date);
         const totalDays = Math.ceil((taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;

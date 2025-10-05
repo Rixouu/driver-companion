@@ -2912,7 +2912,16 @@ export const en: TranslationValue = {
     },
     driverHours: {
       title: "Driver Hours - This Week",
-      subtitle: "Manage and track driver schedules and hours"
+      subtitle: "Manage and track driver schedules and hours",
+      today: "Today",
+      thisWeek: "This Week",
+      thisMonth: "This Month",
+      todayTitle: "Driver Hours - Today",
+      thisWeekTitle: "Driver Hours - This Week",
+      thisMonthTitle: "Driver Hours - This Month",
+      todaySubtitle: "Manage and track driver schedules for today",
+      thisWeekSubtitle: "Manage and track driver schedules and hours for this week",
+      thisMonthSubtitle: "Manage and track driver schedules and hours for this month"
     },
     tasksHours: {
       title: "Tasks & Hours - This Week",

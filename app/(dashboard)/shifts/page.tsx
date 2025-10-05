@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { CrewTaskCalendarGrid } from "@/components/shifts/crew-task-calendar-grid";
 import { EnhancedCalendarGrid } from "@/components/shifts/enhanced-calendar-grid";
 import { EnhancedCalendarWithHours } from "@/components/shifts/enhanced-calendar-with-hours";
-import { DayWeekCalendar } from "@/components/shifts/day-week-calendar";
+import { UnifiedCalendar } from "@/components/shifts/unified-calendar";
 import { ShiftFilters } from "@/components/shifts/shift-filters";
 import { ShiftStatistics } from "@/components/shifts/shift-statistics";
 import { UnassignedBookings } from "@/components/shifts/unassigned-bookings";
@@ -28,7 +28,6 @@ import { toast } from "sonner";
 import { GoogleMapsProvider } from "@/components/providers/google-maps-provider";
 import { RevampedDriverCapacityModal } from "@/components/shifts/revamped-driver-capacity-modal";
 import { SmartAssignment } from "@/components/shifts/smart-assignment";
-import { ImprovedMonthlyCalendar } from "@/components/shifts/improved-monthly-calendar";
 import type { CrewTask } from "@/types/crew-tasks";
 
 type ViewType = "day" | "week" | "month";
@@ -428,33 +427,23 @@ export default function ShiftsPage() {
                 </div>
               </Card>
             ) : processedSchedule && processedSchedule.length > 0 ? (
-              viewType === "month" ? (
-                <ImprovedMonthlyCalendar
-                  schedule={processedSchedule}
-                  selectedDate={selectedDate}
-                  onDateChange={setSelectedDate}
-                  onTaskClick={handleTaskClick}
-                  onCellClick={handleCellClick}
-                  onDriverClick={handleDriverClick}
-                  viewMode={viewMode}
-                  onViewModeChange={setViewMode}
-                />
-              ) : (
-                <DayWeekCalendar
-                  schedule={processedSchedule}
-                  viewMode={viewType}
-                  selectedDate={selectedDate}
-                  onTaskClick={handleTaskClick}
-                  onCellClick={handleCellClick}
-                  onDriverClick={handleDriverClick}
-                  onDateChange={setSelectedDate}
-                  visibleDrivers={visibleDrivers}
-                  onDriverVisibilityToggle={handleDriverVisibilityToggle}
-                  onTaskDrop={handleTaskDrop}
-                  showDriverHours={showDriverHours}
-                  onToggleDriverHours={setShowDriverHours}
-                />
-              )
+              <UnifiedCalendar
+                schedule={processedSchedule}
+                viewMode={viewType}
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+                onTaskClick={handleTaskClick}
+                onCellClick={handleCellClick}
+                onDriverClick={handleDriverClick}
+                visibleDrivers={visibleDrivers}
+                onDriverVisibilityToggle={handleDriverVisibilityToggle}
+                onTaskDrop={handleTaskDrop}
+                showDriverHours={showDriverHours}
+                onToggleDriverHours={setShowDriverHours}
+                calendarViewMode={viewMode}
+                onCalendarViewModeChange={setViewMode}
+                driverCapacities={driverCapacities}
+              />
             ) : (
               <Card className="p-12">
                 <div className="text-center text-muted-foreground">

@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Settings, Clock, Users, Save, RotateCcw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { getDriverCapacitySettings, createDriverCapacitySetting, updateDriverCapacitySetting, type DriverCapacitySetting } from "@/lib/services/driver-capacity";
 
 interface Driver {
   id: string;
@@ -38,24 +39,57 @@ export function DriverCapacitySettingsModal({ drivers, onCapacityUpdate }: Drive
   const [capacities, setCapacities] = useState<Record<string, DriverCapacity>>({});
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Initialize capacities with default values
+  // Load existing capacity settings from database
   useEffect(() => {
-    if (drivers.length > 0 && Object.keys(capacities).length === 0) {
-      const defaultCapacities: Record<string, DriverCapacity> = {};
-      drivers.forEach(driver => {
-        defaultCapacities[driver.id] = {
-          id: `capacity-${driver.id}`,
-          driver_id: driver.id,
-          daily_hours_limit: 8,
-          weekly_hours_limit: 40,
-          monthly_hours_limit: 160,
-          preferred_start_time: "09:00",
-          preferred_end_time: "17:00",
-        };
-      });
-      setCapacities(defaultCapacities);
+    const loadCapacitySettings = async () => {
+      try {
+        const { capacitySettings, error } = await getDriverCapacitySettings();
+        if (error) {
+          console.error('Error loading capacity settings:', error);
+          toast.error('Failed to load capacity settings');
+          return;
+        }
+
+        // Convert database settings to modal format
+        const capacityMap: Record<string, DriverCapacity> = {};
+        capacitySettings.forEach(setting => {
+          capacityMap[setting.driver_id] = {
+            id: setting.id,
+            driver_id: setting.driver_id,
+            daily_hours_limit: setting.max_hours_per_day,
+            weekly_hours_limit: setting.max_hours_per_week,
+            monthly_hours_limit: setting.max_hours_per_month,
+            preferred_start_time: setting.preferred_start_time,
+            preferred_end_time: setting.preferred_end_time,
+          };
+        });
+
+        // Add default settings for drivers without capacity settings
+        drivers.forEach(driver => {
+          if (!capacityMap[driver.id]) {
+            capacityMap[driver.id] = {
+              id: `capacity-${driver.id}`,
+              driver_id: driver.id,
+              daily_hours_limit: 8,
+              weekly_hours_limit: 40,
+              monthly_hours_limit: 160,
+              preferred_start_time: "09:00",
+              preferred_end_time: "17:00",
+            };
+          }
+        });
+
+        setCapacities(capacityMap);
+      } catch (error) {
+        console.error('Error loading capacity settings:', error);
+        toast.error('Failed to load capacity settings');
+      }
+    };
+
+    if (drivers.length > 0) {
+      loadCapacitySettings();
     }
-  }, [drivers, capacities]);
+  }, [drivers]);
 
   const handleCapacityChange = (driverId: string, field: keyof DriverCapacity, value: any) => {
     setCapacities(prev => ({
@@ -68,12 +102,54 @@ export function DriverCapacitySettingsModal({ drivers, onCapacityUpdate }: Drive
     setHasChanges(true);
   };
 
-  const handleSave = () => {
-    const capacityArray = Object.values(capacities);
-    onCapacityUpdate(capacityArray);
-    setHasChanges(false);
-    toast.success("Driver capacities updated successfully");
-    setIsOpen(false);
+  const handleSave = async () => {
+    try {
+      const capacityArray = Object.values(capacities);
+      
+      // Save each capacity setting to database
+      for (const capacity of capacityArray) {
+        if (capacity.id.startsWith('capacity-')) {
+          // New capacity setting - create it
+          const { error } = await createDriverCapacitySetting({
+            driver_id: capacity.driver_id,
+            max_hours_per_day: capacity.daily_hours_limit,
+            max_hours_per_week: capacity.weekly_hours_limit,
+            max_hours_per_month: capacity.monthly_hours_limit,
+            preferred_start_time: capacity.preferred_start_time,
+            preferred_end_time: capacity.preferred_end_time,
+          });
+          
+          if (error) {
+            console.error('Error creating capacity setting:', error);
+            toast.error(`Failed to save capacity for driver ${capacity.driver_id}`);
+            return;
+          }
+        } else {
+          // Existing capacity setting - update it
+          const { error } = await updateDriverCapacitySetting(capacity.driver_id, {
+            max_hours_per_day: capacity.daily_hours_limit,
+            max_hours_per_week: capacity.weekly_hours_limit,
+            max_hours_per_month: capacity.monthly_hours_limit,
+            preferred_start_time: capacity.preferred_start_time,
+            preferred_end_time: capacity.preferred_end_time,
+          });
+          
+          if (error) {
+            console.error('Error updating capacity setting:', error);
+            toast.error(`Failed to update capacity for driver ${capacity.driver_id}`);
+            return;
+          }
+        }
+      }
+      
+      onCapacityUpdate(capacityArray);
+      setHasChanges(false);
+      toast.success("Driver capacities updated successfully");
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Error saving capacity settings:', error);
+      toast.error('Failed to save capacity settings');
+    }
   };
 
   const handleReset = () => {

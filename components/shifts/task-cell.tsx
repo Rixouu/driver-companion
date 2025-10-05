@@ -33,8 +33,6 @@ interface TaskCellProps {
 // =====================================================
 
 const getTaskTypeColor = (taskType: string, colorOverride?: string) => {
-  if (colorOverride) return colorOverride;
-  
   const colors: Record<string, {
     bg: string;
     text: string;
@@ -90,6 +88,16 @@ const getTaskTypeColor = (taskType: string, colorOverride?: string) => {
       badge: 'bg-pink-100 text-pink-800 dark:bg-pink-900/60 dark:text-pink-200'
     }
   };
+  
+  // If colorOverride is provided, create a custom color scheme
+  if (colorOverride) {
+    return {
+      bg: `bg-${colorOverride}-50 dark:bg-${colorOverride}-950/40`,
+      text: `text-${colorOverride}-900 dark:text-${colorOverride}-100`,
+      border: `border-l-${colorOverride}-600 dark:border-l-${colorOverride}-400`,
+      badge: `bg-${colorOverride}-100 text-${colorOverride}-800 dark:bg-${colorOverride}-900/60 dark:text-${colorOverride}-200`
+    };
+  }
   
   return colors[taskType.toLowerCase()] || colors.regular;
 };

@@ -263,7 +263,16 @@ export function TaskCreationSheet({
   if (currentStep === "type") {
     return (
       <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent side="right" className="w-full sm:max-w-2xl">
+        <SheetContent 
+          side="right" 
+          className="w-full sm:max-w-2xl"
+          onInteractOutside={(e) => {
+            // Prevent closing when clicking on Google Places autocomplete dropdown
+            if (e.target && (e.target as Element).closest('.pac-container')) {
+              e.preventDefault()
+            }
+          }}
+        >
           <SheetHeader>
             <SheetTitle>{t("shifts.modal.selectTaskType")}</SheetTitle>
             <SheetDescription>
@@ -316,7 +325,16 @@ export function TaskCreationSheet({
   // Render task details form
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:max-w-3xl">
+      <SheetContent 
+        side="right" 
+        className="w-full sm:max-w-3xl"
+        onInteractOutside={(e) => {
+          // Prevent closing when clicking on Google Places autocomplete dropdown
+          if (e.target && (e.target as Element).closest('.pac-container')) {
+            e.preventDefault()
+          }
+        }}
+      >
         <SheetHeader>
           <div className="flex items-center gap-3">
             <div className={cn("p-2 rounded-lg", selectedTaskType?.color, "text-white")}>
@@ -452,7 +470,7 @@ export function TaskCreationSheet({
               <Label htmlFor="description">{t("shifts.modal.description")}</Label>
               <Textarea
                 id="description"
-                value={formData.description}
+                value={formData.description || ""}
                 onChange={(e) => handleInputChange("description", e.target.value)}
                 placeholder={t("shifts.modal.descriptionPlaceholder")}
                 rows={3}
@@ -530,7 +548,7 @@ export function TaskCreationSheet({
                             handleInputChange("end_date", format(date, "yyyy-MM-dd"));
                           }
                         }}
-                        disabled={(date) => !isMultiDay || (formData.start_date && date < new Date(formData.start_date))}
+                        disabled={(date) => !isMultiDay || (formData.start_date && date < new Date(formData.start_date)) || false}
                         initialFocus
                       />
                     </PopoverContent>
@@ -596,7 +614,7 @@ export function TaskCreationSheet({
                     name="location"
                     label={t("shifts.modal.location") || "Location"}
                     value={formData.location || ""}
-                    onChange={(name, value) => handleInputChange(name, value)}
+                    onChange={(name, value) => handleInputChange(name as keyof CreateCrewTaskRequest, value)}
                     placeholder={t("shifts.modal.locationPlaceholder") || "Enter location"}
                     required={false}
                   />
@@ -648,7 +666,7 @@ export function TaskCreationSheet({
               <Label htmlFor="notes">{t("shifts.modal.notes")}</Label>
               <Textarea
                 id="notes"
-                value={formData.notes}
+                value={formData.notes || ""}
                 onChange={(e) => handleInputChange("notes", e.target.value)}
                 placeholder={t("shifts.modal.notesPlaceholder")}
                 rows={3}

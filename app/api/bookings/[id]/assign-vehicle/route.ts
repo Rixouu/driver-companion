@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service-client";
+import { syncBookingToShifts } from "@/lib/services/booking-sync";
 
 export async function POST(
   request: NextRequest,
@@ -148,6 +149,19 @@ export async function POST(
         { error: updateError.message },
         { status: 500 }
       );
+    }
+
+    // Automatically sync booking to shifts if driver is assigned
+    if (driverId && driverId !== booking.driver_id) {
+      try {
+        const syncResult = await syncBookingToShifts(bookingId);
+        if (!syncResult.success) {
+          console.warn('Failed to sync booking to shifts:', syncResult.errors);
+        }
+      } catch (syncError) {
+        console.error('Error syncing booking to shifts:', syncError);
+        // Don't fail the request, just log the error
+      }
     }
 
     // Handle different assignment types

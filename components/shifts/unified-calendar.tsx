@@ -458,28 +458,10 @@ export function UnifiedCalendar({
             </Button>
           </div>
         </div>
-        {viewMode === "month" && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant={calendarViewMode === "grid" ? "default" : "outline"}
-              size="sm"
-              onClick={() => onCalendarViewModeChange?.("grid")}
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={calendarViewMode === "list" ? "default" : "outline"}
-              size="sm"
-              onClick={() => onCalendarViewModeChange?.("list")}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Calendar Content */}
-      {calendarViewMode === "grid" ? <GridView /> : <ListView />}
+      <GridView />
     </div>
   );
 }

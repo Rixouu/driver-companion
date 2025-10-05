@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service-client';
+import { syncBookingToShifts } from '@/lib/services/booking-sync';
 
 export async function POST(request: NextRequest) {
   try {
@@ -297,6 +298,20 @@ export async function POST(request: NextRequest) {
 
       createdBookings.push(booking);
       console.log(`Booking created for service ${i + 1}:`, booking.id);
+      
+      // Automatically sync booking to shifts if it has a driver assigned
+      if (booking.driver_id) {
+        try {
+          const syncResult = await syncBookingToShifts(booking.id);
+          if (syncResult.success) {
+            console.log(`Booking ${booking.id} synced to shifts: ${syncResult.tasksCreated} tasks created`);
+          } else {
+            console.warn(`Failed to sync booking ${booking.id} to shifts:`, syncResult.errors);
+          }
+        } catch (syncError) {
+          console.error(`Error syncing booking ${booking.id} to shifts:`, syncError);
+        }
+      }
     }
 
     console.log(`Successfully created ${createdBookings.length} bookings`);

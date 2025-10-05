@@ -51,33 +51,45 @@ export async function generateInvoiceHtml(
   // Calculate totals
   const calculateTotals = () => {
     let baseAmount = 0;
+    let timeBasedAdjustment = 0;
     
     // Calculate base amount from quotation items
     if (quotation?.quotation_items && quotation.quotation_items.length > 0) {
-      baseAmount = quotation.quotation_items.reduce((total: number, item: any) => {
+      quotation.quotation_items.forEach((item: any) => {
         const quantity = item.quantity || 1;
         const unitPrice = item.unit_price || 0;
         const serviceDays = item.service_days || 1;
-        return total + (unitPrice * quantity * serviceDays);
-      }, 0);
+        const itemBasePrice = unitPrice * quantity * serviceDays;
+        
+        baseAmount += itemBasePrice;
+        
+        // Add time-based adjustment if present
+        if (item.time_based_adjustment) {
+          const adjustment = itemBasePrice * (parseFloat(item.time_based_adjustment) / 100);
+          timeBasedAdjustment += adjustment;
+        }
+      });
     }
+    
+    // Total service amount including time-based adjustments
+    const serviceTotal = baseAmount + timeBasedAdjustment;
     
     const discountPercentage = quotation.discount_percentage || 0;
     const taxPercentage = quotation.tax_percentage || 10;
     
     // Calculate regular discount
-    const regularDiscount = baseAmount * (discountPercentage / 100);
+    const regularDiscount = serviceTotal * (discountPercentage / 100);
     
     // Calculate promotion discount
     let promotionDiscount = 0;
     if (selectedPromotion) {
       if (selectedPromotion.discount_type === 'percentage') {
-        promotionDiscount = baseAmount * (selectedPromotion.discount_value / 100);
+        promotionDiscount = serviceTotal * (selectedPromotion.discount_value / 100);
         if (selectedPromotion.maximum_discount && promotionDiscount > selectedPromotion.maximum_discount) {
           promotionDiscount = selectedPromotion.maximum_discount;
         }
       } else {
-        promotionDiscount = Math.min(selectedPromotion.discount_value, baseAmount);
+        promotionDiscount = Math.min(selectedPromotion.discount_value, serviceTotal);
       }
     }
     
@@ -85,7 +97,7 @@ export async function generateInvoiceHtml(
     const totalDiscount = regularDiscount + promotionDiscount;
     
     // Subtotal after discounts
-    const subtotal = Math.max(0, baseAmount - totalDiscount);
+    const subtotal = Math.max(0, serviceTotal - totalDiscount);
     
     // Tax on subtotal
     const taxAmount = subtotal * (taxPercentage / 100);
@@ -95,6 +107,8 @@ export async function generateInvoiceHtml(
     
     return {
       baseAmount,
+      timeBasedAdjustment,
+      serviceTotal,
       regularDiscount,
       promotionDiscount,
       totalDiscount,
@@ -238,7 +252,17 @@ export async function generateInvoiceHtml(
               const quantity = item.quantity || 1;
               const unitPrice = item.unit_price || 0;
               const serviceDays = item.service_days || 1;
-              const totalPrice = unitPrice * quantity * serviceDays;
+              
+              // Calculate base price
+              const basePrice = unitPrice * quantity * serviceDays;
+              
+              // Add time-based adjustment if present
+              let timeBasedAdjustment = 0;
+              if (item.time_based_adjustment) {
+                timeBasedAdjustment = basePrice * (parseFloat(item.time_based_adjustment) / 100);
+              }
+              
+              const totalPrice = basePrice + timeBasedAdjustment;
 
               // Calculate service date - use pickup_date if available, otherwise use created_at
               let serviceDate;

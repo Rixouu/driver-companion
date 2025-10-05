@@ -3,6 +3,7 @@
 import { createServiceClient } from '@/lib/supabase/service-client'
 import { notificationService } from './notification-service'
 import { NotificationType } from '@/types/notifications'
+import { sendTripReminderEmail } from '@/lib/email/trip-reminder-email'
 
 interface ScheduledNotificationJob {
   id: string
@@ -178,6 +179,7 @@ export async function processBookingReminderNotifications() {
             .single()
 
           if (!existing) {
+            // Create notification in database
             await notificationService.createAdminNotification(
               'booking_reminder_24h',
               {
@@ -191,6 +193,66 @@ export async function processBookingReminderNotifications() {
               },
               booking.id
             )
+
+            // Send email reminder
+            try {
+              // Get booking details with driver and vehicle info
+              const { data: bookingDetails } = await supabase
+                .from('bookings')
+                .select(`
+                  *,
+                  drivers:driver_id (
+                    first_name,
+                    last_name,
+                    phone,
+                    email
+                  ),
+                  vehicles:vehicle_id (
+                    plate_number,
+                    brand,
+                    model
+                  )
+                `)
+                .eq('id', booking.id)
+                .single()
+
+              if (bookingDetails) {
+                await sendTripReminderEmail({
+                  booking: {
+                    id: bookingDetails.id,
+                    wp_id: bookingDetails.wp_id,
+                    service_name: bookingDetails.service_name,
+                    date: bookingDetails.date,
+                    time: bookingDetails.time,
+                    pickup_location: bookingDetails.pickup_location || undefined,
+                    dropoff_location: bookingDetails.dropoff_location || undefined,
+                    notes: bookingDetails.notes || undefined,
+                    drivers: bookingDetails.drivers ? {
+                      ...bookingDetails.drivers,
+                      phone: bookingDetails.drivers.phone || ''
+                    } : undefined,
+                    vehicles: bookingDetails.vehicles || undefined
+                  },
+                  customer: {
+                    email: bookingDetails.customer_email || '',
+                    name: bookingDetails.customer_name || ''
+                  },
+                  creator: {
+                    email: 'admin.rixou@gmail.com', // BCC email
+                    name: 'Driver Japan Admin'
+                  },
+                  driver: {
+                    email: bookingDetails.drivers?.email || 'admin.rixou@gmail.com',
+                    name: bookingDetails.drivers ? `${bookingDetails.drivers.first_name} ${bookingDetails.drivers.last_name}` : 'Driver'
+                  },
+                  reminderType: '24h'
+                })
+                console.log(`[Scheduled Notifications] Sent 24h reminder email for booking ${booking.wp_id}`)
+              }
+            } catch (emailError) {
+              console.error(`[Scheduled Notifications] Failed to send 24h reminder email for booking ${booking.wp_id}:`, emailError)
+            }
+
             console.log(`[Scheduled Notifications] Sent 24h reminder for booking ${booking.wp_id}`)
           }
         }
@@ -227,6 +289,7 @@ export async function processBookingReminderNotifications() {
               .single()
 
             if (!existing) {
+              // Create notification in database
               await notificationService.createAdminNotification(
                 'booking_reminder_2h',
                 {
@@ -240,6 +303,66 @@ export async function processBookingReminderNotifications() {
                 },
                 booking.id
               )
+
+              // Send email reminder
+              try {
+                // Get booking details with driver and vehicle info
+                const { data: bookingDetails } = await supabase
+                  .from('bookings')
+                  .select(`
+                    *,
+                    drivers:driver_id (
+                      first_name,
+                      last_name,
+                      phone,
+                      email
+                    ),
+                    vehicles:vehicle_id (
+                      plate_number,
+                      brand,
+                      model
+                    )
+                  `)
+                  .eq('id', booking.id)
+                  .single()
+
+                if (bookingDetails) {
+                  await sendTripReminderEmail({
+                    booking: {
+                      id: bookingDetails.id,
+                      wp_id: bookingDetails.wp_id,
+                      service_name: bookingDetails.service_name,
+                      date: bookingDetails.date,
+                      time: bookingDetails.time,
+                      pickup_location: bookingDetails.pickup_location || undefined,
+                      dropoff_location: bookingDetails.dropoff_location || undefined,
+                      notes: bookingDetails.notes || undefined,
+                      drivers: bookingDetails.drivers ? {
+                        ...bookingDetails.drivers,
+                        phone: bookingDetails.drivers.phone || ''
+                      } : undefined,
+                      vehicles: bookingDetails.vehicles || undefined
+                    },
+                    customer: {
+                      email: bookingDetails.customer_email || '',
+                      name: bookingDetails.customer_name || ''
+                    },
+                    creator: {
+                      email: 'admin.rixou@gmail.com', // BCC email
+                      name: 'Driver Japan Admin'
+                    },
+                    driver: {
+                      email: bookingDetails.drivers?.email || 'admin.rixou@gmail.com',
+                      name: bookingDetails.drivers ? `${bookingDetails.drivers.first_name} ${bookingDetails.drivers.last_name}` : 'Driver'
+                    },
+                    reminderType: '2h'
+                  })
+                  console.log(`[Scheduled Notifications] Sent 2h reminder email for booking ${booking.wp_id}`)
+                }
+              } catch (emailError) {
+                console.error(`[Scheduled Notifications] Failed to send 2h reminder email for booking ${booking.wp_id}:`, emailError)
+              }
+
               console.log(`[Scheduled Notifications] Sent 2h reminder for booking ${booking.wp_id}`)
             }
           }

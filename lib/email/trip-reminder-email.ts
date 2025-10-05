@@ -16,7 +16,7 @@ interface TripReminderEmailData {
     drivers?: {
       first_name: string
       last_name: string
-      phone: string
+      phone: string | null
       email: string
     }
     vehicles?: {

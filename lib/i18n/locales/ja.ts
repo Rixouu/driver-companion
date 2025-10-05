@@ -2869,11 +2869,56 @@ export const ja: TranslationValue = {
     },
     driverHours: {
       title: "ドライバー時間 - 今週",
-      subtitle: "ドライバーのスケジュールと時間を管理・追跡"
+      subtitle: "ドライバーのスケジュールと時間を管理・追跡",
+      today: "今日",
+      thisWeek: "今週",
+      thisMonth: "今月",
+      todayTitle: "ドライバー時間 - 今日",
+      thisWeekTitle: "ドライバー時間 - 今週",
+      thisMonthTitle: "ドライバー時間 - 今月",
+      todaySubtitle: "今日のドライバースケジュールを管理・追跡",
+      thisWeekSubtitle: "今週のドライバースケジュールと時間を管理・追跡",
+      thisMonthSubtitle: "今月のドライバースケジュールと時間を管理・追跡",
+      collapse: "折りたたむ",
+      hideHours: "時間を非表示",
+      showHours: "時間を表示",
+      drivers: "ドライバー",
+      totalHours: "総時間",
+      averageHours: "平均時間",
+      active: "アクティブ",
+      scheduled: "スケジュール済み",
+      perDriver: "ドライバーあたり",
+      hours: "時間",
+      capacity: "容量",
+      tasks: "タスク",
+      thisWeek: "今週",
+      total: "合計"
     },
     tasksHours: {
       title: "タスクと時間 - 今週",
-      subtitle: "すべてのスケジュールされたタスクを管理・追跡"
+      subtitle: "すべてのスケジュールされたタスクを管理・追跡",
+      pagination: {
+        rowsPerPage: "ページあたりの行数:",
+        showing: "{total}タスク中{start}〜{end}を表示",
+        previous: "前へ",
+        next: "次へ"
+      }
+    },
+    calendar: {
+      today: "今日",
+      addTask: "タスク追加",
+      dayOff: "休日",
+      driver: "ドライバー",
+      monday: "月",
+      tuesday: "火",
+      wednesday: "水",
+      thursday: "木",
+      friday: "金",
+      saturday: "土",
+      sunday: "日",
+      dateFormat: "MMM dd",
+      timeFormat: "HH:mm:ss",
+      duration: "期間"
     },
     buttons: {
       createTask: "タスク作成",

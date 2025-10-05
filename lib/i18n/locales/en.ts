@@ -2921,11 +2921,47 @@ export const en: TranslationValue = {
       thisMonthTitle: "Driver Hours - This Month",
       todaySubtitle: "Manage and track driver schedules for today",
       thisWeekSubtitle: "Manage and track driver schedules and hours for this week",
-      thisMonthSubtitle: "Manage and track driver schedules and hours for this month"
+      thisMonthSubtitle: "Manage and track driver schedules and hours for this month",
+      collapse: "Collapse",
+      hideHours: "Hide Hours",
+      showHours: "Show Hours",
+      drivers: "Drivers",
+      totalHours: "Total Hours",
+      averageHours: "Average Hours",
+      active: "Active",
+      scheduled: "Scheduled",
+      perDriver: "Per Driver",
+      hours: "Hours",
+      capacity: "Capacity",
+      tasks: "tasks",
+      thisWeek: "This Week",
+      total: "total"
     },
     tasksHours: {
       title: "Tasks & Hours - This Week",
-      subtitle: "Manage and track all scheduled tasks"
+      subtitle: "Manage and track all scheduled tasks",
+      pagination: {
+        rowsPerPage: "Rows per page:",
+        showing: "Showing {start} to {end} of {total} tasks",
+        previous: "Previous",
+        next: "Next"
+      }
+    },
+    calendar: {
+      today: "Today",
+      addTask: "Add Task",
+      dayOff: "Day Off",
+      driver: "Driver",
+      monday: "Mon",
+      tuesday: "Tue", 
+      wednesday: "Wed",
+      thursday: "Thu",
+      friday: "Fri",
+      saturday: "Sat",
+      sunday: "Sun",
+      dateFormat: "MMM dd",
+      timeFormat: "HH:mm:ss",
+      duration: "duration"
     },
     buttons: {
       createTask: "Create Task",

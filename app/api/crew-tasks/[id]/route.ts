@@ -70,21 +70,51 @@ export async function PATCH(
     // Skip conflict detection for updates - just update the task
     // Conflict detection can be added later with more sophisticated logic
 
-    // Filter out calculated fields that don't exist in the database
+    // Filter out calculated fields and invalid fields that don't exist in the database
     const { 
       current_day, 
       is_multi_day, 
       is_first_day, 
       is_last_day, 
       task_date,
+      drivers, // Remove any drivers field that might be included
+      driver_name, // Remove any driver_name field
       ...updateData 
     } = body;
+
+    // Only include valid fields that exist in the crew_tasks table
+    const validFields = {
+      task_number: updateData.task_number,
+      task_type: updateData.task_type,
+      task_status: updateData.task_status,
+      driver_id: updateData.driver_id,
+      start_date: updateData.start_date,
+      end_date: updateData.end_date,
+      start_time: updateData.start_time,
+      end_time: updateData.end_time,
+      hours_per_day: updateData.hours_per_day,
+      total_hours: updateData.total_hours,
+      booking_id: updateData.booking_id,
+      title: updateData.title,
+      description: updateData.description,
+      location: updateData.location,
+      customer_name: updateData.customer_name,
+      customer_phone: updateData.customer_phone,
+      color_override: updateData.color_override,
+      priority: updateData.priority,
+      notes: updateData.notes,
+    };
+
+    // Remove undefined values
+    const cleanFields = Object.fromEntries(
+      Object.entries(validFields).filter(([_, value]) => value !== undefined)
+    );
 
     // Update the task
     const { data, error } = await supabase
       .from("crew_tasks")
       .update({
-        ...updateData,
+        ...cleanFields,
         updated_by: user?.id || null,
         updated_at: new Date().toISOString(),
       })

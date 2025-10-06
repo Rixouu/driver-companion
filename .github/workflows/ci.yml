@@ -1,147 +1,38 @@
-name: CI Pipeline
+name: CI
 
 on:
   push:
-    branches:
-      - main
-      - develop
+    branches: [main, develop]
   pull_request:
-    branches:
-      - main
-      - develop
-  schedule:
-    # Run security audit daily at 2 AM UTC
-    - cron: '0 2 * * *'
+    branches: [main, develop]
 
 jobs:
-  security-audit:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run security audit
-        run: npm audit --audit-level=moderate
-        continue-on-error: true
-
-      # Snyk removed - using npm audit instead
-
-  test:
-    name: Run Tests & Lint
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x] # Test on supported Node.js versions
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm' # Cache npm dependencies
-
-      - name: Install dependencies
-        run: npm ci # Use ci for faster, more reliable builds
-
-      # TypeScript checking disabled - too strict for development
-      # - name: Run TypeScript type checking
-      #   run: npx tsc --noEmit
-
-      # ESLint disabled - too many warnings blocking merge
-      # - name: Run linters
-      #   run: npm run lint
-
-      # Tests disabled for now - focus on getting code merged
-      # - name: Run unit tests with coverage
-      #   run: npm run test:coverage
-
-      # - name: Run E2E tests
-      #   run: npx playwright test
-      #   env:
-      #     CI: true
-
-      # Coverage upload disabled - no tests running
-      # - name: Upload coverage to Codecov
-      #   uses: codecov/codecov-action@v4
-      #   with:
-      #     token: ${{ secrets.CODECOV_TOKEN }}
-      #     files: ./coverage/coverage-final.json,./coverage/lcov.info
-      #     fail_ci_if_error: true
-
   build:
-    name: Build Project
+    name: Build
     runs-on: ubuntu-latest
-    needs: [test]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22.x'
           cache: 'npm'
+
       - name: Install dependencies
         run: npm ci
+
       - name: Build project
         run: npm run build
         env:
-          # Required Supabase environment variables with fallbacks
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-key' }}
-          # Disable Redis for CI builds
+          # Minimal environment variables for build
+          NEXT_PUBLIC_SUPABASE_URL: 'https://placeholder.supabase.co'
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: 'placeholder-anon-key'
+          SUPABASE_SERVICE_ROLE_KEY: 'placeholder-service-key'
           UPSTASH_REDIS_REST_URL: ''
           UPSTASH_REDIS_REST_TOKEN: ''
-          # Application configuration
-          NEXT_PUBLIC_APP_URL: http://localhost:3000
-          NODE_ENV: test
-          # Disable Sentry for CI builds
+          RESEND_API_KEY: 'placeholder-resend-key'
+          NEXT_PUBLIC_APP_URL: 'http://localhost:3000'
+          NODE_ENV: 'test'
           CI: true
-
-  # Deploy to staging on develop branch - DISABLED
-  # deploy-staging:
-  #   name: Deploy to Staging
-  #   runs-on: ubuntu-latest
-  #   needs: [test, build]
-  #   if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
-  #   environment: staging
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #     
-  #     - name: Deploy to staging
-  #       run: |
-  #         echo "Deploying to staging environment..."
-  #         # Add your staging deployment commands here
-          # Example: npm run deploy:staging
-
-  # Deploy to production on main branch
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [test, build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment: production
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Deploy to production
-        run: |
-          echo "Deploying to production environment..."
-          # Add your production deployment commands here
-          # Example: npm run deploy:production

@@ -75,6 +75,8 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
         .order('created_at', { ascending: false })
         .limit(limit);
 
+      console.log(`[Notifications] Fetched ${data?.length || 0} notifications for user ${user.id}`);
+
       if (fetchError) {
         throw new Error(fetchError.message);
       }
@@ -118,11 +120,14 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
         return acc;
       }, {} as Record<NotificationType, number>);
 
-      setCounts({
+      const counts = {
         total: notificationsWithDetails.length,
         unread: unreadCount,
         by_type: byType
-      });
+      };
+
+      console.log(`[Notifications] Counts:`, counts);
+      setCounts(counts);
 
     } catch (err) {
       console.error('Error fetching notifications:', err);

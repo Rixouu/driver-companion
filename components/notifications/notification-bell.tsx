@@ -27,7 +27,7 @@ export function NotificationBell() {
     deleteNotification,
     refreshNotifications,
     getConnectionStatus
-  } = useNotifications({ limit: 20 });
+  } = useNotifications({ limit: 50 });
   
   const { t } = useI18n();
 

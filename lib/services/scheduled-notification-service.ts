@@ -211,6 +211,11 @@ export async function processBookingReminderNotifications() {
                     plate_number,
                     brand,
                     model
+                  ),
+                  creator:created_by (
+                    email,
+                    first_name,
+                    last_name
                   )
                 `)
                 .eq('id', booking.id)
@@ -238,8 +243,8 @@ export async function processBookingReminderNotifications() {
                     name: bookingDetails.customer_name || ''
                   },
                   creator: {
-                    email: 'admin.rixou@gmail.com', // BCC email
-                    name: 'Driver Japan Admin'
+                    email: bookingDetails.creator?.email || 'admin.rixou@gmail.com',
+                    name: bookingDetails.creator ? `${bookingDetails.creator.first_name} ${bookingDetails.creator.last_name}`.trim() : 'Driver Japan Admin'
                   },
                   driver: {
                     email: bookingDetails.drivers?.email || 'admin.rixou@gmail.com',
@@ -307,24 +312,29 @@ export async function processBookingReminderNotifications() {
               // Send email reminder
               try {
                 // Get booking details with driver and vehicle info
-                const { data: bookingDetails } = await supabase
-                  .from('bookings')
-                  .select(`
-                    *,
-                    drivers:driver_id (
-                      first_name,
-                      last_name,
-                      phone,
-                      email
-                    ),
-                    vehicles:vehicle_id (
-                      plate_number,
-                      brand,
-                      model
-                    )
-                  `)
-                  .eq('id', booking.id)
-                  .single()
+                  const { data: bookingDetails } = await supabase
+                    .from('bookings')
+                    .select(`
+                      *,
+                      drivers:driver_id (
+                        first_name,
+                        last_name,
+                        phone,
+                        email
+                      ),
+                      vehicles:vehicle_id (
+                        plate_number,
+                        brand,
+                        model
+                      ),
+                      creator:created_by (
+                        email,
+                        first_name,
+                        last_name
+                      )
+                    `)
+                    .eq('id', booking.id)
+                    .single()
 
                 if (bookingDetails) {
                   await sendTripReminderEmail({
@@ -348,8 +358,8 @@ export async function processBookingReminderNotifications() {
                       name: bookingDetails.customer_name || ''
                     },
                     creator: {
-                      email: 'admin.rixou@gmail.com', // BCC email
-                      name: 'Driver Japan Admin'
+                      email: bookingDetails.creator?.email || 'admin.rixou@gmail.com',
+                      name: bookingDetails.creator ? `${bookingDetails.creator.first_name} ${bookingDetails.creator.last_name}`.trim() : 'Driver Japan Admin'
                     },
                     driver: {
                       email: bookingDetails.drivers?.email || 'admin.rixou@gmail.com',

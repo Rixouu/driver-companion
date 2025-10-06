@@ -75,7 +75,6 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      console.log(`[Notifications] Fetched ${data?.length || 0} notifications for user ${user.id}`);
 
       if (fetchError) {
         throw new Error(fetchError.message);
@@ -126,7 +125,6 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
         by_type: byType
       };
 
-      console.log(`[Notifications] Counts:`, counts);
       setCounts(counts);
 
     } catch (err) {
@@ -264,7 +262,6 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       retryTimeoutRef.current = null;
     }
 
-    console.log(`Creating notification subscription for user ${user.id} (attempt ${retryCountRef.current + 1})`);
 
     try {
       unsubscribeRef.current = subscribeToCollection<Notification>(
@@ -275,7 +272,6 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
         },
         // onInsert
         (newNotification) => {
-          console.log('New notification received:', newNotification.id);
           setNotifications(prev => [newNotification as NotificationWithDetails, ...prev]);
           setCounts(prev => ({
             total: prev.total + 1,

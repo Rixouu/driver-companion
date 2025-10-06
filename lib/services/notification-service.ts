@@ -154,7 +154,7 @@ export class NotificationService {
         is_read: false
       };
 
-      const { error } = await this.supabase
+      const { error } = await this.serviceSupabase
         .from('notifications')
         .insert(notificationData);
 
@@ -257,7 +257,7 @@ export class NotificationService {
   ): Promise<void> {
     try {
       // Get users from specific team location
-      const { data: teamUsers, error: teamError } = await this.supabase
+      const { data: teamUsers, error: teamError } = await this.serviceSupabase
         .from('admin_users')
         .select('id')
         .eq('team_location', teamLocation);
@@ -282,7 +282,7 @@ export class NotificationService {
    */
   async markAsRead(notificationId: string, userId: string): Promise<void> {
     try {
-      const { error } = await this.supabase
+      const { error } = await this.serviceSupabase
         .from('notifications')
         .update({ is_read: true })
         .eq('id', notificationId)
@@ -303,7 +303,7 @@ export class NotificationService {
    */
   async markAllAsRead(userId: string): Promise<void> {
     try {
-      const { error } = await this.supabase
+      const { error } = await this.serviceSupabase
         .from('notifications')
         .update({ is_read: true })
         .eq('user_id', userId)
@@ -324,7 +324,7 @@ export class NotificationService {
    */
   async deleteNotification(notificationId: string, userId: string): Promise<void> {
     try {
-      const { error } = await this.supabase
+      const { error } = await this.serviceSupabase
         .from('notifications')
         .delete()
         .eq('id', notificationId)

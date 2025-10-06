@@ -211,15 +211,22 @@ export async function processBookingReminderNotifications() {
                     plate_number,
                     brand,
                     model
-                  ),
-                  creator:created_by (
-                    email,
-                    first_name,
-                    last_name
                   )
                 `)
                 .eq('id', booking.id)
                 .single()
+
+              // Get creator information separately if created_by exists
+              let creatorInfo = null;
+              if (bookingDetails?.created_by) {
+                const { data: creatorData } = await supabase
+                  .from('profiles')
+                  .select('email, full_name')
+                  .eq('id', bookingDetails.created_by)
+                  .single();
+                
+                creatorInfo = creatorData;
+              }
 
               if (bookingDetails) {
                 await sendTripReminderEmail({
@@ -243,8 +250,8 @@ export async function processBookingReminderNotifications() {
                     name: bookingDetails.customer_name || ''
                   },
                   creator: {
-                    email: bookingDetails.creator?.email || 'admin.rixou@gmail.com',
-                    name: bookingDetails.creator ? `${bookingDetails.creator.first_name} ${bookingDetails.creator.last_name}`.trim() : 'Driver Japan Admin'
+                    email: creatorInfo?.email || 'admin.rixou@gmail.com',
+                    name: creatorInfo?.full_name || 'Driver Japan Admin'
                   },
                   driver: {
                     email: bookingDetails.drivers?.email || 'admin.rixou@gmail.com',
@@ -326,15 +333,22 @@ export async function processBookingReminderNotifications() {
                         plate_number,
                         brand,
                         model
-                      ),
-                      creator:created_by (
-                        email,
-                        first_name,
-                        last_name
                       )
                     `)
                     .eq('id', booking.id)
                     .single()
+
+                  // Get creator information separately if created_by exists
+                  let creatorInfo = null;
+                  if (bookingDetails?.created_by) {
+                    const { data: creatorData } = await supabase
+                      .from('profiles')
+                      .select('email, full_name')
+                      .eq('id', bookingDetails.created_by)
+                      .single();
+                    
+                    creatorInfo = creatorData;
+                  }
 
                 if (bookingDetails) {
                   await sendTripReminderEmail({
@@ -358,8 +372,8 @@ export async function processBookingReminderNotifications() {
                       name: bookingDetails.customer_name || ''
                     },
                     creator: {
-                      email: bookingDetails.creator?.email || 'admin.rixou@gmail.com',
-                      name: bookingDetails.creator ? `${bookingDetails.creator.first_name} ${bookingDetails.creator.last_name}`.trim() : 'Driver Japan Admin'
+                      email: creatorInfo?.email || 'admin.rixou@gmail.com',
+                      name: creatorInfo?.full_name || 'Driver Japan Admin'
                     },
                     driver: {
                       email: bookingDetails.drivers?.email || 'admin.rixou@gmail.com',

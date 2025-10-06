@@ -35,7 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ManageVehiclesModal } from "./manage-vehicles-modal";
 
 // Utility functions
-const getDurationOptions = (t: Function) => [
+const getDurationOptions = (t: (key: string, options?: any) => string) => [
   { value: 1, label: t("pricing.items.durations.hour", { count: 1 }) },
   { value: 4, label: t("pricing.items.durations.hours", { count: 4 }) },
   { value: 6, label: t("pricing.items.durations.hours", { count: 6 }) },

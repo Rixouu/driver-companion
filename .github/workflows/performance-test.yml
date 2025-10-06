@@ -29,6 +29,17 @@ jobs:
 
       - name: Build application
         run: npm run build
+        env:
+          # Required Supabase environment variables
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Optional Redis environment variables (with fallback values)
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL || 'https://placeholder.upstash.io' }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN || 'placeholder-token' }}
+          # Application configuration
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          NODE_ENV: test
 
       - name: Start application
         run: |

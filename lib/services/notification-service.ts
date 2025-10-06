@@ -131,6 +131,7 @@ const notificationTemplates: Record<NotificationType, (data: any) => Notificatio
 
 export class NotificationService {
   private supabase = createClient();
+  private serviceSupabase = createServiceClient();
 
   /**
    * Create a notification for a specific user
@@ -194,7 +195,7 @@ export class NotificationService {
         is_read: false
       }));
 
-      const { error } = await this.supabase
+      const { error } = await this.serviceSupabase
         .from('notifications')
         .insert(notifications);
 

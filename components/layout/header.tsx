@@ -167,6 +167,7 @@ export function Header() {
                   {user && (
                     <>
                       <NotificationBell />
+                      <div className="w-2" /> {/* Spacer */}
                       <UserNav user={user} />
                     </>
                   )}
@@ -175,7 +176,12 @@ export function Header() {
                 {/* Desktop User Nav */}
                 <div className="hidden md:flex items-center gap-2">
                   {user && <NotificationBell />}
-                  {user && <UserNav user={user} />}
+                  {user && (
+                    <>
+                      <div className="w-3" /> {/* Spacer */}
+                      <UserNav user={user} />
+                    </>
+                  )}
                 </div>
               </>
             )}

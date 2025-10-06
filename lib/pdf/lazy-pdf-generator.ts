@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { lazy, useState } from 'react';
 

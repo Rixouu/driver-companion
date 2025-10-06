@@ -1490,7 +1490,21 @@ export async function deleteBookingAction(
       bookingId = wpBooking.id; // Use the internal UUID for deletion
     }
     
-    // Delete the booking
+    // First, delete all associated crew tasks
+    const { error: deleteTasksError } = await supabase
+      .from('crew_tasks')
+      .delete()
+      .eq('booking_id', bookingId);
+    
+    if (deleteTasksError) {
+      console.error('Error deleting crew tasks for booking:', deleteTasksError);
+      return {
+        success: false,
+        message: `Failed to delete crew tasks: ${deleteTasksError.message}`
+      };
+    }
+    
+    // Then delete the booking
     const { error } = await supabase
       .from('bookings')
       .delete()
@@ -1506,7 +1520,7 @@ export async function deleteBookingAction(
     
     return {
       success: true,
-      message: `Booking ${id} has been permanently deleted`
+      message: `Booking ${id} and associated crew tasks have been permanently deleted`
     };
   } catch (error) {
     console.error('Error in deleteBookingAction:', error);

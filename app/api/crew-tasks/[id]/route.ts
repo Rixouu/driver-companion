@@ -122,39 +122,38 @@ export async function PATCH(
       .select()
       .single();
 
-    // If this task has a booking_id and the driver_id changed, 
-    // update all other tasks from the same booking AND update the booking itself
-    if (!error && data && data.booking_id && cleanFields.driver_id) {
-      // Update all other tasks from the same booking
-      const { error: bookingUpdateError } = await supabase
-        .from("crew_tasks")
-        .update({
-          driver_id: cleanFields.driver_id,
-          updated_by: user?.id || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("booking_id", data.booking_id)
-        .neq("id", id); // Don't update the current task again
+    // If this task has a booking_id, sync changes back to the booking
+    if (!error && data && data.booking_id) {
+      // Import the sync service
+      const { syncCrewTaskToBooking } = await import('@/lib/services/crew-task-booking-sync');
+      
+      // Prepare the fields that might need syncing
+      const syncFields = {
+        driver_id: cleanFields.driver_id,
+        start_date: cleanFields.start_date,
+        start_time: cleanFields.start_time,
+        location: cleanFields.location,
+        customer_name: cleanFields.customer_name,
+        customer_phone: cleanFields.customer_phone,
+      };
 
-      if (bookingUpdateError) {
-        console.warn('Failed to update related booking tasks:', bookingUpdateError);
-      } else {
-        console.log(`Updated all tasks for booking ${data.booking_id} to driver ${cleanFields.driver_id}`);
-      }
+      // Remove undefined values
+      const syncFieldsFiltered = Object.fromEntries(
+        Object.entries(syncFields).filter(([_, value]) => value !== undefined)
+      );
 
-      // Update the booking itself with the new driver
-      const { error: bookingDriverUpdateError } = await supabase
-        .from("bookings")
-        .update({
-          driver_id: cleanFields.driver_id,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", data.booking_id);
+      // Only sync if there are fields to sync
+      if (Object.keys(syncFieldsFiltered).length > 0) {
+        const syncResult = await syncCrewTaskToBooking(
+          id,
+          data.booking_id,
+          syncFieldsFiltered,
+          user?.id
+        );
 
-      if (bookingDriverUpdateError) {
-        console.warn('Failed to update booking driver:', bookingDriverUpdateError);
-      } else {
-        console.log(`Updated booking ${data.booking_id} driver to ${cleanFields.driver_id}`);
+        if (!syncResult.success) {
+          console.warn('Failed to sync task changes to booking:', syncResult.errors);
+        }
       }
     }
 

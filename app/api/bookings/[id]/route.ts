@@ -123,7 +123,21 @@ export async function DELETE(
     
     console.log(`[API] Found booking ${id}, proceeding with deletion...`);
     
-    // Delete the booking
+    // First, delete all associated crew tasks
+    console.log(`[API] Deleting crew tasks associated with booking ${id}...`);
+    const { error: deleteTasksError } = await supabase
+      .from('crew_tasks')
+      .delete()
+      .eq('booking_id', id);
+    
+    if (deleteTasksError) {
+      console.error(`[API] Error deleting crew tasks for booking ${id}:`, deleteTasksError);
+      throw new DatabaseError(`Failed to delete crew tasks: ${deleteTasksError.message}`);
+    }
+    
+    console.log(`[API] Successfully deleted crew tasks for booking ${id}`);
+    
+    // Then delete the booking
     const { error: deleteError } = await supabase
       .from('bookings')
       .delete()
@@ -134,7 +148,7 @@ export async function DELETE(
       throw new DatabaseError(`Failed to delete booking: ${deleteError.message}`);
     }
     
-    console.log(`[API] Successfully deleted booking ${id}`);
+    console.log(`[API] Successfully deleted booking ${id} and associated crew tasks`);
     
     return NextResponse.json({ 
       success: true, 

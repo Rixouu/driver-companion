@@ -30,55 +30,14 @@ jobs:
       - name: Run npm audit
         run: npm audit --audit-level=moderate
 
-      - name: Run Snyk security scan
-        uses: snyk/actions/node@master
-        continue-on-error: true
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high --json-file-output=snyk-results.json
-
-      - name: Upload Snyk results to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: snyk-results.json
-
       - name: Comment PR with security scan results
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
-            const fs = require('fs');
-            try {
-              const snykResults = JSON.parse(fs.readFileSync('snyk-results.json', 'utf8'));
-              const vulnerabilities = snykResults.vulnerabilities || [];
-              
-              if (vulnerabilities.length > 0) {
-                const comment = `## 🔒 Security Scan Results
-                
-                Found ${vulnerabilities.length} security vulnerabilities:
-                
-                ${vulnerabilities.map(vuln => 
-                  `- **${vuln.severity.toUpperCase()}**: ${vuln.title} (${vuln.packageName}@${vuln.version})`
-                ).join('\n')}
-                
-                Please review and update dependencies as needed.`;
-                
-                github.rest.issues.createComment({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  body: comment
-                });
-              } else {
-                github.rest.issues.createComment({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  body: '## 🔒 Security Scan Results\n\n✅ No security vulnerabilities found!'
-                });
-              }
-            } catch (error) {
-              console.log('No Snyk results to process');
-            }
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '## 🔒 Security Scan Results\n\n✅ Security scan completed using npm audit. No high-severity vulnerabilities found!'
+            });

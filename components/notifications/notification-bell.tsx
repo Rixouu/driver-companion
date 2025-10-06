@@ -81,11 +81,11 @@ export function NotificationBell() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-sm">
-                {t('notifications.title', 'Notifications')}
+                {t('notifications.title')}
               </h3>
               {hasUnread && (
                 <Badge variant="secondary" className="text-xs">
-                  {counts.unread} {t('notifications.unread', 'unread')}
+                  {counts.unread} {t('notifications.unread')}
                 </Badge>
               )}
             </div>
@@ -105,7 +105,7 @@ export function NotificationBell() {
                   size="icon"
                   className="h-7 w-7"
                   onClick={handleMarkAllAsRead}
-                  title={t('notifications.markAllRead', 'Mark all as read')}
+                  title={t('notifications.markAllRead')}
                 >
                   <Check className="h-4 w-4" />
                 </Button>
@@ -119,27 +119,31 @@ export function NotificationBell() {
         <ScrollArea className="h-96">
           {isLoading ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              {t('notifications.loading', 'Loading notifications...')}
+              {t('notifications.loading')}
             </div>
           ) : error ? (
             <div className="p-4 text-center text-sm text-destructive">
-              {t('notifications.error', 'Failed to load notifications')}
+              {t('notifications.error')}
             </div>
           ) : notifications.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
               <Bell className="h-8 w-8 mx-auto mb-2" />
-              <p>{t('notifications.empty.title', 'No notifications')}</p>
-              <p className="text-xs">{t('notifications.empty.description', 'You\'re all caught up!')}</p>
+              <p>{t('notifications.empty.title')}</p>
+              <p className="text-xs">{t('notifications.empty.description')}</p>
             </div>
           ) : (
-            <div className="p-2">
-              {notifications.map((notification) => (
-                <NotificationItem
-                  key={notification.id}
-                  notification={notification}
-                  onMarkAsRead={handleMarkAsRead}
-                  onDelete={handleDelete}
-                />
+            <div className="space-y-2 p-2">
+              {notifications.map((notification, index) => (
+                <div key={notification.id}>
+                  <NotificationItem
+                    notification={notification}
+                    onMarkAsRead={handleMarkAsRead}
+                    onDelete={handleDelete}
+                  />
+                  {index < notifications.length - 1 && (
+                    <div className="h-px bg-border mx-4" />
+                  )}
+                </div>
               ))}
             </div>
           )}

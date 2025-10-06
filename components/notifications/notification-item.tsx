@@ -198,13 +198,20 @@ export function NotificationItem({
   return (
     <div 
       className={cn(
-        "group relative p-3 rounded-lg transition-colors hover:bg-muted/50",
-        !notification.is_read && "bg-blue-50/50 dark:bg-blue-950/20 border-l-2 border-l-blue-500"
+        "group relative p-4 rounded-xl transition-all duration-200 hover:shadow-md border",
+        !notification.is_read 
+          ? "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800 shadow-sm" 
+          : "bg-card border-border hover:bg-muted/30"
       )}
     >
-      <div className="flex items-start gap-3">
-        <div className={cn("flex-shrink-0 mt-0.5", colorClass)}>
-          <Icon className="h-4 w-4" />
+      <div className="flex items-start gap-4">
+        <div className={cn(
+          "flex-shrink-0 mt-1 p-2 rounded-full transition-colors",
+          !notification.is_read 
+            ? "bg-blue-100 dark:bg-blue-900/50" 
+            : "bg-muted"
+        )}>
+          <Icon className={cn("h-4 w-4", colorClass)} />
         </div>
         
         <div className="flex-1 min-w-0">
@@ -218,7 +225,7 @@ export function NotificationItem({
                   <StatusIcon className={cn("h-3 w-3 flex-shrink-0", colorClass)} />
                 )}
                 {!notification.is_read && (
-                  <div className="h-2 w-2 bg-blue-500 rounded-full flex-shrink-0" />
+                  <div className="h-2 w-2 bg-blue-500 rounded-full flex-shrink-0 animate-pulse" />
                 )}
               </div>
               

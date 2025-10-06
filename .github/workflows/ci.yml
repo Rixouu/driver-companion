@@ -109,6 +109,8 @@ jobs:
           # Application configuration
           NEXT_PUBLIC_APP_URL: http://localhost:3000
           NODE_ENV: test
+          # Disable Sentry for CI builds
+          CI: true
 
   # Deploy to staging on develop branch - DISABLED
   # deploy-staging:

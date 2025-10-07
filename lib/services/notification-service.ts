@@ -179,16 +179,11 @@ export class NotificationService {
     dueDate?: string
   ): Promise<void> {
     try {
-      console.log(`[NotificationService] Creating bulk notifications for ${userIds.length} users`);
-      console.log(`[NotificationService] User IDs:`, userIds);
-      
       const template = notificationTemplates[type];
       const { title, message } = template ? template(data) : { 
         title: 'Notification', 
         message: 'You have a new notification' 
       };
-
-      console.log(`[NotificationService] Notification template - Title: "${title}", Message: "${message}"`);
 
       const notifications = userIds.map(userId => ({
         type,
@@ -200,8 +195,6 @@ export class NotificationService {
         is_read: false
       }));
 
-      console.log(`[NotificationService] Prepared ${notifications.length} notifications to insert`);
-
       const { error } = await this.serviceSupabase
         .from('notifications')
         .insert(notifications);
@@ -210,8 +203,6 @@ export class NotificationService {
         console.error('Error creating bulk notifications:', error);
         throw new Error(`Failed to create bulk notifications: ${error.message}`);
       }
-
-      console.log(`[NotificationService] Successfully created ${notifications.length} notifications`);
     } catch (error) {
       console.error('NotificationService.createBulkNotifications error:', error);
       throw error;
@@ -231,13 +222,10 @@ export class NotificationService {
       // Use service client to bypass RLS policies
       const serviceSupabase = createServiceClient();
       
-      console.log(`[NotificationService] Creating admin notification for type: ${type}`);
-      console.log(`[NotificationService] Data:`, data);
-      
       // First try to get users from user_profiles view (includes all active users)
       const { data: allUsers, error: usersError } = await serviceSupabase
         .from('user_profiles')
-        .select('id, email, is_active')
+        .select('id')
         .eq('is_active', true);
 
       if (usersError) {
@@ -246,7 +234,7 @@ export class NotificationService {
         // Fallback to admin_users table
         const { data: adminUsers, error: adminError } = await serviceSupabase
           .from('admin_users')
-          .select('id, email');
+          .select('id');
 
         if (adminError) {
           console.error('Error fetching admin users:', adminError.message);
@@ -255,7 +243,6 @@ export class NotificationService {
 
         if (adminUsers && adminUsers.length > 0) {
           const userIds = adminUsers.map(user => user.id).filter(id => id !== null) as string[];
-          console.log(`[NotificationService] Found ${userIds.length} admin users:`, adminUsers.map(u => ({ id: u.id, email: u.email })));
           await this.createBulkNotifications(type, userIds, data, relatedId, dueDate);
           console.log(`[NotificationService] Created admin notification for ${userIds.length} admin users (fallback)`);
         } else {
@@ -266,7 +253,6 @@ export class NotificationService {
 
       if (allUsers && allUsers.length > 0) {
         const userIds = allUsers.map(user => user.id).filter(id => id !== null) as string[];
-        console.log(`[NotificationService] Found ${userIds.length} active users:`, allUsers.map(u => ({ id: u.id, email: u.email })));
         await this.createBulkNotifications(type, userIds, data, relatedId, dueDate);
         console.log(`[NotificationService] Created admin notification for ${userIds.length} users (all active users)`);
       } else {

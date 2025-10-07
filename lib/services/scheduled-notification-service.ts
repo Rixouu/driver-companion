@@ -37,15 +37,22 @@ export async function processQuotationExpiryNotifications() {
 
       if (expiring24h && expiring24h.length > 0) {
         for (const quotation of expiring24h) {
-          // Check if we already sent 24h notification
-          const { data: existing } = await supabase
+          // Check if we already sent 24h notification for this quotation
+          // We should only skip if we've already notified all active users
+          const { data: existingNotifications } = await supabase
             .from('notifications')
-            .select('id')
+            .select('user_id')
             .eq('type', 'quotation_expiring_24h')
             .eq('related_id', quotation.id)
-            .single()
 
-          if (!existing) {
+          // Get count of active users
+          const { count: activeUserCount } = await supabase
+            .from('user_profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_active', true)
+
+          // Only skip if we've already notified all active users
+          if (!existingNotifications || existingNotifications.length < (activeUserCount || 0)) {
             await notificationService.createAdminNotification(
               'quotation_expiring_24h',
               {
@@ -73,15 +80,22 @@ export async function processQuotationExpiryNotifications() {
 
       if (expiring2h && expiring2h.length > 0) {
         for (const quotation of expiring2h) {
-          // Check if we already sent 2h notification
-          const { data: existing } = await supabase
+          // Check if we already sent 2h notification for this quotation
+          // We should only skip if we've already notified all active users
+          const { data: existingNotifications } = await supabase
             .from('notifications')
-            .select('id')
+            .select('user_id')
             .eq('type', 'quotation_expiring_2h')
             .eq('related_id', quotation.id)
-            .single()
 
-          if (!existing) {
+          // Get count of active users
+          const { count: activeUserCount } = await supabase
+            .from('user_profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_active', true)
+
+          // Only skip if we've already notified all active users
+          if (!existingNotifications || existingNotifications.length < (activeUserCount || 0)) {
             await notificationService.createAdminNotification(
               'quotation_expiring_2h',
               {
@@ -114,15 +128,22 @@ export async function processQuotationExpiryNotifications() {
             .update({ status: 'expired' })
             .eq('id', quotation.id)
 
-          // Send expired notification
-          const { data: existing } = await supabase
+          // Send expired notification for this quotation
+          // We should only skip if we've already notified all active users
+          const { data: existingNotifications } = await supabase
             .from('notifications')
-            .select('id')
+            .select('user_id')
             .eq('type', 'quotation_expired')
             .eq('related_id', quotation.id)
-            .single()
 
-          if (!existing) {
+          // Get count of active users
+          const { count: activeUserCount } = await supabase
+            .from('user_profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_active', true)
+
+          // Only skip if we've already notified all active users
+          if (!existingNotifications || existingNotifications.length < (activeUserCount || 0)) {
             await notificationService.createAdminNotification(
               'quotation_expired',
               {
@@ -170,15 +191,22 @@ export async function processBookingReminderNotifications() {
 
       if (bookings24h && bookings24h.length > 0) {
         for (const booking of bookings24h) {
-          // Check if we already sent 24h notification
-          const { data: existing } = await supabase
+          // Check if we already sent 24h notification for this booking
+          // We should only skip if we've already notified all active users
+          const { data: existingNotifications } = await supabase
             .from('notifications')
-            .select('id')
+            .select('user_id')
             .eq('type', 'booking_reminder_24h')
             .eq('related_id', booking.id)
-            .single()
 
-          if (!existing) {
+          // Get count of active users
+          const { count: activeUserCount } = await supabase
+            .from('user_profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_active', true)
+
+          // Only skip if we've already notified all active users
+          if (!existingNotifications || existingNotifications.length < (activeUserCount || 0)) {
             // Create notification in database
             await notificationService.createAdminNotification(
               'booking_reminder_24h',
@@ -229,7 +257,9 @@ export async function processBookingReminderNotifications() {
               }
 
               if (bookingDetails) {
-                await sendTripReminderEmail({
+                console.log(`[Scheduled Notifications] Attempting to send email for booking ${bookingDetails.wp_id}`)
+                try {
+                  await sendTripReminderEmail({
                   booking: {
                     id: bookingDetails.id,
                     wp_id: bookingDetails.wp_id,
@@ -260,6 +290,9 @@ export async function processBookingReminderNotifications() {
                   reminderType: '24h'
                 })
                 console.log(`[Scheduled Notifications] Sent 24h reminder email for booking ${booking.wp_id}`)
+                } catch (emailError) {
+                  console.error(`[Scheduled Notifications] Failed to send 24h reminder email for booking ${booking.wp_id}:`, emailError)
+                }
               }
             } catch (emailError) {
               console.error(`[Scheduled Notifications] Failed to send 24h reminder email for booking ${booking.wp_id}:`, emailError)
@@ -293,14 +326,22 @@ export async function processBookingReminderNotifications() {
 
           if (hoursDiff > 1.5 && hoursDiff < 2.5) {
             // Check if we already sent 2h notification
-            const { data: existing } = await supabase
+            // Check if we already sent 2h notification for this booking
+            // We should only skip if we've already notified all active users
+            const { data: existingNotifications } = await supabase
               .from('notifications')
-              .select('id')
+              .select('user_id')
               .eq('type', 'booking_reminder_2h')
               .eq('related_id', booking.id)
-              .single()
 
-            if (!existing) {
+            // Get count of active users
+            const { count: activeUserCount } = await supabase
+              .from('user_profiles')
+              .select('*', { count: 'exact', head: true })
+              .eq('is_active', true)
+
+            // Only skip if we've already notified all active users
+            if (!existingNotifications || existingNotifications.length < (activeUserCount || 0)) {
               // Create notification in database
               await notificationService.createAdminNotification(
                 'booking_reminder_2h',
@@ -319,39 +360,41 @@ export async function processBookingReminderNotifications() {
               // Send email reminder
               try {
                 // Get booking details with driver and vehicle info
-                  const { data: bookingDetails } = await supabase
-                    .from('bookings')
-                    .select(`
-                      *,
-                      drivers:driver_id (
-                        first_name,
-                        last_name,
-                        phone,
-                        email
-                      ),
-                      vehicles:vehicle_id (
-                        plate_number,
-                        brand,
-                        model
-                      )
-                    `)
-                    .eq('id', booking.id)
-                    .single()
+                const { data: bookingDetails } = await supabase
+                  .from('bookings')
+                  .select(`
+                    *,
+                    drivers:driver_id (
+                      first_name,
+                      last_name,
+                      phone,
+                      email
+                    ),
+                    vehicles:vehicle_id (
+                      plate_number,
+                      brand,
+                      model
+                    )
+                  `)
+                  .eq('id', booking.id)
+                  .single()
 
-                  // Get creator information separately if created_by exists
-                  let creatorInfo = null;
-                  if (bookingDetails?.created_by) {
-                    const { data: creatorData } = await supabase
-                      .from('profiles')
-                      .select('email, full_name')
-                      .eq('id', bookingDetails.created_by)
-                      .single();
-                    
-                    creatorInfo = creatorData;
-                  }
+                // Get creator information separately if created_by exists
+                let creatorInfo = null;
+                if (bookingDetails?.created_by) {
+                  const { data: creatorData } = await supabase
+                    .from('profiles')
+                    .select('email, full_name')
+                    .eq('id', bookingDetails.created_by)
+                    .single();
+                  
+                  creatorInfo = creatorData;
+                }
 
                 if (bookingDetails) {
-                  await sendTripReminderEmail({
+                  console.log(`[Scheduled Notifications] Attempting to send 2h email for booking ${bookingDetails.wp_id}`)
+                  try {
+                    await sendTripReminderEmail({
                     booking: {
                       id: bookingDetails.id,
                       wp_id: bookingDetails.wp_id,
@@ -382,6 +425,9 @@ export async function processBookingReminderNotifications() {
                     reminderType: '2h'
                   })
                   console.log(`[Scheduled Notifications] Sent 2h reminder email for booking ${booking.wp_id}`)
+                  } catch (emailError) {
+                    console.error(`[Scheduled Notifications] Failed to send 2h reminder email for booking ${booking.wp_id}:`, emailError)
+                  }
                 }
               } catch (emailError) {
                 console.error(`[Scheduled Notifications] Failed to send 2h reminder email for booking ${booking.wp_id}:`, emailError)

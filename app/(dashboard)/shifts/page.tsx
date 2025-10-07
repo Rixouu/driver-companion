@@ -545,7 +545,7 @@ export default function ShiftsPage() {
       </div>
 
       {/* Main Content - No Tabs, Just Schedule */}
-      <div className="mt-8 space-y-6">
+      <div className="mt-2 space-y-6">
             {error && (
               <Alert variant="destructive" className="mb-4">
                 <AlertCircle className="h-4 w-4" />

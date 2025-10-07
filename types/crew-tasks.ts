@@ -25,7 +25,7 @@ export interface CrewTask {
   task_number: number;
   task_type: TaskType;
   task_status: TaskStatus;
-  driver_id: string;
+  driver_id: string | null;
   start_date: string; // ISO date string
   end_date: string; // ISO date string
   start_time?: string; // HH:MM format
@@ -82,7 +82,7 @@ export interface CrewTaskScheduleResponse {
 export interface CreateCrewTaskRequest {
   task_number: number;
   task_type: TaskType;
-  driver_id: string;
+  driver_id: string | null;
   start_date: string;
   end_date: string;
   start_time?: string;

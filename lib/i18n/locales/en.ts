@@ -5,7 +5,8 @@ export const en: TranslationValue = {
     confidential: "Confidential",
     active: "Active",
     inactive: "Inactive",
-    noImage: "No Image",
+    show: "Show",
+    hide: "Hide",
     status: {
       inProgress: "In Progress",
       upcoming: "Upcoming",
@@ -197,6 +198,7 @@ export const en: TranslationValue = {
     vehicles: "Vehicles",
     drivers: "Drivers",
     bookings: "Bookings",
+    shifts: "Shifts",
     paylinks: "Payment Links",
     quotations: "Quotations",
     customers: "Customers",
@@ -238,10 +240,10 @@ export const en: TranslationValue = {
       model: "Filter by Type",
       allBrands: "All Statuses",
       allModels: "All Types",
-      group: "Group",
-      allGroups: "All Groups",
       noResults: "No results found",
-      clearFilters: "Clear Filters"
+      clearFilters: "Clear Filters",
+      group: "Group",
+      allGroups: "All Groups"
     },
     actions: {
       addDriver: "Add Driver",
@@ -431,12 +433,10 @@ export const en: TranslationValue = {
       of: "of {total}"
     },
     errors: {
-      loadFailed: {
-        title: "Could Not Load Driver",
-        description: "We couldn\'t retrieve the details for driver ID {driverId}. Please try again or contact support if the issue persists."
-      },
+      loadFailed: "Could not load driver details. Please try again or contact support if the issue persists.",
       consoleDriverIdError: "Driver ID is missing or invalid in server component.",
-      consoleLoadError: "Error loading driver data for ID {driverId} in server component:"
+      consoleLoadError: "Error loading driver data for ID {driverId} in server component:",
+      noDriversAvailable: "No drivers available"
     },
     messages: {
       createSuccess: "Driver created successfully",
@@ -485,12 +485,12 @@ export const en: TranslationValue = {
     backToVehicles: "← Vehicles",
     addVehicle: "Add Vehicle",
     newVehicle: "New Vehicle",
+    available: "Available Vehicles",
+    noImage: "No Image",
     editVehicle: "Edit Vehicle",
     backToVehicle: "Back to Vehicle",
     searchPlaceholder: "Search vehicles...",
     noVehicles: "No vehicles found",
-    available: "Available Vehicles",
-    noImage: "No Image",
     filters: {
       search: "Search vehicles",
       searchPlaceholder: "Search by name or plate number",
@@ -1074,6 +1074,11 @@ export const en: TranslationValue = {
       selectDate: "Select a date",
       backdatingWarning: "⚠️ Backdating inspection to {date} ({daysAgo} days ago)",
       currentDateInspection: "Inspection will be dated: {date}"
+    },
+    date: {
+      title: "Inspection Date",
+      backdatingWarning: "⚠️ Backdating inspection to {date} ({daysAgo} days ago)",
+      enableBackdating: "Enable Backdating"
     },
     inspectionDate: "Inspection Date",
     actions: {
@@ -2873,6 +2878,311 @@ export const en: TranslationValue = {
       playback: "Route Playback"
     }
   },
+  shifts: {
+    title: "Driver Shift Schedule",
+    description: "Manage driver shifts, view assignments, and optimize scheduling",
+    addShift: "Add Shift",
+    createShift: "Create Shift",
+    editShift: "Edit Shift",
+    deleteShift: "Delete Shift",
+    viewType: {
+      week: "Week View",
+      twoWeeks: "2 Weeks",
+      month: "Month View"
+    },
+    filters: {
+      today: "Today",
+      previous: "Previous",
+      next: "Next",
+      refresh: "Refresh",
+      searchPlaceholder: "Search tasks, drivers, or locations...",
+      allTypes: "All Types"
+    },
+    tabs: {
+      schedule: "Schedule",
+      unassigned: "Unassigned",
+      statistics: "Statistics",
+      allTasks: "All Tasks",
+      assigned: "Assigned"
+    },
+    table: {
+      driver: "Driver",
+      drivers: "drivers",
+      days: "days"
+    },
+    tasksHours: {
+      title: "Tasks & Hours - This Week",
+      subtitle: "Manage and track all scheduled tasks",
+      pagination: {
+        rowsPerPage: "Rows per page:",
+        showing: "Showing {start} to {end} of {total} tasks",
+        previous: "Previous",
+        next: "Next"
+      }
+    },
+    buttons: {
+      createTask: "Create Task",
+      driverCapacity: "Driver Capacity",
+      allDrivers: "All Drivers",
+      refresh: "Refresh"
+    },
+    driverCapacityModal: {
+      title: "Driver Capacity Settings",
+      description: "Configure working hours, availability, and capacity limits for each driver",
+      driversList: {
+        title: "Drivers",
+        count: "{count} drivers",
+        active: "active",
+        status: "{active} of {total} drivers active",
+        hoursPerDay: "{hours}h/day",
+        daysPerWeek: "{days} days",
+        workSchedule: "{hours}h/day • {days} days"
+      },
+      driverSettings: {
+        configure: "Configure working hours and availability",
+        workingHours: "Working Hours",
+        maxHoursPerDay: "Max Hours per Day",
+        maxHoursPerWeek: "Max Hours per Week", 
+        maxHoursPerMonth: "Max Hours per Month",
+        preferredTimes: "Preferred Working Times",
+        preferredStartTime: "Preferred Start Time",
+        preferredEndTime: "Preferred End Time",
+        workingDays: "Working Days",
+        monday: "Monday",
+        tuesday: "Tuesday",
+        wednesday: "Wednesday",
+        thursday: "Thursday",
+        friday: "Friday",
+        saturday: "Saturday",
+        sunday: "Sunday"
+      },
+      configurationStatus: {
+        title: "Configuration Status",
+        valid: "Configuration is valid",
+        invalid: "Configuration has errors"
+      },
+      buttons: {
+        cancel: "Cancel",
+        saveChanges: "Save Changes"
+      },
+      status: {
+        active: "Active",
+        inactive: "Inactive"
+      }
+    },
+    modal: {
+      selectTaskType: "Select Task Type",
+      selectTaskTypeDescription: "Please select the type of task to create",
+      createTask: "Create Task",
+      editTask: "Edit Task",
+      createTaskDescription: "Create a new task for your team",
+      assignTo: "Assign to",
+      reassignDriver: "Reassign Driver",
+      applyToMultipleDrivers: "Apply to Multiple Drivers",
+      selectDriver: "Select Driver",
+      taskNumber: "Task Number",
+      title: "Title",
+      description: "Description",
+      descriptionPlaceholder: "Enter task description...",
+      multiDayTask: "Multi-day Task",
+      startDate: "Start Date",
+      endDate: "End Date",
+      startTime: "Start Time",
+      endTime: "End Time",
+      hoursPerDay: "Hours per Day",
+      location: "Location",
+      locationPlaceholder: "Enter location...",
+      customerInfo: "Customer Information",
+      customerName: "Customer Name",
+      customerNamePlaceholder: "Enter customer name...",
+      customerPhone: "Customer Phone",
+      customerPhonePlaceholder: "Enter phone number...",
+      notes: "Notes",
+      notesPlaceholder: "Add any additional notes...",
+      taskTypes: {
+        charter: {
+          title: "Charter Service",
+          description: "Charter booking or special service"
+        },
+        regular: {
+          title: "Regular Service", 
+          description: "Regular scheduled service"
+        },
+        training: {
+          title: "Training",
+          description: "Training session or workshop"
+        },
+        day_off: {
+          title: "Day Off",
+          description: "Scheduled day off or vacation"
+        },
+        maintenance: {
+          title: "Maintenance",
+          description: "Vehicle or equipment maintenance"
+        },
+        meeting: {
+          title: "Meeting",
+          description: "Team meeting or briefing"
+        },
+        standby: {
+          title: "Standby",
+          description: "On standby for potential assignments"
+        },
+        special_event: {
+          title: "Special Event",
+          description: "Birthday, company event, or special occasion"
+        }
+      }
+    },
+    schedule: {
+      driver: "Driver",
+      days: {
+        monday: "Mon",
+        tuesday: "Tue",
+        wednesday: "Wed",
+        thursday: "Thu",
+        friday: "Fri",
+        saturday: "Sat",
+        sunday: "Sun"
+      }
+    },
+    viewModes: {
+      today: "Today",
+      thisWeek: "This Week",
+      thisMonth: "This Month"
+    },
+    taskSummary: {
+      tasks: "tasks",
+      task: "task",
+      total: "total",
+      hours: "h"
+    },
+    driverHours: {
+      title: "Driver Hours - This Week",
+      subtitle: "Manage and track driver schedules and hours for this week",
+      today: "Today",
+      thisWeek: "This Week", 
+      thisMonth: "This Month",
+      todayTitle: "Driver Hours - Today",
+      thisWeekTitle: "Driver Hours - This Week",
+      thisMonthTitle: "Driver Hours - This Month",
+      todaySubtitle: "Manage and track driver schedules for today",
+      thisWeekSubtitle: "Manage and track driver schedules and hours for this week",
+      thisMonthSubtitle: "Manage and track driver schedules and hours for this month",
+      collapse: "Collapse",
+      expand: "Expand",
+      hideHours: "Hide Hours",
+      showHours: "Show Hours",
+      drivers: "Drivers",
+      totalHours: "Total",
+      averageHours: "Avg",
+      active: "Active",
+      scheduled: "Scheduled",
+      perDriver: "Per Driver",
+      hours: "Hours",
+      capacity: "Capacity",
+      tasks: "tasks",
+      total: "total",
+      overCapacity: "Over Capacity"
+    },
+    calendar: {
+      today: "Today",
+      addTask: "Add Task",
+      dayOff: "Day Off",
+      driver: "Driver",
+      monday: "Mon",
+      tuesday: "Tue", 
+      wednesday: "Wed",
+      thursday: "Thu",
+      friday: "Fri",
+      saturday: "Sat",
+      sunday: "Sun",
+      dateFormat: "MMM dd",
+      timeFormat: "HH:mm:ss",
+      duration: "Duration"
+    },
+    tableHeaders: {
+      task: "Task",
+      driver: "Driver",
+      type: "Type",
+      date: "Date",
+      time: "Time",
+      hours: "Hours",
+      location: "Location",
+      actions: "Actions"
+    },
+    legend: {
+      confirmed: "Confirmed",
+      pending: "Pending",
+      inProgress: "In Progress",
+      cancelled: "Cancelled"
+    },
+    stats: {
+      totalBookings: "Total Bookings",
+      activeDrivers: "Active Drivers",
+      totalHours: "Total Hours",
+      totalRevenue: "Total Revenue",
+      assignmentRate: "Assignment Rate",
+      completionRate: "Completion Rate",
+      assigned: "Assigned",
+      unassigned: "Unassigned",
+      completed: "Completed",
+      of: "of"
+    },
+    unassigned: {
+      title: "Unassigned Bookings",
+      description: "Bookings that need driver assignment",
+      noBookings: "No unassigned bookings found",
+      allAssigned: "All bookings in this period have been assigned",
+      assignDriver: "Assign Driver",
+      from: "From",
+      to: "To"
+    },
+    booking: {
+      bookings: "bookings",
+      hours: "hours",
+      viewDetails: "View Details",
+      addBooking: "Add Booking",
+      noBookings: "No bookings",
+      multipleBookings: "{count} bookings"
+    },
+    cell: {
+      empty: "Click to add shift or booking",
+      addShift: "Add Shift"
+    },
+    status: {
+      scheduled: "Scheduled",
+      confirmed: "Confirmed",
+      in_progress: "In Progress",
+      completed: "Completed",
+      cancelled: "Cancelled",
+      active: "Active"
+    },
+    shiftType: {
+      charter: "Charter",
+      regular: "Regular",
+      training: "Training",
+      day_off: "Day Off",
+      maintenance: "Maintenance",
+      meeting: "Meeting",
+      standby: "Standby",
+      special: "Special",
+      overtime: "Overtime",
+      onCall: "On Call",
+      split: "Split Shift"
+    },
+    errors: {
+      loadFailed: "Failed to load shift schedule",
+      createFailed: "Failed to create shift",
+      updateFailed: "Failed to update shift",
+      deleteFailed: "Failed to delete shift"
+    },
+    success: {
+      created: "Shift created successfully",
+      updated: "Shift updated successfully",
+      deleted: "Shift deleted successfully"
+    }
+  },
   settings: {
     title: "Settings",
     description: "Manage account settings and preferences",
@@ -3786,6 +4096,15 @@ export const en: TranslationValue = {
       internalNotesNotVisible: "Internal notes, not visible to the customer",
       decisionRecordedNotification: "Your decision will be recorded and you will be notified of the outcome automatically."
     },
+    quotationWorkflow: {
+      sendQuotationTitle: "Send Quotation",
+      sendQuotation: "Send Quotation",
+      sendPaymentLinkTitle: "Send Payment Link",
+      sendPaymentLink: "Send Payment Link",
+      markAsPaidTitle: "Mark as Paid",
+      markAsPaidDescription: "Mark this quotation as paid",
+      cancel: "Cancel"
+    },
     status: {
       draft: "Draft",
       sent: "Sent",
@@ -3809,6 +4128,7 @@ export const en: TranslationValue = {
       downloadQuotation: "Download Quotation",
       email: "Email Quotation",
       emailQuote: "Email Quotation",
+      markAsPaid: "Mark as Paid",
       emailQuotation: {
         approved: {
           subject: "Your Quotation has been Approved"
@@ -5022,6 +5342,7 @@ export const en: TranslationValue = {
     deleteSuccess: "Notification deleted",
     deleteError: "Failed to delete notification",
     markAllAsRead: "Mark all as read",
+    markAllRead: "Mark all as read",
     markAsRead: "Mark as read",
     markAsReadSuccess: "Notification marked as read",
     markAsReadError: "Failed to mark notification as read",

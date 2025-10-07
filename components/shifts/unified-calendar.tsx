@@ -249,7 +249,13 @@ export function UnifiedCalendar({
       if (draggedTaskStr) {
         try {
           const draggedTask = JSON.parse(draggedTaskStr);
-          const isValid = date >= draggedTask.start_date;
+          
+          // Get today's date in YYYY-MM-DD format
+          const today = new Date();
+          const todayStr = today.toISOString().split('T')[0];
+          
+          // Validate: date must be >= task start_date AND date must not be in the future
+          const isValid = date >= draggedTask.start_date && date <= todayStr;
           setDragValidation({ isValid, draggedTask });
           e.dataTransfer.dropEffect = isValid ? "move" : "none";
         } catch (error) {
@@ -282,7 +288,12 @@ export function UnifiedCalendar({
     
     // Check validation before dropping
     if (dragValidation && !dragValidation.isValid) {
-      alert(`Cannot move task to ${date}. Tasks cannot be moved to dates before their start date (${dragValidation.draggedTask?.start_date}).`);
+      const today = new Date().toISOString().split('T')[0];
+      if (date > today) {
+        alert(`Cannot move task to ${date}. Tasks cannot be moved to future dates.`);
+      } else {
+        alert(`Cannot move task to ${date}. Tasks cannot be moved to dates before their start date (${dragValidation.draggedTask?.start_date}).`);
+      }
       setDragValidation(null);
       return;
     }

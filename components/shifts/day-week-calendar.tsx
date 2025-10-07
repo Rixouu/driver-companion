@@ -244,6 +244,13 @@ export function DayWeekCalendar({
     e.preventDefault();
     setDragOverCell(null);
     
+    // Validate drop - check if date is in the future
+    const today = new Date().toISOString().split('T')[0];
+    if (date > today) {
+      alert(`Cannot move task to ${date}. Tasks cannot be moved to future dates.`);
+      return;
+    }
+    
     try {
       const draggedTaskData = e.dataTransfer.getData("application/json");
       if (draggedTaskData) {

@@ -436,6 +436,13 @@ export default function ShiftsPage() {
   };
 
   const handleTaskDrop = async (taskId: string, driverId: string, date: string) => {
+    // Validate drop - check if date is in the future
+    const today = new Date().toISOString().split('T')[0];
+    if (date > today) {
+      toast.error(`Cannot move task to ${date}. Tasks cannot be moved to future dates.`);
+      return;
+    }
+    
     try {
       const response = await fetch(`/api/crew-tasks/${taskId}`, {
         method: "PATCH",

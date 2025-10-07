@@ -16,6 +16,13 @@ import {
   DialogDescription 
 } from "@/components/ui/dialog";
 import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { 
   Settings, 
   Clock, 
   User, 
@@ -326,31 +333,39 @@ export function RevampedDriverCapacityModal({
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label htmlFor="preferred_start_time">{t('shifts.driverCapacityModal.driverSettings.preferredStartTime')}</Label>
-                              <select
-                                id="preferred_start_time"
+                              <Select
                                 value={selectedCapacity.preferred_start_time}
-                                onChange={(e) => handleCapacityChange("preferred_start_time", e.target.value)}
-                                className="w-full p-2 border rounded-md"
-                                aria-label="Preferred start time"
+                                onValueChange={(value) => handleCapacityChange("preferred_start_time", value)}
                               >
-                                {TIME_SLOTS.map(time => (
-                                  <option key={time} value={time}>{time}</option>
-                                ))}
-                              </select>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Select start time" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {TIME_SLOTS.map(time => (
+                                    <SelectItem key={time} value={time}>
+                                      {time}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="preferred_end_time">{t('shifts.driverCapacityModal.driverSettings.preferredEndTime')}</Label>
-                              <select
-                                id="preferred_end_time"
+                              <Select
                                 value={selectedCapacity.preferred_end_time}
-                                onChange={(e) => handleCapacityChange("preferred_end_time", e.target.value)}
-                                className="w-full p-2 border rounded-md"
-                                aria-label="Preferred end time"
+                                onValueChange={(value) => handleCapacityChange("preferred_end_time", value)}
                               >
-                                {TIME_SLOTS.map(time => (
-                                  <option key={time} value={time}>{time}</option>
-                                ))}
-                              </select>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Select end time" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {TIME_SLOTS.map(time => (
+                                    <SelectItem key={time} value={time}>
+                                      {time}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                           </div>
                         </CardContent>
@@ -372,8 +387,8 @@ export function RevampedDriverCapacityModal({
                                 className={cn(
                                   "flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-all duration-200",
                                   selectedCapacity.working_days.includes(day.value)
-                                    ? "bg-primary/90 text-primary-foreground border-primary/80 shadow-sm dark:bg-primary/80 dark:border-primary/60"
-                                    : "hover:bg-muted/50 hover:border-muted-foreground/50 hover:shadow-sm dark:hover:bg-muted/30 dark:hover:border-muted-foreground/30"
+                                    ? "bg-primary text-primary-foreground border-primary shadow-sm dark:bg-primary dark:border-primary dark:text-primary-foreground"
+                                    : "bg-background dark:bg-card text-foreground dark:text-foreground border-input dark:border-border hover:bg-muted/50 hover:border-muted-foreground/50 hover:shadow-sm dark:hover:bg-muted/30 dark:hover:border-muted-foreground/30"
                                 )}
                                 onClick={() => handleWorkingDayToggle(day.value)}
                               >
@@ -387,8 +402,8 @@ export function RevampedDriverCapacityModal({
                                 <div className={cn(
                                   "w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200",
                                   selectedCapacity.working_days.includes(day.value)
-                                    ? "bg-primary-foreground border-primary-foreground shadow-sm"
-                                    : "border-current hover:border-primary/50 hover:bg-primary/5"
+                                    ? "bg-primary-foreground border-primary-foreground shadow-sm dark:bg-primary-foreground dark:border-primary-foreground"
+                                    : "border-current hover:border-primary/50 hover:bg-primary/5 dark:border-muted-foreground dark:hover:border-primary/50 dark:hover:bg-primary/5"
                                 )}>
                                   {selectedCapacity.working_days.includes(day.value) && (
                                     <CheckCircle className="h-3 w-3" />

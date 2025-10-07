@@ -305,7 +305,7 @@ export default function ShiftsPage() {
 
   const handleEditTask = (task: CrewTask) => {
     setEditingTask(task);
-    setSheetDriverId(task.driver_id);
+    setSheetDriverId(task.driver_id || undefined);
     setSheetDate(task.start_date);
     setIsSheetOpen(true);
   };
@@ -436,6 +436,32 @@ export default function ShiftsPage() {
   };
 
   const handleTaskDrop = async (taskId: string, driverId: string, date: string) => {
+    // Fetch the task to validate start date
+    try {
+      const res = await fetch(`/api/crew-tasks/${taskId}`);
+      if (!res.ok) throw new Error("Failed to fetch task");
+      const task: any = await res.json();
+      const start = task?.start_date as string | undefined;
+      const today = new Date().toISOString().split('T')[0];
+      
+      if (!start) {
+        toast.error("Invalid task: missing start date.");
+        return;
+      }
+      if (date < today) {
+        toast.error(`Cannot move task to ${date}. Tasks cannot be moved to past dates.`);
+        return;
+      }
+      if (date !== start) {
+        toast.error(`Cannot move task to ${date}. Tasks can only be dropped on their start date (${start}).`);
+        return;
+      }
+    } catch (e) {
+      console.error("Validation error:", e);
+      toast.error("Failed to validate task move");
+      return;
+    }
+
     try {
       const response = await fetch(`/api/crew-tasks/${taskId}`, {
         method: "PATCH",
@@ -519,7 +545,7 @@ export default function ShiftsPage() {
       </div>
 
       {/* Main Content - No Tabs, Just Schedule */}
-      <div className="mt-8 space-y-6">
+      <div className="mt-2 space-y-6">
             {error && (
               <Alert variant="destructive" className="mb-4">
                 <AlertCircle className="h-4 w-4" />

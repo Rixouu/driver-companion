@@ -392,7 +392,7 @@ export function EnhancedCalendarWithHours({
                                     className="w-full h-8 text-muted-foreground hover:text-foreground"
                                   >
                                     <Plus className="h-3 w-3 mr-1" />
-                                    Add
+                                    {t('shifts.calendar.addTask')}
                                   </Button>
                                 )}
                               </div>

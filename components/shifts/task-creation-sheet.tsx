@@ -469,9 +469,18 @@ export function TaskCreationSheet({
                       <SelectValue placeholder={t("shifts.modal.selectDriver")} />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="00000000-0000-0000-0000-000000000000">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">{t("shifts.modal.unassigned")}</span>
+                        </div>
+                      </SelectItem>
                       {drivers.map((driver) => (
                         <SelectItem key={driver.id} value={driver.id}>
-                          {driver.first_name} {driver.last_name}
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            <span>{driver.first_name} {driver.last_name}</span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>

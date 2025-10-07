@@ -710,13 +710,13 @@ export function ServiceSelectionStep({
       t={t}
       expandedServices={expandedServices}
       onToggleExpanded={toggleServiceExpansion}
-      formatCurrency={formatCurrency}
+              formatCurrency={formatCurrency}
       onEdit={handleEditServiceItem}
       onDuplicate={handleDuplicateServiceItem}
       onRemove={handleRemoveServiceItem}
       onPriceChange={(index, price) => handleCustomPriceChange(index, price)}
-      packages={packages}
-      selectedPackage={selectedPackage}
+              packages={packages}
+              selectedPackage={selectedPackage}
       editingIndex={editingIndex}
     />
   );
@@ -727,9 +727,9 @@ export function ServiceSelectionStep({
       mode="expanded"
       t={t}
       formatCurrency={formatCurrency}
-      onEdit={handleEditServiceItem}
-      onDuplicate={handleDuplicateServiceItem}
-      onRemove={handleRemoveServiceItem}
+              onEdit={handleEditServiceItem}
+              onDuplicate={handleDuplicateServiceItem}
+              onRemove={handleRemoveServiceItem}
       onPriceChange={(index, price) => handleCustomPriceChange(index, price)}
       packages={packages}
       selectedPackage={selectedPackage}
@@ -775,7 +775,7 @@ export function ServiceSelectionStep({
           {isServicesExpanded ? renderServiceItemsList() : renderCompactServiceItemsList()}
         </div>
       )}
-
+       
       {/* Service Configuration Form */}
       <ServiceConfigForm
         form={form}
@@ -835,4 +835,4 @@ export function ServiceSelectionStep({
       )}
     </div>
   );
-}
+} 

@@ -56,6 +56,49 @@ body {
     border: 0;
     transform-origin: top left;
   }
+  
+  /* Responsive font scaling for large screens */
+  .responsive-text {
+    @apply text-sm xl:text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl 5xl:text-3xl;
+  }
+  
+  .responsive-heading {
+    @apply text-2xl xl:text-3xl 2xl:text-4xl 3xl:text-5xl 4xl:text-6xl 5xl:text-7xl;
+  }
+  
+  .responsive-subheading {
+    @apply text-lg xl:text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl 5xl:text-5xl;
+  }
+  
+  /* Responsive padding and spacing */
+  .responsive-padding {
+    @apply p-3 xl:p-4 2xl:p-5 3xl:p-6 4xl:p-8 5xl:p-10;
+  }
+  
+  .responsive-gap {
+    @apply gap-4 xl:gap-6 2xl:gap-8 3xl:gap-10 4xl:gap-12 5xl:gap-16;
+  }
+  
+  .responsive-grid {
+    @apply grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 4xl:grid-cols-7 5xl:grid-cols-8;
+  }
+  
+  /* Responsive container widths */
+  .responsive-container {
+    @apply max-w-7xl xl:max-w-8xl 2xl:max-w-9xl 3xl:max-w-[2000px] 4xl:max-w-[2400px] 5xl:max-w-[2800px];
+  }
+  
+  /* Responsive calendar columns */
+  .responsive-calendar-grid {
+    @apply grid-cols-[120px_repeat(7,minmax(60px,1fr))] 
+           sm:grid-cols-[150px_repeat(7,minmax(80px,1fr))] 
+           lg:grid-cols-[200px_repeat(7,minmax(120px,1fr))] 
+           xl:grid-cols-[220px_repeat(7,minmax(140px,1fr))] 
+           2xl:grid-cols-[240px_repeat(7,minmax(160px,1fr))] 
+           3xl:grid-cols-[260px_repeat(7,minmax(180px,1fr))] 
+           4xl:grid-cols-[280px_repeat(7,minmax(200px,1fr))] 
+           5xl:grid-cols-[300px_repeat(7,minmax(220px,1fr))];
+  }
 }
 
 @layer base {
@@ -136,15 +179,68 @@ body {
   }
 
   h1 {
-    @apply text-3xl font-bold tracking-tight;
+    @apply text-3xl xl:text-4xl 2xl:text-5xl 3xl:text-6xl 4xl:text-7xl 5xl:text-8xl font-bold tracking-tight;
   }
 
   h2 {
-    @apply text-2xl font-semibold tracking-tight;
+    @apply text-2xl xl:text-3xl 2xl:text-4xl 3xl:text-5xl 4xl:text-6xl 5xl:text-7xl font-semibold tracking-tight;
   }
 
   h3 {
-    @apply text-xl font-semibold tracking-tight;
+    @apply text-xl xl:text-2xl 2xl:text-3xl 3xl:text-4xl 4xl:text-5xl 5xl:text-6xl font-semibold tracking-tight;
+  }
+
+  /* Make all text responsive by default - with higher specificity */
+  body p, body span, body div, body button, body input, body textarea, body select, body label {
+    @apply text-sm xl:text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl 5xl:text-3xl !important;
+  }
+
+  /* Responsive text sizes for different elements */
+  .text-xs {
+    @apply xl:text-sm 2xl:text-base 3xl:text-lg 4xl:text-xl 5xl:text-2xl;
+  }
+
+  .text-sm {
+    @apply xl:text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl 5xl:text-3xl;
+  }
+
+  .text-base {
+    @apply xl:text-lg 2xl:text-xl 3xl:text-2xl 4xl:text-3xl 5xl:text-4xl;
+  }
+
+  .text-lg {
+    @apply xl:text-xl 2xl:text-2xl 3xl:text-3xl 4xl:text-4xl 5xl:text-5xl;
+  }
+
+  .text-xl {
+    @apply xl:text-2xl 2xl:text-3xl 3xl:text-4xl 4xl:text-5xl 5xl:text-6xl;
+  }
+
+  .text-2xl {
+    @apply xl:text-3xl 2xl:text-4xl 3xl:text-5xl 4xl:text-6xl 5xl:text-7xl;
+  }
+
+  .text-3xl {
+    @apply xl:text-4xl 2xl:text-5xl 3xl:text-6xl 4xl:text-7xl 5xl:text-8xl;
+  }
+
+  /* Force responsive scaling on common elements */
+  .page-header h1, .page-header h2, .page-header h3 {
+    @apply xl:text-4xl 2xl:text-5xl 3xl:text-6xl 4xl:text-7xl 5xl:text-8xl !important;
+  }
+
+  .card, .card-header, .card-content {
+    @apply xl:text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl 5xl:text-3xl !important;
+  }
+
+  /* Sidebar responsive text */
+  .sidebar {
+    @apply xl:text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl 5xl:text-3xl !important;
+  }
+
+  /* Button responsive text */
+  button {
+    @apply xl:text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl 5xl:text-3xl !important;
   }
 
   .container {

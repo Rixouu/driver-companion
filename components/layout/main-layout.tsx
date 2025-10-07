@@ -60,7 +60,11 @@ export function MainLayout({ children }: MainLayoutProps) {
         <Sidebar />
       </div>
       
-      <div className={`flex flex-col min-h-screen ${sidebarCollapsed ? 'xl:ml-16' : 'xl:ml-64'} transition-all duration-300`}>
+      <div className={`flex flex-col min-h-screen transition-all duration-300
+        ${sidebarCollapsed 
+          ? 'xl:ml-16 2xl:ml-20 3xl:ml-24 4xl:ml-28 5xl:ml-32' 
+          : 'xl:ml-64 2xl:ml-80 3xl:ml-96 4xl:ml-[28rem] 5xl:ml-[32rem]'
+        }`}>
         <Header />
         
         {/* Main content area */}

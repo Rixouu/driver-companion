@@ -1,6 +1,6 @@
 import type { Preview } from '@storybook/nextjs-vite'
-import React from 'react'
 import '../app/globals.css'
+import { withProviders } from './decorators'
 
 const preview: Preview = {
   parameters: {
@@ -31,27 +31,35 @@ const preview: Preview = {
     },
 
     backgrounds: {
-      options: {
-        light: {
+      default: 'light',
+      values: [
+        {
           name: 'light',
           value: '#ffffff',
         },
-
-        dark: {
+        {
           name: 'dark',
           value: '#0a0a0a',
         },
-
-        gray: {
+        {
           name: 'gray',
           value: '#f5f5f5',
         },
-
-        blue: {
+        {
           name: 'blue',
           value: '#f0f9ff',
-        }
-      }
+        },
+      ],
+    },
+
+    // Chromatic visual testing parameters
+    chromatic: {
+      // Disable animations for consistent visual testing
+      disableSnapshot: false,
+      // Delay before capturing screenshots
+      delay: 1000,
+      // Pause animations during capture
+      pauseAnimationAtEnd: true,
     },
 
     docs: {
@@ -63,20 +71,7 @@ const preview: Preview = {
 
     layout: 'centered',
   },
-
-  decorators: [
-    (Story) => (
-      <div className="font-sans antialiased">
-        <Story />
-      </div>
-    ),
-  ],
-
-  initialGlobals: {
-    backgrounds: {
-      value: 'light'
-    }
-  }
+  decorators: [withProviders],
 };
 
 export default preview;

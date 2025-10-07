@@ -39,7 +39,7 @@ import { useAuth } from "@/lib/hooks/use-auth"
 const ORGANIZATION_DOMAIN = 'japandriver.com'
 
 // Type for menu item keys
-type MenuItemKey = 'dashboard' | 'vehicles' | 'drivers' | 'bookings' | 'paylinks' | 'quotations' | 'pricing' | 'dispatch' | 'maintenance' | 'inspections' | 'templates' | 'reporting' | 'settings' | 'customers'
+type MenuItemKey = 'dashboard' | 'vehicles' | 'drivers' | 'bookings' | 'shifts' | 'paylinks' | 'quotations' | 'pricing' | 'dispatch' | 'maintenance' | 'inspections' | 'templates' | 'reporting' | 'settings' | 'customers'
 
 // Interface for menu items
 interface MenuItem {
@@ -247,7 +247,9 @@ export function Sidebar() {
   return (
     <div className={cn(
       "fixed left-0 top-0 h-screen bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))] transition-width duration-300 ease-in-out",
-      collapsed ? "w-16" : "w-64"
+      collapsed 
+        ? "w-16 2xl:w-20 3xl:w-24 4xl:w-28 5xl:w-32" 
+        : "w-64 2xl:w-80 3xl:w-96 4xl:w-[28rem] 5xl:w-[32rem]"
     )}>
       <div className="flex h-full flex-col justify-between">
         {/* Header with logo and collapse button aligned horizontally */}

@@ -75,39 +75,30 @@ export async function sendTripReminderEmail(data: TripReminderEmailData) {
     
     const subject = `${urgencyText}Your Trip is Coming Soon - ${data.booking.wp_id} (${timeText} reminder)`
 
-    // Send to customer
+    // Prepare BCC list
+    const bccList = [
+      data.creator.email,
+      data.driver.email,
+      'admin.rixou@gmail.com' // Admin BCC as requested
+    ].filter(email => email && email.trim() !== ''); // Remove empty emails
+
+    // Send single email with BCC
     await resend.emails.send({
       from: 'Driver Japan <booking@japandriver.com>',
       to: [data.customer.email],
+      bcc: bccList,
       subject,
       html: emailHtml,
       text: emailText
     })
 
-    // Send to creator (BCC)
-    await resend.emails.send({
-      from: 'Driver Japan <booking@japandriver.com>',
-      to: [data.creator.email],
-      subject: `[Internal] ${subject}`,
-      html: emailHtml,
-      text: emailText
-    })
-
-    // Send to driver (BCC)
-    await resend.emails.send({
-      from: 'Driver Japan <booking@japandriver.com>',
-      to: [data.driver.email],
-      subject: `[Driver] ${subject}`,
-      html: emailHtml,
-      text: emailText
-    })
-
-    console.log(`✅ [TRIP-REMINDER-${data.reminderType.toUpperCase()}] Trip reminder emails sent successfully for booking ${data.booking.wp_id}`)
+    console.log(`✅ [TRIP-REMINDER-${data.reminderType.toUpperCase()}] Trip reminder email sent successfully for booking ${data.booking.wp_id} with BCC to ${bccList.length} recipients`)
     
     return {
       success: true,
-      message: 'Trip reminder emails sent successfully',
-      recipients: ['customer', 'creator', 'driver']
+      message: 'Trip reminder email sent successfully with BCC',
+      recipients: ['customer'],
+      bccRecipients: bccList
     }
 
   } catch (error) {

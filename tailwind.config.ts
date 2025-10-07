@@ -19,6 +19,10 @@ const config: Config = {
       'lg': '1024px',
       'xl': '1280px',
       '2xl': '1536px',
+      // Custom breakpoints for responsive scaling
+      '3xl': '1920px',
+      '4xl': '2560px',
+      '5xl': '3840px',
     },
   	extend: {
   		colors: {

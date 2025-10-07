@@ -305,7 +305,7 @@ export default function ShiftsPage() {
 
   const handleEditTask = (task: CrewTask) => {
     setEditingTask(task);
-    setSheetDriverId(task.driver_id);
+    setSheetDriverId(task.driver_id || undefined);
     setSheetDate(task.start_date);
     setIsSheetOpen(true);
   };

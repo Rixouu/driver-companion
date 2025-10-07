@@ -2980,6 +2980,7 @@ export const en: TranslationValue = {
       reassignDriver: "Reassign Driver",
       applyToMultipleDrivers: "Apply to Multiple Drivers",
       selectDriver: "Select Driver",
+      unassigned: "Unassigned",
       taskNumber: "Task Number",
       title: "Title",
       description: "Description",

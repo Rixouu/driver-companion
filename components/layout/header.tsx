@@ -122,9 +122,9 @@ export function Header() {
   if (pathname && pathname.startsWith("/auth")) return null
 
   return (
-    <header className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-14">
-      <div className="px-4 sm:px-6 lg:px-8 max-w-[1600px] mx-auto">
-        <div className="flex h-14 items-center justify-between">
+    <header className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-14 2xl:h-16 3xl:h-18 4xl:h-20 5xl:h-24">
+      <div className="px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 3xl:px-20 4xl:px-24 5xl:px-28 max-w-7xl xl:max-w-8xl 2xl:max-w-9xl 3xl:max-w-[2000px] 4xl:max-w-[2400px] 5xl:max-w-[2800px] mx-auto">
+        <div className="flex h-14 2xl:h-16 3xl:h-18 4xl:h-20 5xl:h-24 items-center justify-between">
           {/* Left side - Back button */}
           <div className="flex items-center min-w-0">
             {backButtonInfo && (
@@ -141,12 +141,12 @@ export function Header() {
           </div>
 
           {/* Center - Global Search */}
-          <div className="flex-1 max-w-lg mx-4">
+          <div className="flex-1 max-w-lg xl:max-w-xl 2xl:max-w-2xl 3xl:max-w-3xl 4xl:max-w-4xl 5xl:max-w-5xl mx-4 xl:mx-6 2xl:mx-8 3xl:mx-10 4xl:mx-12 5xl:mx-16">
             <GlobalSearch />
           </div>
 
           {/* Right side - Controls */}
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4 xl:gap-6 2xl:gap-8 3xl:gap-10 4xl:gap-12 5xl:gap-16 shrink-0">
             {/* Show theme toggle and login only on desktop */}
             <div className="hidden md:flex items-center gap-4">
               <LanguageSwitcher />

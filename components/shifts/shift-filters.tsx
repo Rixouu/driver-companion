@@ -80,71 +80,69 @@ export function ShiftFilters({
 
   return (
     <Card className="p-4">
-      <div className="flex flex-col gap-4">
-        {/* Date Navigation */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePrevious}
-              className="h-9 w-9 p-0"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        {/* Date Navigation - Mobile/Tablet: separate row, Desktop: same row */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrevious}
+            className="h-9 w-9 p-0"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
 
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-[240px] justify-start text-left font-normal",
-                    !selectedDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, "PPP", { locale: getDateLocale() }) : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => date && onDateChange(date)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-[240px] justify-start text-left font-normal",
+                  !selectedDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedDate ? format(selectedDate, "PPP", { locale: getDateLocale() }) : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && onDateChange(date)}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleNext}
-              className="h-9 w-9 p-0"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNext}
+            className="h-9 w-9 p-0"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
 
           {/* Today Button - Full width on mobile, inline on desktop */}
           <Button
             variant="outline"
             size="sm"
             onClick={handleToday}
-            className="w-full sm:w-auto"
+            className="w-full lg:w-auto"
           >
             {t('shifts.filters.today')}
           </Button>
         </div>
 
-        {/* View Type & Actions */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:items-center sm:gap-2 sm:w-auto">
+        {/* View Type & Actions - Mobile/Tablet: separate row, Desktop: same row */}
+        <div className="flex flex-col sm:flex-row lg:flex-row items-stretch lg:items-center gap-3">
+          <div className="grid grid-cols-2 lg:flex lg:items-center gap-2">
             <Select
               value={viewType}
               onValueChange={(value) => onViewTypeChange(value as ViewType)}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full lg:w-auto">
                 <SelectValue placeholder={t('common.view')} />
               </SelectTrigger>
               <SelectContent>
@@ -158,11 +156,11 @@ export function ShiftFilters({
               variant="outline"
               size="sm"
               onClick={onRefresh}
-              className="w-full sm:w-9 sm:h-9 sm:p-0"
+              className="w-full lg:w-9 lg:h-9 lg:p-0"
               title={t('shifts.filters.refresh')}
             >
               <RefreshCw className="h-4 w-4" />
-              <span className="ml-2 sm:hidden">{t('shifts.filters.refresh')}</span>
+              <span className="ml-2 lg:hidden">{t('shifts.filters.refresh')}</span>
             </Button>
           </div>
         </div>

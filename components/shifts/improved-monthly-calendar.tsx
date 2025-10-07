@@ -112,14 +112,14 @@ export function ImprovedMonthlyCalendar({
             {/* Day Headers */}
             <div className="sticky top-0 z-20 bg-background border-b">
               <div className="grid grid-cols-[200px_repeat(31,minmax(100px,1fr))]">
-                <div className="p-3 border-r bg-muted/50 font-semibold text-foreground">
+                <div className="p-3 border-r bg-muted/50 font-semibold text-foreground flex items-center justify-center">
                   {t('shifts.table.driver')}
                 </div>
                 {monthDays.map((day) => (
                   <div
                     key={day.toISOString()}
                     className={cn(
-                      "p-3 border-r text-center font-medium text-sm",
+                      "p-3 border-r text-center font-medium text-sm flex flex-col items-center justify-center",
                       isToday(day) && "bg-primary/10 text-primary font-bold",
                       !isSameMonth(day, currentMonth) && "text-muted-foreground bg-muted/20"
                     )}

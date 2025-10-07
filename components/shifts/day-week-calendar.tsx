@@ -410,7 +410,7 @@ export function DayWeekCalendar({
             {/* Day Headers */}
             <div className="sticky top-0 z-20 bg-background border-b">
               <div className="flex">
-                <div className="w-40 min-w-[10rem] p-3 border-r bg-muted/50 font-semibold text-foreground">
+                <div className="w-40 min-w-[10rem] p-3 border-r bg-muted/50 font-semibold text-foreground flex items-center justify-center">
                   {t('shifts.schedule.driver')}
                 </div>
                 {dates.map((date) => {
@@ -421,7 +421,7 @@ export function DayWeekCalendar({
                     <div
                       key={date}
                       className={cn(
-                        "flex-1 min-w-[80px] p-3 border-r text-center font-medium text-sm",
+                        "flex-1 min-w-[80px] p-3 border-r text-center font-medium text-sm flex flex-col items-center justify-center",
                         isToday && "bg-primary/10 text-primary font-bold"
                       )}
                     >
@@ -569,7 +569,7 @@ export function DayWeekCalendar({
                                   className="w-full h-8 text-muted-foreground hover:text-foreground text-xs"
                                 >
                                   <Plus className="h-3 w-3 mr-1" />
-                                  Add
+                                  {t('shifts.calendar.addTask')}
                                 </Button>
                               )}
                             </div>

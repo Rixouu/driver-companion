@@ -384,9 +384,9 @@ export function UnifiedCalendar({
   const GridView = () => (
     <div className="space-y-4">
       {/* Calendar Grid */}
-      <Card className="overflow-hidden">
-        <ScrollArea className="w-full" onDragEnd={handleDragEnd}>
-          <div className="min-w-[600px] sm:min-w-[800px] lg:min-w-[1200px]">
+        <Card className="overflow-hidden">
+          <ScrollArea className="w-full" onDragEnd={handleDragEnd}>
+           <div className="min-w-[600px] sm:min-w-[800px] lg:min-w-[1200px]">
             {/* Day Headers */}
             <div className="sticky top-0 z-20 bg-background border-b">
               <div className={cn(
@@ -395,7 +395,7 @@ export function UnifiedCalendar({
                 viewMode === "week" ? "grid-cols-[120px_repeat(7,minmax(60px,1fr))] sm:grid-cols-[150px_repeat(7,minmax(80px,1fr))] lg:grid-cols-[200px_repeat(7,minmax(120px,1fr))]" :
                 "grid-cols-[120px_repeat(31,minmax(40px,1fr))] sm:grid-cols-[150px_repeat(31,minmax(60px,1fr))] lg:grid-cols-[200px_repeat(31,minmax(100px,1fr))]"
               )}>
-                <div className="p-3 border-r bg-muted/50 font-semibold text-foreground">
+                <div className="p-3 border-r bg-muted/50 font-semibold text-foreground flex items-center justify-center">
                   {t('shifts.table.driver')}
                 </div>
                 {dates.map((dateStr) => {
@@ -404,7 +404,7 @@ export function UnifiedCalendar({
                     <div
                       key={dateStr}
                       className={cn(
-                        "p-1 sm:p-2 lg:p-3 border-r text-center font-medium text-xs sm:text-sm",
+                        "p-1 sm:p-2 lg:p-3 border-r text-center font-medium text-xs sm:text-sm flex flex-col items-center justify-center",
                         isToday(date) && "bg-primary/10 text-primary font-bold",
                         viewMode === "month" && !isSameMonth(date, selectedDate) && "text-muted-foreground bg-muted/20"
                       )}
@@ -437,7 +437,7 @@ export function UnifiedCalendar({
                         {showDriverHours && (
                           <div className="mt-2 text-xs">
                             <div className={cn("font-medium", getHoursColor(driverHours[driverSchedule.driver_id]?.totalHours || 0))}>
-                              {driverHours[driverSchedule.driver_id]?.totalHours || 0}h {t('shifts.driverHours.total')}
+                              {driverHours[driverSchedule.driver_id]?.totalHours || 0}/40h
                             </div>
                             <div className="text-muted-foreground">
                               {driverHours[driverSchedule.driver_id]?.taskCount || 0} {t('shifts.driverHours.tasks')}
@@ -577,14 +577,13 @@ export function UnifiedCalendar({
         viewMode={viewMode}
         selectedDate={selectedDate}
         showDriverHours={showDriverHours}
-        onToggleDriverHours={onToggleDriverHours}
         driverCapacities={driverCapacities}
         visibleDrivers={visibleDrivers}
         onDriverVisibilityToggle={onDriverVisibilityToggle}
       />
 
       {/* Calendar Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold">
             {viewMode === "day" ? format(selectedDate, "EEEE, MMMM d, yyyy", { locale: getDateLocale() }) :
@@ -602,6 +601,46 @@ export function UnifiedCalendar({
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+        </div>
+        
+        {/* Calendar Controls - Desktop: inline, Mobile/Tablet: 2 columns in 1 row */}
+        <div className="grid grid-cols-2 lg:flex lg:flex-row items-stretch lg:items-center gap-3">
+          {/* Total Hours Display */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-black text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-lg">
+            <Clock className="h-4 w-4" />
+            <span className="text-sm font-medium">
+              {(() => {
+                const totalHours = Object.values(driverHours).reduce((total, driver) => total + (driver.totalHours || 0), 0);
+                const maxHours = Object.values(driverHours).length * 40; // Assuming 40h per driver as max capacity
+                return `${totalHours.toFixed(1)}/${maxHours}h`;
+              })()}
+            </span>
+            <span className="text-xs opacity-80">
+              {viewMode === "day" ? t('shifts.driverHours.today') : viewMode === "week" ? t('shifts.driverHours.thisWeek') : t('shifts.driverHours.thisMonth')}
+            </span>
+          </div>
+          
+          {/* Hide Hours Button */}
+          {onToggleDriverHours && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onToggleDriverHours(!showDriverHours)}
+              className="flex items-center gap-2"
+            >
+              {showDriverHours ? (
+                <>
+                  <ChevronUp className="h-4 w-4" />
+                  {t('shifts.driverHours.hideHours')}
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4" />
+                  {t('shifts.driverHours.showHours')}
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
 

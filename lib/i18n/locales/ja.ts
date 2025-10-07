@@ -2987,6 +2987,7 @@ export const ja: TranslationValue = {
       reassignDriver: "ドライバー再割り当て",
       applyToMultipleDrivers: "複数のドライバーに適用",
       selectDriver: "ドライバーを選択",
+      unassigned: "未割り当て",
       taskNumber: "タスク番号",
       title: "タイトル",
       description: "説明",

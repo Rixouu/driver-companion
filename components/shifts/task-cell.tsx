@@ -373,7 +373,7 @@ export function TaskCell({
         className="w-full h-6 text-[10px] text-muted-foreground hover:text-foreground"
       >
         <Plus className="h-3 w-3 mr-1" />
-        Add Task
+        {t('shifts.calendar.addTask')}
       </Button>
     </div>
   );

@@ -222,22 +222,41 @@ export class NotificationService {
       // Use service client to bypass RLS policies
       const serviceSupabase = createServiceClient();
       
-      // Get all admin users using service client
-      const { data: adminUsers, error: adminError } = await serviceSupabase
-        .from('admin_users')
-        .select('id');
+      // First try to get users from user_profiles view (includes all active users)
+      const { data: allUsers, error: usersError } = await serviceSupabase
+        .from('user_profiles')
+        .select('id')
+        .eq('is_active', true);
 
-      if (adminError) {
-        console.error('Error fetching admin users:', adminError.message);
-        throw new Error(`Failed to fetch admin users: ${adminError.message}`);
+      if (usersError) {
+        console.error('Error fetching users from user_profiles:', usersError.message);
+        
+        // Fallback to admin_users table
+        const { data: adminUsers, error: adminError } = await serviceSupabase
+          .from('admin_users')
+          .select('id');
+
+        if (adminError) {
+          console.error('Error fetching admin users:', adminError.message);
+          throw new Error(`Failed to fetch users: ${adminError.message}`);
+        }
+
+        if (adminUsers && adminUsers.length > 0) {
+          const userIds = adminUsers.map(user => user.id).filter(id => id !== null) as string[];
+          await this.createBulkNotifications(type, userIds, data, relatedId, dueDate);
+          console.log(`[NotificationService] Created admin notification for ${userIds.length} admin users (fallback)`);
+        } else {
+          console.warn('[NotificationService] No admin users found, skipping admin notification');
+        }
+        return;
       }
 
-      if (adminUsers && adminUsers.length > 0) {
-        const userIds = adminUsers.map(user => user.id);
+      if (allUsers && allUsers.length > 0) {
+        const userIds = allUsers.map(user => user.id).filter(id => id !== null) as string[];
         await this.createBulkNotifications(type, userIds, data, relatedId, dueDate);
-        console.log(`[NotificationService] Created admin notification for ${userIds.length} admin users`);
+        console.log(`[NotificationService] Created admin notification for ${userIds.length} users (all active users)`);
       } else {
-        console.warn('[NotificationService] No admin users found, skipping admin notification');
+        console.warn('[NotificationService] No active users found, skipping admin notification');
       }
     } catch (error) {
       console.error('NotificationService.createAdminNotification error:', error);

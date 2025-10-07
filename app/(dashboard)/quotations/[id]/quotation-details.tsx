@@ -963,88 +963,95 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
       {/* Skeleton Loading for Pricing Details */}
       {loadingPricingDetails && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 xl:gap-6">
-            {/* Main Content Skeleton */}
-            <div className="xl:col-span-2 space-y-4 xl:space-y-6">
+          {/* Quotation Workflow Skeleton */}
           <Card>
-            <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    {/* Customer Info Skeleton */}
-                    <div className="space-y-3">
-                      <div className="h-6 w-32 bg-muted animate-pulse rounded" />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-3">
-                          <div className="h-20 bg-muted animate-pulse rounded-lg" />
-                          <div className="h-16 bg-muted animate-pulse rounded-lg" />
-                          <div className="h-16 bg-muted animate-pulse rounded-lg" />
-                  </div>
-                        <div className="space-y-3">
-                          <div className="h-20 bg-muted animate-pulse rounded-lg" />
-                          <div className="h-16 bg-muted animate-pulse rounded-lg" />
-                        </div>
-                  </div>
-                </div>
-                
-                    {/* Services Skeleton */}
-                    <div className="space-y-3">
-                      <div className="h-6 w-24 bg-muted animate-pulse rounded" />
-                      <div className="space-y-3">
-                        {Array.from({ length: 3 }).map((_, i) => (
-                          <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />
-                        ))}
-                      </div>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="h-6 w-48 bg-muted animate-pulse rounded" />
+                <div className="flex items-center space-x-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-center space-x-2">
+                      <div className="h-8 w-8 bg-muted animate-pulse rounded-full" />
+                      <div className="h-4 w-16 bg-muted animate-pulse rounded" />
                     </div>
-                    
-                    {/* Pricing Summary Skeleton */}
-                    <div className="space-y-3">
-                      <div className="h-6 w-28 bg-muted animate-pulse rounded" />
-                    <div className="space-y-2">
-                        {Array.from({ length: 4 }).map((_, i) => (
-                          <div key={i} className="flex justify-between">
-                            <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-                            <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-                    </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-                  </div>
-                  
-            {/* Sidebar Skeleton */}
-            <div className="xl:col-span-1 space-y-4 xl:space-y-6">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="space-y-3">
-                    <div className="h-6 w-28 bg-muted animate-pulse rounded" />
-                    <div className="space-y-2">
-                      {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="flex justify-between">
-                          <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-                          <div className="h-4 w-16 bg-muted animate-pulse rounded" />
-                        </div>
-                      ))}
-                      </div>
-                    </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-4">
-                  <div className="space-y-3">
-                    <div className="h-6 w-24 bg-muted animate-pulse rounded" />
-                    <div className="space-y-2">
-                      <div className="space-y-2">
-                        {Array.from({ length: 3 }).map((_, i) => (
-                          <div key={i} className="h-10 bg-muted animate-pulse rounded" />
-                        ))}
+                  ))}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Main Content Skeleton */}
+          <div className="space-y-6">
+            {/* Quotation Info Card Skeleton */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="h-6 w-32 bg-muted animate-pulse rounded" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="h-20 bg-muted animate-pulse rounded-lg" />
+                      <div className="h-16 bg-muted animate-pulse rounded-lg" />
+                    </div>
+                    <div className="space-y-4">
+                      <div className="h-20 bg-muted animate-pulse rounded-lg" />
+                      <div className="h-16 bg-muted animate-pulse rounded-lg" />
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Services Skeleton */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="h-6 w-24 bg-muted animate-pulse rounded" />
+                  <div className="space-y-4">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="h-32 bg-muted animate-pulse rounded-lg" />
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Pricing Summary Skeleton */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="h-6 w-32 bg-muted animate-pulse rounded" />
+                  <div className="space-y-3">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="flex justify-between items-center">
+                        <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+                        <div className="h-4 w-20 bg-muted animate-pulse rounded" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Contact Information Skeleton */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="h-6 w-40 bg-muted animate-pulse rounded" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="h-16 bg-muted animate-pulse rounded-lg" />
+                      <div className="h-16 bg-muted animate-pulse rounded-lg" />
+                      <div className="h-16 bg-muted animate-pulse rounded-lg" />
+                    </div>
+                    <div className="space-y-4">
+                      <div className="h-16 bg-muted animate-pulse rounded-lg" />
+                      <div className="h-16 bg-muted animate-pulse rounded-lg" />
+                      <div className="h-16 bg-muted animate-pulse rounded-lg" />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       )}

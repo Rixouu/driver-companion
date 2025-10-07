@@ -271,9 +271,11 @@ export function TaskCell({
       <div 
         className={cn(
           "h-full min-h-[120px] p-1 space-y-1 overflow-y-auto transition-all duration-200",
-          (isDragOver || isDragOverLocal) && isValidDropZone && "bg-green-100 dark:bg-green-900/20 border-2 border-green-500 border-dashed scale-105 shadow-lg",
-          (isDragOver || isDragOverLocal) && !isValidDropZone && "bg-red-100 dark:bg-red-900/20 border-2 border-red-500 border-dashed",
-          isDropped && "bg-green-100 border-green-500 border-2 border-dashed animate-pulse"
+          (isDragOver || isDragOverLocal) && isValidDropZone && 
+          "bg-green-100 dark:bg-green-900/20 border-2 border-green-300 border-dashed",
+          (isDragOver || isDragOverLocal) && !isValidDropZone && 
+          "bg-red-100 dark:bg-red-900/20 border-2 border-red-300 border-dashed",
+          isDropped && "bg-green-100 border-green-300 border-2 border-dashed"
         )}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -371,7 +373,7 @@ export function TaskCell({
         className="w-full h-6 text-[10px] text-muted-foreground hover:text-foreground"
       >
         <Plus className="h-3 w-3 mr-1" />
-        Add Task
+        {t('shifts.calendar.addTask')}
       </Button>
     </div>
   );

@@ -242,6 +242,49 @@ export function DayWeekCalendar({
 
   const handleDrop = (e: React.DragEvent, driverId: string, date: string) => {
     e.preventDefault();
+    
+    // Validate drop - only allow dropping on the task's start date and not in the past
+    const today = new Date().toISOString().split('T')[0];
+    try {
+      const draggedTaskData = e.dataTransfer.getData("application/json");
+      if (draggedTaskData) {
+        const draggedTask = JSON.parse(draggedTaskData);
+        const start = draggedTask?.start_date as string | undefined;
+        if (!start) {
+          alert("Invalid task data. Missing start date.");
+          setDragOverCell(null);
+          return;
+        }
+        if (date < today) {
+          alert(`Cannot move task to ${date}. Tasks cannot be moved to past dates.`);
+          setDragOverCell(null);
+          return;
+        }
+        if (date !== start) {
+          alert(`Cannot move task to ${date}. Tasks can only be dropped on their start date (${start}).`);
+          setDragOverCell(null);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Error validating drop:", err);
+      setDragOverCell(null);
+      return;
+    }
+    
+    // Add smooth drop animation
+    const target = e.currentTarget as HTMLElement;
+    target.style.transition = "all 0.3s ease-out";
+    target.style.transform = "scale(1.02)";
+    target.style.backgroundColor = "rgb(34 197 94 / 0.1)"; // green-500/10
+    
+    // Reset animation after completion
+    setTimeout(() => {
+      target.style.transform = "scale(1)";
+      target.style.backgroundColor = "";
+      target.style.transition = "";
+    }, 300);
+    
     setDragOverCell(null);
     
     try {
@@ -367,7 +410,7 @@ export function DayWeekCalendar({
             {/* Day Headers */}
             <div className="sticky top-0 z-20 bg-background border-b">
               <div className="flex">
-                <div className="w-40 min-w-[10rem] p-3 border-r bg-muted/50 font-semibold text-foreground">
+                <div className="w-40 min-w-[10rem] p-3 border-r bg-muted/50 font-semibold text-foreground flex items-center justify-center">
                   {t('shifts.schedule.driver')}
                 </div>
                 {dates.map((date) => {
@@ -378,7 +421,7 @@ export function DayWeekCalendar({
                     <div
                       key={date}
                       className={cn(
-                        "flex-1 min-w-[80px] p-3 border-r text-center font-medium text-sm",
+                        "flex-1 min-w-[80px] p-3 border-r text-center font-medium text-sm flex flex-col items-center justify-center",
                         isToday && "bg-primary/10 text-primary font-bold"
                       )}
                     >
@@ -467,7 +510,7 @@ export function DayWeekCalendar({
                             isToday && "bg-primary/5",
                             dragOverCell?.driverId === driverSchedule.driver_id && 
                             dragOverCell?.date === date && 
-                            "bg-primary/20 border-2 border-primary border-dashed scale-105 shadow-lg"
+                            "bg-primary/20 border-2 border-primary border-dashed"
                           )}
                           onDragOver={handleDragOver}
                           onDragEnter={(e) => handleDragEnter(e, driverSchedule.driver_id, date)}
@@ -526,7 +569,7 @@ export function DayWeekCalendar({
                                   className="w-full h-8 text-muted-foreground hover:text-foreground text-xs"
                                 >
                                   <Plus className="h-3 w-3 mr-1" />
-                                  Add
+                                  {t('shifts.calendar.addTask')}
                                 </Button>
                               )}
                             </div>

@@ -253,14 +253,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Convert unassigned driver ID to null
+    const actualDriverId = driver_id === "00000000-0000-0000-0000-000000000000" ? null : driver_id;
+
     // Check for conflicts only if driver_id is provided
     let conflicts = null;
-    if (driver_id) {
+    if (actualDriverId) {
       try {
         const { data: conflictsData, error: conflictsError } = await supabase
           .from("crew_tasks")
           .select("id, task_number, title, start_date, end_date, start_time, end_time")
-          .eq("driver_id", driver_id)
+          .eq("driver_id", actualDriverId)
           .not("task_status", "in", "(cancelled,completed)")
           .lte("start_date", end_date)
           .gte("end_date", start_date);
@@ -305,7 +308,7 @@ export async function POST(request: NextRequest) {
         task_number,
         task_type,
         task_status: "scheduled",
-        driver_id,
+        driver_id: actualDriverId,
         start_date,
         end_date,
         start_time: start_time || null,

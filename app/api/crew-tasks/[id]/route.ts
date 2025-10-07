@@ -8,15 +8,91 @@ import { createServiceClient } from "@/lib/supabase/service-client";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createServiceClient();
-    const { id } = params;
+    const { id } = await params;
 
+    // Check if this is a booking-prefixed ID
+    if (id.startsWith('booking-')) {
+      const bookingId = id.replace('booking-', '');
+      
+      // Fetch the booking data
+      const { data: booking, error: bookingError } = await supabase
+        .from("bookings")
+        .select(`
+          *,
+          drivers!bookings_driver_id_fkey (
+            id,
+            first_name,
+            last_name
+          )
+        `)
+        .eq("id", bookingId)
+        .single();
+
+      if (bookingError) {
+        console.error("Error fetching booking:", bookingError);
+        return NextResponse.json(
+          { error: bookingError.message },
+          { status: 500 }
+        );
+      }
+
+      if (!booking) {
+        return NextResponse.json(
+          { error: "Booking not found" },
+          { status: 404 }
+        );
+      }
+
+      // Convert booking to crew task format
+      const crewTaskData = {
+        id: id, // Keep the booking- prefix
+        task_number: 1,
+        task_type: "charter",
+        task_status: "scheduled",
+        driver_id: booking.driver_id,
+        start_date: booking.date,
+        end_date: booking.date,
+        start_time: booking.time,
+        end_time: booking.time ? (() => {
+          const [hours, minutes] = booking.time.split(':').map(Number);
+          const durationHours = booking.duration_hours || booking.hours_per_day || 1;
+          const endHour = hours + Math.floor(durationHours);
+          const endMinute = minutes + ((durationHours % 1) * 60);
+          return `${endHour.toString().padStart(2, '0')}:${Math.floor(endMinute).toString().padStart(2, '0')}`;
+        })() : null,
+        hours_per_day: booking.duration_hours || booking.hours_per_day || 1,
+        total_hours: booking.duration_hours || booking.hours_per_day || 1,
+        booking_id: booking.id,
+        title: booking.service_name || "Booking",
+        description: `${booking.service_type} service`,
+        location: booking.pickup_location,
+        customer_name: booking.customer_name,
+        customer_phone: booking.customer_phone,
+        priority: 1,
+        notes: `From booking ${booking.wp_id}`,
+        drivers: booking.drivers,
+        is_booking: true,
+        price_amount: booking.price_amount
+      };
+
+      return NextResponse.json(crewTaskData);
+    }
+
+    // Regular crew task ID - fetch from crew_tasks table
     const { data, error } = await supabase
-      .from("crew_task_schedule_view")
-      .select("*")
+      .from("crew_tasks")
+      .select(`
+        *,
+        drivers!crew_tasks_driver_id_fkey (
+          id,
+          first_name,
+          last_name
+        )
+      `)
       .eq("id", id)
       .single();
 
@@ -35,10 +111,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data,
-    });
+    return NextResponse.json(data);
   } catch (error: any) {
     console.error("Unexpected error in GET /api/crew-tasks/[id]:", error);
     return NextResponse.json(
@@ -61,6 +134,68 @@ export async function PATCH(
     const supabase = createServiceClient();
     const { id } = await params;
     const body = await request.json();
+
+    // Check if this is a booking-prefixed ID
+    if (id.startsWith('booking-')) {
+      const bookingId = id.replace('booking-', '');
+      
+      // For booking tasks, update the booking instead
+      const updateData: any = {};
+      
+      if (body.driver_id !== undefined) {
+        updateData.driver_id = body.driver_id;
+      }
+      if (body.start_date !== undefined) {
+        updateData.date = body.start_date;
+      }
+      if (body.start_time !== undefined) {
+        updateData.time = body.start_time;
+      }
+      if (body.location !== undefined) {
+        updateData.pickup_location = body.location;
+      }
+      if (body.customer_name !== undefined) {
+        updateData.customer_name = body.customer_name;
+      }
+      if (body.customer_phone !== undefined) {
+        updateData.customer_phone = body.customer_phone;
+      }
+
+      // Get current user for updated_by
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      updateData.updated_at = new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from("bookings")
+        .update(updateData)
+        .eq("id", bookingId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error updating booking:", error);
+        return NextResponse.json(
+          { error: error.message },
+          { status: 500 }
+        );
+      }
+
+      if (!data) {
+        return NextResponse.json(
+          { error: "Booking not found" },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Booking updated successfully",
+        data
+      });
+    }
 
     // Get current user for updated_by
     const {

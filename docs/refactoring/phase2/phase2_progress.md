@@ -89,9 +89,23 @@
   - [x] Leverage existing useInspectionCreation and useInspectionItems hooks
   - [x] Simplify main component to orchestrate hooks and step components
   - [x] Total reduction: 1,517 → 312 lines (1,205 lines / 79% reduction)
+- [x] **Camera Modal UX Improvements - COMPLETE**
+  - [x] Redesigned mobile camera modal for better UX
+  - [x] Fixed extra close button issue on mobile devices
+  - [x] Added proper accessibility with VisuallyHidden components
+  - [x] Enhanced mobile camera experience with native-like controls
+  - [x] Added camera switching and flash toggle functionality
+  - [x] Fixed TypeScript errors in step-based-inspection-form.tsx
 
 ### 🔄 In Progress
-- [ ] **Continue with remaining large components**
+- [ ] **Step-based Inspection Form Additional Refactoring**
+  - [ ] Extract vehicle selection logic into useVehicleSelection hook
+  - [ ] Extract inspection template loading into useInspectionTemplates hook
+  - [ ] Extract form submission logic into useInspectionSubmission hook
+  - [ ] Extract existing data loading into useExistingInspectionData hook
+  - [ ] Extract search & filters UI into VehicleSearchFilters component
+  - [ ] Extract vehicle list UI into VehicleList component
+  - [ ] Target reduction: 1,518 → ~400-500 lines (67% reduction)
 
 ### ⏳ Pending Tasks
 - [ ] **State Management Review**

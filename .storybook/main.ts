@@ -5,6 +5,10 @@ const config: StorybookConfig = {
     "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
     "../components/ui/**/*.stories.@(js|jsx|mjs|ts|tsx)"
   ],
+  "exclude": [
+    "../components/data-table*.tsx",
+    "../components/data-table-*.tsx"
+  ],
   "addons": [
     "@chromatic-com/storybook",
     "@storybook/addon-docs",
@@ -18,6 +22,42 @@ const config: StorybookConfig = {
   },
   "staticDirs": [
     "../public"
-  ]
+  ],
+  "viteFinal": async (config) => {
+    // Add Node.js polyfills for browser environment
+    config.define = {
+      ...config.define,
+      global: 'globalThis',
+      __dirname: '""',
+      __filename: '""',
+      'process.env': '{}',
+    };
+
+    // Ensure React is available globally
+    config.resolve = {
+      ...config.resolve,
+      alias: {
+        ...config.resolve?.alias,
+        'react': 'react',
+        'react-dom': 'react-dom',
+        '@': '/Users/cto/Documents/Repositories/02-Pro/vehicle-inspection',
+      },
+    };
+
+    // Add fallbacks for Node.js modules
+    config.resolve.fallback = {
+      ...config.resolve?.fallback,
+      fs: false,
+      path: false,
+      os: false,
+      crypto: false,
+      stream: false,
+      util: false,
+      buffer: false,
+      process: false,
+    };
+    
+    return config;
+  }
 };
 export default config;

@@ -1,0 +1,45 @@
+name: 'Chromatic Visual Testing'
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  chromatic-deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # This makes Actions fetch all Git history so that Chromatic can see the first commit
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Storybook
+        run: npm run build-storybook
+
+      - name: Publish to Chromatic
+        uses: chromaui/action@v1
+        with:
+          # This pulls the project token from GitHub secrets
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          # Optional: only run on changed files
+          onlyChanged: true
+          # Optional: auto-accept changes on main branch
+          autoAcceptChanges: ${{ github.ref == 'refs/heads/main' }}
+          # Optional: exit with 0 on changes (useful for CI)
+          exitZeroOnChanges: true
+          # Optional: build script name
+          buildScriptName: 'build-storybook'
+          # Optional: working directory
+          workingDir: '.'

@@ -114,7 +114,7 @@ export function EnhancedCalendarGrid({
           <div className="sticky top-0 z-10 bg-background border-b">
             <div className="flex">
               {/* Driver Name Column */}
-              <div className="w-48 min-w-[12rem] p-3 border-r bg-muted/50">
+              <div className="w-48 min-w-[12rem] p-3 border-r bg-muted/50 flex items-center justify-center">
                 <span className="font-medium text-sm">Driver</span>
               </div>
               
@@ -128,7 +128,7 @@ export function EnhancedCalendarGrid({
                     <div
                       key={dateStr}
                       className={cn(
-                        "flex-1 min-w-[120px] p-3 border-r text-center",
+                        "flex-1 min-w-[120px] p-3 border-r text-center flex flex-col items-center justify-center",
                         viewMode === "month" && "min-w-[80px]",
                         !isCurrentMonth && "bg-muted/30 text-muted-foreground"
                       )}

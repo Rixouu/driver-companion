@@ -234,28 +234,6 @@ export function DriverHoursSummary({
               )}
             </Button>
             
-            {/* Show/Hide Hours/Tasks */}
-            {onToggleDriverHours && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onToggleDriverHours(!showDriverHours)}
-                className="flex items-center justify-center gap-2 w-full"
-                title={showDriverHours ? t('shifts.driverHours.hideHours') : t('shifts.driverHours.showHours')}
-              >
-                {showDriverHours ? (
-                  <>
-                    <ChevronUp className="h-4 w-4" />
-                    <span className="text-sm">{t('shifts.driverHours.hideHours')}</span>
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-4 w-4" />
-                    <span className="text-sm">{t('shifts.driverHours.showHours')}</span>
-                  </>
-                )}
-              </Button>
-            )}
           </div>
         </div>
       </CardHeader>

@@ -12,6 +12,7 @@ import { Search, Filter, XCircle, Calendar, ChevronDown, ChevronUp } from "lucid
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/lib/i18n/context"
 import { useIsMobile } from "@/lib/hooks/use-mobile"
+import Image from "next/image"
 // Local Vehicle interface to match the parent component
 interface Vehicle {
   id: string;
@@ -213,85 +214,169 @@ export function VehicleSelectionStep({
         </div>
       </div>
 
-      {/* Date selection */}
-      <div className="bg-muted/30 p-4 rounded-lg">
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <div className="flex-1">
-            <h3 className="font-medium mb-2">{t('inspections.date.title')}</h3>
-            <div className="flex items-center gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full sm:w-[280px] justify-start text-left font-normal",
-                      !inspectionDate && "text-muted-foreground"
-                    )}
-                  >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {inspectionDate ? format(inspectionDate, "PPP") : t('inspections.date.selectDate')}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={inspectionDate}
-                    onSelect={setInspectionDate}
-                    disabled={(date) => date < new Date() && !isBackdatingEnabled}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+      {/* Date Selection Section - Better positioned */}
+      {selectedVehicle && (
+        <div className="bg-muted/30 p-4 sm:p-6 rounded-lg space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="text-base sm:text-lg font-medium">{t("inspections.labels.inspectionDate")}</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground">{t("inspections.labels.inspectionDateDescription")}</p>
             </div>
-            {inspectionDate && inspectionDate < new Date() && !isBackdatingEnabled && (
-              <p className="text-sm text-amber-600 mt-2">
-                {t('inspections.date.backdatingWarning')}
-              </p>
-            )}
+            <Button
+              variant="outline"
+              size={isMobile ? "default" : "sm"}
+              className={cn(
+                "w-full sm:w-auto min-h-[44px] sm:min-h-0",
+                isMobile && "text-sm"
+              )}
+              onClick={() => setIsBackdatingEnabled(!isBackdatingEnabled)}
+            >
+              <Calendar className="mr-2 h-4 w-4" />
+              <span className="truncate">
+                {isBackdatingEnabled ? t("inspections.actions.useCurrentDate") : t("inspections.actions.backdateInspection")}
+              </span>
+            </Button>
           </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="backdating"
-              checked={isBackdatingEnabled}
-              onChange={(e) => setIsBackdatingEnabled(e.target.checked)}
-              className="rounded border-gray-300"
-            />
-            <label htmlFor="backdating" className="text-sm font-medium">
-              {t('inspections.date.enableBackdating')}
-            </label>
-          </div>
+
+          {isBackdatingEnabled && (
+            <div className="space-y-4">
+              <div className="w-full">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal min-h-[44px]",
+                        isMobile && "text-sm"
+                      )}
+                    >
+                      <Calendar className="mr-2 h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">
+                        {inspectionDate ? format(inspectionDate, "PPP") : t("inspections.labels.selectDate")}
+                      </span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent 
+                    className={cn(
+                      "w-auto p-0",
+                      isMobile && "w-[calc(100vw-2rem)] max-w-sm mx-auto"
+                    )} 
+                    align={isMobile ? "center" : "start"}
+                    side={isMobile ? "bottom" : "bottom"}
+                  >
+                    <CalendarComponent
+                      mode="single"
+                      selected={inspectionDate}
+                      onSelect={setInspectionDate}
+                      disabled={(date) => date > new Date() || date < new Date(1900, 0, 1)}
+                      initialFocus
+                      className={cn(
+                        isMobile && "w-full [&_table]:w-full [&_td]:w-[14.28%] [&_td]:p-0 [&_td_button]:w-full [&_td_button]:h-10 [&_td_button]:rounded-none [&_td_button]:text-center [&_td_button]:text-sm"
+                      )}
+                      classNames={isMobile ? {
+                        day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                        day_today: "bg-accent text-accent-foreground",
+                        day_outside: "text-muted-foreground opacity-50",
+                        day_disabled: "text-muted-foreground opacity-50",
+                        day_hidden: "invisible",
+                        caption: "flex justify-center pt-1 relative items-center",
+                        caption_label: "text-sm font-medium",
+                        nav: "space-x-1 flex items-center",
+                        nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+                        table: "w-full border-collapse space-y-1",
+                        head_row: "flex w-full justify-between",
+                        head_cell: "text-muted-foreground text-center font-normal text-xs w-[14.28%] px-0",
+                        row: "flex w-full mt-2",
+                        cell: "text-center text-sm p-0 relative w-[14.28%] [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                      } : undefined}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              {inspectionDate && inspectionDate < new Date() && (
+                <div className="flex items-start space-x-2 text-xs sm:text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-md">
+                  <Calendar className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">
+                    {t("inspections.labels.backdatingWarning", { 
+                      date: format(inspectionDate, "PPP"),
+                      daysAgo: Math.ceil((new Date().getTime() - inspectionDate.getTime()) / (1000 * 60 * 60 * 24))
+                    })}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!isBackdatingEnabled && (
+            <div className="text-xs sm:text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+              {t("inspections.labels.currentDateInspection", { date: format(new Date(), "PPP") })}
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Vehicle list */}
       <div className="space-y-4">
         <h3 className="font-medium">
           {t('vehicles.available')} ({filteredVehicles.length})
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {filteredVehicles.map((vehicle) => (
             <Card
               key={vehicle.id}
               className={cn(
-                "cursor-pointer transition-all hover:shadow-md",
+                "cursor-pointer transition-colors",
                 selectedVehicle?.id === vehicle.id
-                  ? "ring-2 ring-primary bg-primary/5"
-                  : "hover:bg-muted/50"
+                  ? "border-primary border-2"
+                  : ""
               )}
               onClick={() => onVehicleSelect(vehicle)}
             >
               <CardContent className="p-4">
-                <div className="space-y-2">
-                  <h4 className="font-medium">{vehicle.brand} {vehicle.model}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {vehicle.plate_number} • {vehicle.year}
-                  </p>
-                  {vehicle.vehicle_group && (
-                    <span className="inline-block bg-muted px-2 py-1 rounded text-xs">
-                      {vehicle.vehicle_group.name}
-                    </span>
-                  )}
+                <div className="flex flex-row gap-4 items-center">
+                  {/* Vehicle thumbnail with 16:9 aspect ratio */}
+                  <div className="w-24 sm:w-48 shrink-0 flex items-center">
+                    <div className="relative w-full aspect-[16/9] rounded-md overflow-hidden">
+                      {vehicle.image_url ? (
+                        <Image 
+                          src={vehicle.image_url} 
+                          alt={vehicle.name}
+                          fill
+                          sizes="(max-width: 768px) 96px, 192px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <span className="text-muted-foreground">{t('common.noImage')}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Vehicle details */}
+                  <div className="flex-1 flex flex-col justify-center">
+                    <h3 className="font-medium text-lg">{vehicle.name}</h3>
+                    <p className="text-sm text-muted-foreground">{vehicle.plate_number}</p>
+                    {vehicle.brand && vehicle.model && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {vehicle.year && <span>{vehicle.year} </span>}
+                        <span>{vehicle.brand} </span>
+                        <span>{vehicle.model}</span>
+                      </p>
+                    )}
+                    {vehicle.vehicle_group && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: vehicle.vehicle_group.color }}
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {vehicle.vehicle_group.name}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

@@ -1,5 +1,12 @@
 {
-  "onlyChanged": true,
   "projectId": "Project:68da33ca2d5b652e029c5842",
-  "zip": true
+  "onlyChanged": true,
+  "zip": true,
+  "buildScriptName": "build-storybook",
+  "storybookBuildDir": "storybook-static",
+  "exitZeroOnChanges": true,
+  "autoAcceptChanges": false,
+  "ignoreLastBuildOnBranch": "main",
+  "skip": false,
+  "debug": false
 }

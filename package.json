@@ -159,7 +159,7 @@
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.3.3",
+    "typescript": "^5.9.2",
     "vaul": "^0.9.6",
     "vercel": "^48.1.6",
     "vite": "^7.1.6",

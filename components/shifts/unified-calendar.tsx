@@ -225,10 +225,21 @@ export function UnifiedCalendar({
   const [dragOverCell, setDragOverCell] = useState<{driverId: string, date: string} | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragValidation, setDragValidation] = useState<{isValid: boolean, draggedTask: any} | null>(null);
+  const [dragTimeout, setDragTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Check if a column should be highlighted
   const isColumnHighlighted = (dateStr: string) => {
     return dragOverCell?.date === dateStr && dragValidation;
+  };
+
+  // Check if a column is valid for drop
+  const isColumnValid = (dateStr: string) => {
+    return dragOverCell?.date === dateStr && dragValidation?.isValid;
+  };
+
+  // Check if a column is invalid for drop
+  const isColumnInvalid = (dateStr: string) => {
+    return dragOverCell?.date === dateStr && dragValidation && !dragValidation.isValid;
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -237,9 +248,29 @@ export function UnifiedCalendar({
     e.dataTransfer.dropEffect = "move";
   };
 
+  // Global drag end handler to clear state
+  const handleDragEnd = () => {
+    // Clear any pending timeouts
+    if (dragTimeout) {
+      clearTimeout(dragTimeout);
+      setDragTimeout(null);
+    }
+    
+    setDragOverCell(null);
+    setIsDragging(false);
+    setDragValidation(null);
+  };
+
   const handleDragEnter = (e: React.DragEvent, driverId: string, date: string) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Clear any existing timeout
+    if (dragTimeout) {
+      clearTimeout(dragTimeout);
+      setDragTimeout(null);
+    }
+    
     setDragOverCell({ driverId, date });
     setIsDragging(true);
     
@@ -254,10 +285,14 @@ export function UnifiedCalendar({
           const today = new Date();
           const todayStr = today.toISOString().split('T')[0];
           
-          // Validate: date must be >= task start_date AND date must not be in the future
-          const isValid = date >= draggedTask.start_date && date <= todayStr;
+          // Validate: Only allow dropping on the task's exact start_date and not in the past
+          const isValid = date === draggedTask.start_date && date >= todayStr;
           setDragValidation({ isValid, draggedTask });
           e.dataTransfer.dropEffect = isValid ? "move" : "none";
+          
+          // Add visual feedback with smooth transition
+          const target = e.currentTarget as HTMLElement;
+          target.style.transition = "all 0.2s ease-in-out";
         } catch (error) {
           console.error("Error parsing dragged task:", error);
           setDragValidation({ isValid: false, draggedTask: null });
@@ -273,30 +308,64 @@ export function UnifiedCalendar({
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setDragOverCell(null);
-      setIsDragging(false);
-      setDragValidation(null);
+    
+    // Check if we're actually leaving the drop zone
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    // Only clear if mouse is truly outside the element
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      // Use timeout to prevent flickering during long holds
+      const timeout = setTimeout(() => {
+        setDragOverCell(null);
+        setIsDragging(false);
+        setDragValidation(null);
+        setDragTimeout(null);
+      }, 100); // Small delay to prevent flickering
+      
+      setDragTimeout(timeout);
     }
   };
 
   const handleDrop = (e: React.DragEvent, driverId: string, date: string) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragOverCell(null);
-    setIsDragging(false);
     
     // Check validation before dropping
     if (dragValidation && !dragValidation.isValid) {
       const today = new Date().toISOString().split('T')[0];
-      if (date > today) {
-        alert(`Cannot move task to ${date}. Tasks cannot be moved to future dates.`);
+      const start = dragValidation.draggedTask?.start_date;
+      if (date < today) {
+        alert(`Cannot move task to ${date}. Tasks cannot be moved to past dates.`);
+      } else if (start && date !== start) {
+        alert(`Cannot move task to ${date}. Tasks can only be dropped on their start date (${start}).`);
       } else {
-        alert(`Cannot move task to ${date}. Tasks cannot be moved to dates before their start date (${dragValidation.draggedTask?.start_date}).`);
+        alert(`Cannot move task to ${date}.`);
       }
+      setDragOverCell(null);
+      setIsDragging(false);
       setDragValidation(null);
       return;
     }
+    
+    // Add smooth drop animation
+    const target = e.currentTarget as HTMLElement;
+    target.style.transition = "all 0.3s ease-out";
+    target.style.transform = "scale(1.02)";
+    target.style.backgroundColor = "rgb(34 197 94 / 0.1)"; // green-500/10
+    
+    // Reset animation after completion
+    setTimeout(() => {
+      target.style.transform = "scale(1)";
+      target.style.backgroundColor = "";
+      target.style.transition = "";
+    }, 300);
+    
+    // Clear drag state after animation starts
+    setDragOverCell(null);
+    setIsDragging(false);
+    setDragValidation(null);
     
     try {
       const draggedTaskData = e.dataTransfer.getData("application/json");
@@ -309,8 +378,6 @@ export function UnifiedCalendar({
     } catch (error) {
       console.error("Error handling drop:", error);
     }
-    
-    setDragValidation(null);
   };
 
   // Grid view component
@@ -318,7 +385,7 @@ export function UnifiedCalendar({
     <div className="space-y-4">
       {/* Calendar Grid */}
       <Card className="overflow-hidden">
-        <ScrollArea className="w-full">
+        <ScrollArea className="w-full" onDragEnd={handleDragEnd}>
           <div className="min-w-[600px] sm:min-w-[800px] lg:min-w-[1200px]">
             {/* Day Headers */}
             <div className="sticky top-0 z-20 bg-background border-b">
@@ -395,19 +462,21 @@ export function UnifiedCalendar({
                               "flex-1 min-w-[40px] sm:min-w-[60px] lg:min-w-[100px] border-r p-1 transition-all duration-200",
                               viewMode === "month" && !isCurrentMonth && "bg-muted/10",
                               isTodayDate && "bg-primary/5",
-                              // Column highlighting for whole column
-                              isColumnHighlighted(dateStr) && dragValidation?.isValid && "bg-green-50 dark:bg-green-900/10",
-                              isColumnHighlighted(dateStr) && dragValidation && !dragValidation.isValid && "bg-red-50 dark:bg-red-900/10",
-                              // Cell-specific highlighting
+                              // Column highlighting for whole column - subtle
+                              isColumnHighlighted(dateStr) && dragValidation?.isValid && 
+                              "bg-green-50 dark:bg-green-900/10",
+                              isColumnHighlighted(dateStr) && dragValidation && !dragValidation.isValid && 
+                              "bg-red-50 dark:bg-red-900/10",
+                              // Cell-specific highlighting - minimal and clean
                               dragOverCell?.driverId === driverSchedule.driver_id && 
                               dragOverCell?.date === dateStr && 
                               dragValidation?.isValid &&
-                              "bg-green-100 dark:bg-green-900/20 border-2 border-green-500 border-dashed scale-105 shadow-lg",
-                              // Invalid drop zone (red)
+                              "bg-green-100 dark:bg-green-900/20 border-2 border-green-300 border-dashed",
+                              // Invalid drop zone - subtle feedback
                               dragOverCell?.driverId === driverSchedule.driver_id && 
                               dragOverCell?.date === dateStr && 
                               dragValidation && !dragValidation.isValid &&
-                              "bg-red-100 dark:bg-red-900/20 border-2 border-red-500 border-dashed cursor-not-allowed"
+                              "bg-red-100 dark:bg-red-900/20 border-2 border-red-300 border-dashed cursor-not-allowed"
                             )}
                             onDragOver={handleDragOver}
                             onDragEnter={(e) => handleDragEnter(e, driverSchedule.driver_id, dateStr)}

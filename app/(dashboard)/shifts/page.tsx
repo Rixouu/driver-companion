@@ -436,13 +436,32 @@ export default function ShiftsPage() {
   };
 
   const handleTaskDrop = async (taskId: string, driverId: string, date: string) => {
-    // Validate drop - check if date is in the future
-    const today = new Date().toISOString().split('T')[0];
-    if (date > today) {
-      toast.error(`Cannot move task to ${date}. Tasks cannot be moved to future dates.`);
+    // Fetch the task to validate start date
+    try {
+      const res = await fetch(`/api/crew-tasks/${taskId}`);
+      if (!res.ok) throw new Error("Failed to fetch task");
+      const task: any = await res.json();
+      const start = task?.start_date as string | undefined;
+      const today = new Date().toISOString().split('T')[0];
+      
+      if (!start) {
+        toast.error("Invalid task: missing start date.");
+        return;
+      }
+      if (date < today) {
+        toast.error(`Cannot move task to ${date}. Tasks cannot be moved to past dates.`);
+        return;
+      }
+      if (date !== start) {
+        toast.error(`Cannot move task to ${date}. Tasks can only be dropped on their start date (${start}).`);
+        return;
+      }
+    } catch (e) {
+      console.error("Validation error:", e);
+      toast.error("Failed to validate task move");
       return;
     }
-    
+
     try {
       const response = await fetch(`/api/crew-tasks/${taskId}`, {
         method: "PATCH",

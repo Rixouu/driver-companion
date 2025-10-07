@@ -5,6 +5,10 @@ const config: StorybookConfig = {
     "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
     "../components/ui/**/*.stories.@(js|jsx|mjs|ts|tsx)"
   ],
+  "exclude": [
+    "../components/data-table*.tsx",
+    "../components/data-table-*.tsx"
+  ],
   "addons": [
     "@chromatic-com/storybook",
     "@storybook/addon-docs",

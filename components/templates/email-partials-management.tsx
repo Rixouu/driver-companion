@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { sanitizeHtml } from '@/lib/utils/sanitize'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
@@ -511,7 +512,7 @@ export function EmailPartialsManagement() {
                     <div 
                       className="prose prose-sm max-w-none text-gray-900 dark:text-gray-900"
                       dangerouslySetInnerHTML={{ 
-                        __html: generatePreviewContent(selectedPartial)
+                        __html: sanitizeHtml(generatePreviewContent(selectedPartial))
                       }}
                     />
                   )}

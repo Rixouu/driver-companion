@@ -160,6 +160,11 @@ export function Sidebar() {
   // Save collapsed state to localStorage
   useEffect(() => {
     localStorage.setItem('sidebarCollapsed', String(collapsed))
+    // Also broadcast an event for other components to react without polling
+    if (typeof window !== 'undefined' && typeof CustomEvent !== 'undefined') {
+      const evt = new CustomEvent('sidebar:collapsed', { detail: { collapsed } })
+      window.dispatchEvent(evt)
+    }
   }, [collapsed])
 
   const handleLogout = async () => {

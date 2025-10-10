@@ -31,22 +31,19 @@ export function MainLayout({ children }: MainLayoutProps) {
         setSidebarCollapsed(savedCollapsedState === 'true')
       }
     }
+    const handleSidebarCollapsedEvent = (event: Event) => {
+      const detail = (event as CustomEvent).detail as { collapsed?: boolean } | undefined
+      if (detail && typeof detail.collapsed === 'boolean') setSidebarCollapsed(detail.collapsed)
+    }
     
     window.addEventListener('storage', handleStorageChange)
-    
-    // Also set up an interval to check the localStorage value
-    const interval = setInterval(() => {
-      const savedCollapsedState = localStorage.getItem('sidebarCollapsed')
-      if (savedCollapsedState && (savedCollapsedState === 'true') !== sidebarCollapsed) {
-        setSidebarCollapsed(savedCollapsedState === 'true')
-      }
-    }, 500)
+    window.addEventListener('sidebar:collapsed', handleSidebarCollapsedEvent as EventListener)
     
     return () => {
       window.removeEventListener('storage', handleStorageChange)
-      clearInterval(interval)
+      window.removeEventListener('sidebar:collapsed', handleSidebarCollapsedEvent as EventListener)
     }
-  }, [sidebarCollapsed])
+  }, [])
   
   // Don't show layout on auth pages
   if (pathname?.startsWith("/auth")) {

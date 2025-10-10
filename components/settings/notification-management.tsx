@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { sanitizeHtml } from '@/lib/utils/sanitize'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { useToast } from '@/components/ui/use-toast'
 import { useI18n } from '@/lib/i18n/context'
@@ -592,7 +593,7 @@ export function NotificationManagement() {
                 <Label className="text-sm font-medium">HTML Preview</Label>
                 <ScrollArea className="h-[400px] w-full border rounded-lg p-4 bg-white">
                   {previewTemplate?.html_content ? (
-                    <div dangerouslySetInnerHTML={{ __html: previewTemplate.html_content }} />
+                    <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(previewTemplate.html_content) }} />
                   ) : (
                     <p className="text-muted-foreground">No HTML content</p>
                   )}

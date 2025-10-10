@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { sanitizeHtml } from '@/lib/utils/sanitize'
 import { 
   Save,
   Eye,
@@ -361,7 +362,7 @@ export function EmailPartialEditor({ isOpen, onClose, onSave, partial }: EmailPa
                   ) : (
                     <div 
                       dangerouslySetInnerHTML={{ 
-                        __html: previewContent
+                        __html: sanitizeHtml(previewContent)
                       }}
                       className="prose prose-sm max-w-none text-gray-900 dark:text-gray-900"
                     />

@@ -13,6 +13,7 @@ import {
   FileText,
   Image
 } from 'lucide-react'
+import { escapeHtml, sanitizeUrl } from '@/lib/utils/sanitize'
 
 interface ReceiptData {
   id: string | number
@@ -47,11 +48,18 @@ export function ReceiptModal({ open, onClose, receiptData }: ReceiptModalProps) 
   }
 
   const generateReceiptHTML = () => {
+    const safeTitle = escapeHtml(receiptData.title || receiptData.name || 'Payment Receipt')
+    const safeService = escapeHtml(receiptData.title || receiptData.name || 'N/A')
+    const safeId = escapeHtml(receiptData.id)
+    const safeStatus = escapeHtml(receiptData.status)
+    const safeDescription = receiptData.description ? escapeHtml(receiptData.description) : ''
+    const safeTxUrl = receiptData.transaction_url ? sanitizeUrl(receiptData.transaction_url) : ''
+    const safeTxUrlText = receiptData.transaction_url ? escapeHtml(receiptData.transaction_url) : ''
     return `
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Payment Receipt - ${receiptData.title || receiptData.name || 'Payment Receipt'}</title>
+          <title>Payment Receipt - ${safeTitle}</title>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
@@ -243,11 +251,11 @@ export function ReceiptModal({ open, onClose, receiptData }: ReceiptModalProps) 
               <div class="details-section">
                 <div class="detail-row">
                   <div class="detail-label">Service</div>
-                  <div class="detail-value">${receiptData.title || receiptData.name || 'N/A'}</div>
+                  <div class="detail-value">${safeService}</div>
                 </div>
                 <div class="detail-row">
                   <div class="detail-label">Payment ID</div>
-                  <div class="detail-value">${receiptData.id}</div>
+                  <div class="detail-value">${safeId}</div>
                 </div>
                 <div class="detail-row">
                   <div class="detail-label">Payment Date</div>
@@ -256,20 +264,20 @@ export function ReceiptModal({ open, onClose, receiptData }: ReceiptModalProps) 
                 <div class="detail-row">
                   <div class="detail-label">Status</div>
                   <div class="detail-value">
-                    <span class="status-badge">${receiptData.status}</span>
+                    <span class="status-badge">${safeStatus}</span>
                   </div>
                 </div>
                 ${receiptData.description ? `
                 <div class="detail-row">
                   <div class="detail-label">Description</div>
-                  <div class="detail-value">${receiptData.description}</div>
+                  <div class="detail-value">${safeDescription}</div>
                 </div>
                 ` : ''}
                 ${receiptData.transaction_url ? `
                 <div class="detail-row">
                   <div class="detail-label">Transaction URL</div>
                   <div class="detail-value">
-                    <a href="${receiptData.transaction_url}" target="_blank" class="transaction-url">${receiptData.transaction_url}</a>
+                    <a href="${safeTxUrl}" target="_blank" rel="noopener noreferrer" class="transaction-url">${safeTxUrlText}</a>
                   </div>
                 </div>
                 ` : ''}

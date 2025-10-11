@@ -119,7 +119,7 @@
     "dotenv": "^16.5.0",
     "embla-carousel-react": "8.5.1",
     "file-saver": "^2.0.5",
-    "framer-motion": "^12.4.10",
+    "framer-motion": "^12.23.13",
     "glob": "^11.0.2",
     "handlebars": "^4.7.8",
     "html2canvas": "^1.4.1",
